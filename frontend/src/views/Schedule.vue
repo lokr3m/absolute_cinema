@@ -290,7 +290,8 @@ export default {
             });
             
             // Auto-select first available date if no sessions for selected date
-            if (this.filteredSessions.length === 0 && this.sessions.length > 0) {
+            const sessionsForSelectedDate = this.sessions.filter(s => s.date === this.selectedDate);
+            if (sessionsForSelectedDate.length === 0 && this.sessions.length > 0) {
               const availableDates = [...new Set(this.sessions.map(s => s.date))].sort();
               if (availableDates.length > 0) {
                 this.selectedDate = availableDates[0];
