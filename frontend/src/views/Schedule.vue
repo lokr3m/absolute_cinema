@@ -8,7 +8,7 @@
         <!-- Cinema Selection -->
         <div class="filter-section">
           <label>Kino:</label>
-          <select v-model="selectedCinema" @change="fetchSessions" class="filter-select">
+          <select v-model="selectedCinema" class="filter-select">
             <option value="">Kõik kinod</option>
             <option v-for="cinema in cinemas" :key="cinema._id" :value="cinema._id">
               {{ cinema.name }}
@@ -235,11 +235,10 @@ export default {
         .then(res => {
           // Transform the schedule data to sessions format
           const scheduleData = res.data.schedule;
+          const showsData = scheduleData?.Schedule?.Shows?.Show;
           
-          if (scheduleData && scheduleData.Schedule && scheduleData.Schedule.Shows && scheduleData.Schedule.Shows.Show) {
-            const shows = Array.isArray(scheduleData.Schedule.Shows.Show) 
-              ? scheduleData.Schedule.Shows.Show 
-              : [scheduleData.Schedule.Shows.Show];
+          if (showsData) {
+            const shows = Array.isArray(showsData) ? showsData : [showsData];
             
             this.sessions = shows.map((show, index) => {
               const startTime = new Date(show.dttmShowStart);
