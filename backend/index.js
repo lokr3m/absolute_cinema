@@ -551,7 +551,8 @@ app.get('/api/apollo-kino/schedule', async (req, res) => {
       success: true,
       movies: data.movies,
       shows: data.shows,
-      raw: data.raw
+      schedule: data.schedule,
+      events: data.events
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino schedule:', error);

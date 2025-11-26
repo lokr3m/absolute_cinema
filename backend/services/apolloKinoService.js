@@ -237,11 +237,11 @@ class ApolloKinoService {
       console.log("data from schedule ", schedule)
       console.log("data from events ", events)
 
-      return { movies, shows, raw: events };
+      return { movies, shows, schedule, events };
     } catch (error) {
       console.error('Error fetching Apollo Kino data:', error.message);
       // Return empty data instead of throwing to allow graceful degradation
-      return { movies: [], shows: [], raw: null, error: error.message };
+      return { movies: [], shows: [], schedule: null, events: null, error: error.message };
     }
   }
 }

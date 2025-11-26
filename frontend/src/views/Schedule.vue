@@ -154,6 +154,8 @@
 <script>
 import axios from 'axios'
 
+const DEFAULT_AVAILABILITY_PERCENT = 70
+
 export default {
   name: 'Schedule',
   data() {
@@ -176,11 +178,6 @@ export default {
     this.allDates = this.generateDates()
     this.fetchCinemas()
     this.fetchSchedule()
-  },
-  watch: {
-    selectedDate() {
-      // Filter sessions by selected date (client-side filtering)
-    }
   },
   computed: {
     displayedDates() {
@@ -236,19 +233,24 @@ export default {
       
       axios.get(`${apiUrl}/api/apollo-kino/schedule`)
         .then(res => {
-          // Transform the raw schedule data to sessions format
-          const rawData = res.data.raw;
+          // Transform the schedule data to sessions format
+          const scheduleData = res.data.schedule;
           
-          if (rawData && rawData.Schedule && rawData.Schedule.Shows && rawData.Schedule.Shows.Show) {
-            const shows = Array.isArray(rawData.Schedule.Shows.Show) 
-              ? rawData.Schedule.Shows.Show 
-              : [rawData.Schedule.Shows.Show];
+          if (scheduleData && scheduleData.Schedule && scheduleData.Schedule.Shows && scheduleData.Schedule.Shows.Show) {
+            const shows = Array.isArray(scheduleData.Schedule.Shows.Show) 
+              ? scheduleData.Schedule.Shows.Show 
+              : [scheduleData.Schedule.Shows.Show];
             
             this.sessions = shows.map((show, index) => {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
+              const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
+              const totalSeats = parseInt(show.TotalSeats) || 100;
+              const availabilityPercent = totalSeats > 0 
+                ? Math.round((seatsAvailable / totalSeats) * 100) 
+                : DEFAULT_AVAILABILITY_PERCENT;
               
               return {
                 id: show.ID || index,
@@ -262,8 +264,8 @@ export default {
                 language: show.SpokenLanguage || 'Unknown',
                 subtitles: show.SubtitleLanguage1 || 'Puudub',
                 format: show.PresentationMethod?.includes('3D') ? '3D' : '2D',
-                availability: 70, // Default availability
-                availableSeats: show.SeatsAvailable || 100,
+                availability: availabilityPercent,
+                availableSeats: seatsAvailable,
                 date: showDate,
                 showUrl: show.ShowURL || '#'
               };
