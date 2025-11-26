@@ -235,11 +235,30 @@ export default {
         .then(res => {
           // Transform the schedule data to sessions format
           const scheduleData = res.data.schedule;
-          const showsData = scheduleData?.Schedule?.Shows?.Show;
           
-          if (showsData) {
-            const shows = Array.isArray(showsData) ? showsData : [showsData];
-            
+          // Try different possible structures (similar to fetchEvents pattern)
+          let shows = [];
+          if (scheduleData) {
+            if (scheduleData.Schedule?.Shows?.Show) {
+              // Structure: { Schedule: { Shows: { Show: [...] } } }
+              shows = Array.isArray(scheduleData.Schedule.Shows.Show)
+                ? scheduleData.Schedule.Shows.Show
+                : [scheduleData.Schedule.Shows.Show];
+            } else if (scheduleData.Shows?.Show) {
+              // Structure: { Shows: { Show: [...] } }
+              shows = Array.isArray(scheduleData.Shows.Show)
+                ? scheduleData.Shows.Show
+                : [scheduleData.Shows.Show];
+            } else if (Array.isArray(scheduleData.Shows)) {
+              // Structure: { Shows: [...] }
+              shows = scheduleData.Shows;
+            } else if (Array.isArray(scheduleData)) {
+              // Structure: [...]
+              shows = scheduleData;
+            }
+          }
+          
+          if (shows.length > 0) {
             this.sessions = shows.map((show, index) => {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
@@ -269,6 +288,14 @@ export default {
                 showUrl: show.ShowURL || '#'
               };
             });
+            
+            // Auto-select first available date if no sessions for selected date
+            if (this.filteredSessions.length === 0 && this.sessions.length > 0) {
+              const availableDates = [...new Set(this.sessions.map(s => s.date))].sort();
+              if (availableDates.length > 0) {
+                this.selectedDate = availableDates[0];
+              }
+            }
           } else {
             this.sessions = [];
           }
