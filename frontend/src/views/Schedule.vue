@@ -486,9 +486,11 @@ h1 {
   justify-content: center;
   gap: 1.5rem;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  overflow: visible;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 100;
 }
 
 .filter-section {
@@ -562,23 +564,23 @@ h1 {
 
 .dropdown-menu {
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   min-width: 100%;
   background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   border: 1px solid rgba(233, 69, 96, 0.3);
   border-radius: 12px;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  overflow: hidden;
-  animation: dropdownFadeInUp 0.2s ease;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  overflow: visible;
+  animation: dropdownFadeInDown 0.2s ease;
 }
 
-@keyframes dropdownFadeInUp {
+@keyframes dropdownFadeInDown {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px);
+    transform: translateX(-50%) translateY(-10px);
   }
   to {
     opacity: 1;
