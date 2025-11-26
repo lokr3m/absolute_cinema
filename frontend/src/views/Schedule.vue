@@ -483,6 +483,7 @@ h1 {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 1.5rem;
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -561,26 +562,27 @@ h1 {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
   min-width: 100%;
   background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   border: 1px solid rgba(233, 69, 96, 0.3);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
   z-index: 1000;
   overflow: hidden;
-  animation: dropdownFadeIn 0.2s ease;
+  animation: dropdownFadeInUp 0.2s ease;
 }
 
-@keyframes dropdownFadeIn {
+@keyframes dropdownFadeInUp {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateX(-50%) translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
 }
 
