@@ -389,9 +389,9 @@ h1 {
 
 /* Filters Container */
 .filters-container {
-  background-color: #1a1a1a;
-  padding: 1.5rem;
-  border-radius: 8px;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
   margin-bottom: 2rem;
   display: flex;
   flex-direction: row;
@@ -399,18 +399,20 @@ h1 {
   gap: 1.5rem;
   flex-wrap: nowrap;
   overflow-x: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .filter-section {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .filter-group {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .filter-section label {
@@ -421,28 +423,48 @@ h1 {
 }
 
 .filter-select {
-  padding: 0.5rem 1rem;
-  border: 1px solid #444;
-  border-radius: 4px;
-  background: #2a2a2a;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 8px;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   color: #fff;
   cursor: pointer;
   font-size: 0.95rem;
   min-width: 180px;
   appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg fill="%23e94560" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
   background-repeat: no-repeat;
-  background-position: right 0.5rem center;
+  background-position: right 0.75rem center;
   background-size: 1.2rem;
-  padding-right: 2rem;
+  padding-right: 2.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.filter-select:hover {
+  border-color: #e94560;
+  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.3);
+  transform: translateY(-2px);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+}
+
+.filter-select option {
+  background: #1a1f35;
+  color: #fff;
+  padding: 0.5rem;
 }
 
 .filter-select-compact {
-  min-width: 140px;
-  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  min-width: 150px;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
   font-size: 0.9rem;
   background-size: 1rem;
-  background-position: right 0.4rem center;
+  background-position: right 0.6rem center;
 }
 
 /* Date Selection */
