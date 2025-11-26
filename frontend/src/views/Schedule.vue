@@ -152,6 +152,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'Schedule',
   data() {
@@ -173,11 +175,11 @@ export default {
   created() {
     this.allDates = this.generateDates()
     this.fetchCinemas()
-    this.fetchSessions()
+    this.fetchSchedule()
   },
   watch: {
     selectedDate() {
-      this.fetchSessions()
+      // Filter sessions by selected date (client-side filtering)
     }
   },
   computed: {
@@ -201,6 +203,11 @@ export default {
           matches = false
         }
         
+        // Filter by selected date
+        if (this.selectedDate && session.date !== this.selectedDate) {
+          matches = false
+        }
+        
         return matches
       })
     }
@@ -221,61 +228,57 @@ export default {
         console.error('Error fetching cinemas:', err);
       }
     },
-    async fetchSessions() {
+    fetchSchedule() {
       this.loading = true;
       this.error = null;
       
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const params = new URLSearchParams();
-        
-        if (this.selectedDate) {
-          params.append('date', this.selectedDate);
-        }
-        
-        const url = `${apiUrl}/api/sessions?${params.toString()}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          // Transform API data to match the component's expected format
-          this.sessions = (data.data || []).map(session => {
-            const startTime = new Date(session.startTime);
-            const hours = startTime.getHours().toString().padStart(2, '0');
-            const minutes = startTime.getMinutes().toString().padStart(2, '0');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      axios.get(`${apiUrl}/api/apollo-kino/schedule`)
+        .then(res => {
+          // Transform the raw schedule data to sessions format
+          const rawData = res.data.raw;
+          
+          if (rawData && rawData.Schedule && rawData.Schedule.Shows && rawData.Schedule.Shows.Show) {
+            const shows = Array.isArray(rawData.Schedule.Shows.Show) 
+              ? rawData.Schedule.Shows.Show 
+              : [rawData.Schedule.Shows.Show];
             
-            return {
-              id: session._id,
-              movieTitle: session.film?.title || 'Unknown',
-              genre: session.film?.genre?.join(', ') || '',
-              time: `${hours}:${minutes}`,
-              cinema: session.hall?.cinema?.name || 'Unknown Cinema',
-              cinemaId: session.hall?.cinema?._id || '',
-              hall: session.hall?.name || 'Unknown Hall',
-              posterUrl: session.film?.posterUrl || 'https://via.placeholder.com/200x300/333/fff?text=No+Image',
-              language: session.film?.language || 'Unknown',
-              subtitles: session.subtitles || session.film?.subtitles?.join(', ') || 'Puudub',
-              format: session.is3D ? '3D' : '2D',
-              availability: session.availableSeats ? Math.round((session.availableSeats / (session.hall?.capacity || 100)) * 100) : 0,
-              availableSeats: session.availableSeats || 0,
-              date: this.selectedDate
-            };
-          });
-        } else {
-          this.error = 'Failed to load sessions';
-        }
-      } catch (err) {
-        console.error('Error fetching sessions:', err);
-        this.error = `Failed to load sessions: ${err.message}`;
-        this.sessions = [];
-      } finally {
-        this.loading = false;
-      }
+            this.sessions = shows.map((show, index) => {
+              const startTime = new Date(show.dttmShowStart);
+              const hours = startTime.getHours().toString().padStart(2, '0');
+              const minutes = startTime.getMinutes().toString().padStart(2, '0');
+              const showDate = startTime.toISOString().split('T')[0];
+              
+              return {
+                id: show.ID || index,
+                movieTitle: show.Title || 'Unknown',
+                genre: show.Genres || '',
+                time: `${hours}:${minutes}`,
+                cinema: show.TheatreName || show.Theatre || 'Unknown Cinema',
+                cinemaId: show.TheatreID || '',
+                hall: show.TheatreAuditorium || 'Unknown Hall',
+                posterUrl: show.EventMediumImagePortrait || 'https://via.placeholder.com/200x300/333/fff?text=No+Image',
+                language: show.SpokenLanguage || 'Unknown',
+                subtitles: show.SubtitleLanguage1 || 'Puudub',
+                format: show.PresentationMethod?.includes('3D') ? '3D' : '2D',
+                availability: 70, // Default availability
+                availableSeats: show.SeatsAvailable || 100,
+                date: showDate,
+                showUrl: show.ShowURL || '#'
+              };
+            });
+          } else {
+            this.sessions = [];
+          }
+          
+          this.loading = false;
+        })
+        .catch(err => {
+          console.error('Error fetching schedule:', err);
+          this.loading = false;
+          this.error = `Cannot connect to the backend server. Please make sure the backend is running.`;
+        });
     },
     generateDates() {
       const dates = []

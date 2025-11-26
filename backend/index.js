@@ -530,6 +530,39 @@ app.get('/api/apollo-kino/events/debug', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/apollo-kino/schedule
+ * Get schedule data from Apollo Kino API
+ * Returns movies and shows data from the Schedule endpoint
+ */
+app.get('/api/apollo-kino/schedule', async (req, res) => {
+  try {
+    const data = await apolloKinoService.fetchSchedule();
+    
+    if (data.error) {
+      return res.status(503).json({
+        success: false,
+        error: 'Failed to fetch Apollo Kino schedule data',
+        message: data.error
+      });
+    }
+
+    res.json({
+      success: true,
+      movies: data.movies,
+      shows: data.shows,
+      raw: data.raw
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino schedule:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Apollo Kino schedule',
+      message: error.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server started on http://localhost:${PORT}`);
 });
