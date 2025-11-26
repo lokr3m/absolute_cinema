@@ -7,13 +7,31 @@
       <div class="filters-container">
         <!-- Cinema Selection -->
         <div class="filter-section">
-          <label>Kino:</label>
-          <select v-model="selectedCinema" class="filter-select">
-            <option value="">Kõik kinod</option>
-            <option v-for="cinema in cinemas" :key="cinema._id" :value="cinema._id">
-              {{ cinema.name }}
-            </option>
-          </select>
+          <div class="custom-dropdown" :class="{ open: cinemaDropdownOpen }">
+            <button class="dropdown-btn" @click="toggleCinemaDropdown">
+              <span class="dropdown-icon">🎬</span>
+              <span>Kino</span>
+              <span class="arrow">▼</span>
+            </button>
+            <div class="dropdown-menu" v-if="cinemaDropdownOpen">
+              <div 
+                class="dropdown-item" 
+                :class="{ active: selectedCinema === '' }"
+                @click="selectCinema('')"
+              >
+                Kõik kinod
+              </div>
+              <div 
+                v-for="cinema in cinemas" 
+                :key="cinema._id" 
+                class="dropdown-item"
+                :class="{ active: selectedCinema === cinema._id }"
+                @click="selectCinema(cinema._id)"
+              >
+                {{ cinema.name }}
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Date Selection -->
@@ -40,24 +58,48 @@
         <!-- Genre and Format Filters -->
         <div class="filter-group">
           <div class="filter-section">
-            <label>Žanr:</label>
-            <select v-model="selectedGenre" class="filter-select filter-select-compact">
-              <option value="">Kõik žanrid</option>
-              <option value="action">Action</option>
-              <option value="comedy">Comedy</option>
-              <option value="drama">Drama</option>
-              <option value="horror">Horror</option>
-              <option value="scifi">Sci-Fi</option>
-            </select>
+            <div class="custom-dropdown" :class="{ open: genreDropdownOpen }">
+              <button class="dropdown-btn dropdown-btn-compact" @click="toggleGenreDropdown">
+                <span class="dropdown-icon">🎭</span>
+                <span>Žanr</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" v-if="genreDropdownOpen">
+                <div 
+                  class="dropdown-item" 
+                  :class="{ active: selectedGenre === '' }"
+                  @click="selectGenre('')"
+                >
+                  Kõik žanrid
+                </div>
+                <div class="dropdown-item" :class="{ active: selectedGenre === 'action' }" @click="selectGenre('action')">Action</div>
+                <div class="dropdown-item" :class="{ active: selectedGenre === 'comedy' }" @click="selectGenre('comedy')">Comedy</div>
+                <div class="dropdown-item" :class="{ active: selectedGenre === 'drama' }" @click="selectGenre('drama')">Drama</div>
+                <div class="dropdown-item" :class="{ active: selectedGenre === 'horror' }" @click="selectGenre('horror')">Horror</div>
+                <div class="dropdown-item" :class="{ active: selectedGenre === 'scifi' }" @click="selectGenre('scifi')">Sci-Fi</div>
+              </div>
+            </div>
           </div>
 
           <div class="filter-section">
-            <label>Formaat:</label>
-            <select v-model="selectedFormat" class="filter-select filter-select-compact">
-              <option value="">Kõik formaadid</option>
-              <option value="2D">2D</option>
-              <option value="3D">3D</option>
-            </select>
+            <div class="custom-dropdown" :class="{ open: formatDropdownOpen }">
+              <button class="dropdown-btn dropdown-btn-compact" @click="toggleFormatDropdown">
+                <span class="dropdown-icon">📽️</span>
+                <span>Formaat</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" v-if="formatDropdownOpen">
+                <div 
+                  class="dropdown-item" 
+                  :class="{ active: selectedFormat === '' }"
+                  @click="selectFormat('')"
+                >
+                  Kõik formaadid
+                </div>
+                <div class="dropdown-item" :class="{ active: selectedFormat === '2D' }" @click="selectFormat('2D')">2D</div>
+                <div class="dropdown-item" :class="{ active: selectedFormat === '3D' }" @click="selectFormat('3D')">3D</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -171,13 +213,21 @@ export default {
       sessions: [],
       cinemas: [],
       loading: false,
-      error: null
+      error: null,
+      cinemaDropdownOpen: false,
+      genreDropdownOpen: false,
+      formatDropdownOpen: false
     }
   },
   created() {
     this.allDates = this.generateDates()
     this.fetchCinemas()
     this.fetchSchedule()
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', this.closeAllDropdowns)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeAllDropdowns)
   },
   computed: {
     displayedDates() {
@@ -210,6 +260,43 @@ export default {
     }
   },
   methods: {
+    closeAllDropdowns(event) {
+      if (!event.target.closest('.custom-dropdown')) {
+        this.cinemaDropdownOpen = false
+        this.genreDropdownOpen = false
+        this.formatDropdownOpen = false
+      }
+    },
+    toggleCinemaDropdown(event) {
+      event.stopPropagation()
+      this.cinemaDropdownOpen = !this.cinemaDropdownOpen
+      this.genreDropdownOpen = false
+      this.formatDropdownOpen = false
+    },
+    toggleGenreDropdown(event) {
+      event.stopPropagation()
+      this.genreDropdownOpen = !this.genreDropdownOpen
+      this.cinemaDropdownOpen = false
+      this.formatDropdownOpen = false
+    },
+    toggleFormatDropdown(event) {
+      event.stopPropagation()
+      this.formatDropdownOpen = !this.formatDropdownOpen
+      this.cinemaDropdownOpen = false
+      this.genreDropdownOpen = false
+    },
+    selectCinema(value) {
+      this.selectedCinema = value
+      this.cinemaDropdownOpen = false
+    },
+    selectGenre(value) {
+      this.selectedGenre = value
+      this.genreDropdownOpen = false
+    },
+    selectFormat(value) {
+      this.selectedFormat = value
+      this.formatDropdownOpen = false
+    },
     async fetchCinemas() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -422,49 +509,98 @@ h1 {
   white-space: nowrap;
 }
 
-.filter-select {
-  padding: 0.6rem 1.2rem;
+/* Custom Dropdown Styles */
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
   border: 1px solid rgba(233, 69, 96, 0.3);
-  border-radius: 8px;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  border-radius: 12px;
+  background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
   color: #fff;
   cursor: pointer;
   font-size: 0.95rem;
-  min-width: 180px;
-  appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23e94560" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1.2rem;
-  padding-right: 2.5rem;
+  font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+  min-width: 120px;
+  justify-content: center;
 }
 
-.filter-select:hover {
-  border-color: #e94560;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.3);
+.dropdown-btn:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.5);
+  background: linear-gradient(145deg, #ff5a75 0%, #e94560 100%);
 }
 
-.filter-select:focus {
-  outline: none;
-  border-color: #e94560;
-  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
-}
-
-.filter-select option {
-  background: #1a1f35;
-  color: #fff;
-  padding: 0.5rem;
-}
-
-.filter-select-compact {
-  min-width: 150px;
-  padding: 0.5rem 2.5rem 0.5rem 1rem;
+.dropdown-btn-compact {
+  min-width: 110px;
+  padding: 0.6rem 1rem;
   font-size: 0.9rem;
-  background-size: 1rem;
-  background-position: right 0.6rem center;
+}
+
+.dropdown-icon {
+  font-size: 1rem;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+  margin-left: 0.25rem;
+}
+
+.custom-dropdown.open .arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 100%;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: rgba(233, 69, 96, 0.2);
+  color: #e94560;
+}
+
+.dropdown-item.active {
+  background: rgba(233, 69, 96, 0.3);
+  color: #e94560;
+  font-weight: 600;
 }
 
 /* Date Selection */
