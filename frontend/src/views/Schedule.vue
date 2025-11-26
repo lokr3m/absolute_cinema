@@ -278,7 +278,7 @@ export default {
         .catch(err => {
           console.error('Error fetching schedule:', err);
           this.loading = false;
-          this.error = `Cannot connect to the backend server. Please make sure the backend is running.`;
+          this.error = err.response?.data?.message || err.message || 'Failed to fetch schedule data';
         });
     },
     generateDates() {
