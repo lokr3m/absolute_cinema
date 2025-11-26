@@ -270,6 +270,23 @@ export default {
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;
               
+              // Extract language name from object if it's an object
+              const spokenLang = typeof show.SpokenLanguage === 'object' 
+                ? (show.SpokenLanguage?.Name || 'Unknown')
+                : (show.SpokenLanguage || 'Unknown');
+              
+              // Extract subtitle language name from object if it's an object
+              const subtitleLang = typeof show.SubtitleLanguage1 === 'object'
+                ? (show.SubtitleLanguage1?.Name || 'Puudub')
+                : (show.SubtitleLanguage1 || 'Puudub');
+              
+              // Try multiple possible poster URL fields
+              const posterUrl = show.Images?.EventMediumImagePortrait 
+                || show.EventMediumImagePortrait 
+                || show.Images?.EventSmallImagePortrait
+                || show.EventSmallImagePortrait
+                || 'https://via.placeholder.com/200x300/1a1a2e/e94560?text=' + encodeURIComponent(show.Title || 'No Image');
+              
               return {
                 id: show.ID || index,
                 movieTitle: show.Title || 'Unknown',
@@ -278,9 +295,9 @@ export default {
                 cinema: show.TheatreName || show.Theatre || 'Unknown Cinema',
                 cinemaId: show.TheatreID || '',
                 hall: show.TheatreAuditorium || 'Unknown Hall',
-                posterUrl: show.EventMediumImagePortrait || 'https://via.placeholder.com/200x300/333/fff?text=No+Image',
-                language: show.SpokenLanguage || 'Unknown',
-                subtitles: show.SubtitleLanguage1 || 'Puudub',
+                posterUrl: posterUrl,
+                language: spokenLang,
+                subtitles: subtitleLang,
                 format: show.PresentationMethod?.includes('3D') ? '3D' : '2D',
                 availability: availabilityPercent,
                 availableSeats: seatsAvailable,
@@ -354,7 +371,7 @@ export default {
 .schedule {
   padding: 2rem 0;
   min-height: calc(100vh - 200px);
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 }
 
 .container {
@@ -366,7 +383,8 @@ export default {
 h1 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
-  color: #333;
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Filters Container */
@@ -506,31 +524,35 @@ h1 {
   text-align: center;
   padding: 3rem;
   font-size: 1.2rem;
-  background-color: #fff;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  color: #fff;
 }
 
 .error {
-  color: #e50914;
+  color: #ff6b6b;
 }
 
 .no-sessions {
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .schedule-card {
-  background-color: #fff;
-  border-radius: 8px;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   display: flex;
   gap: 1.5rem;
-  transition: box-shadow 0.3s;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .schedule-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
+  border-color: rgba(233, 69, 96, 0.3);
 }
 
 .schedule-card-left {
@@ -559,35 +581,37 @@ h1 {
 .session-time {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #333;
+  color: #fff;
 }
 
 .cinema-name {
   font-size: 0.95rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   font-weight: bold;
 }
 
 .hall-name {
   font-size: 0.9rem;
-  color: #999;
+  color: rgba(255, 255, 255, 0.6);
   font-weight: bold;
 }
 
 .btn-trailer {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
+  background: rgba(233, 69, 96, 0.2);
+  border: 1px solid rgba(233, 69, 96, 0.3);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: bold;
-  transition: background-color 0.3s;
+  color: #e94560;
+  transition: all 0.3s;
 }
 
 .btn-trailer:hover {
-  background-color: #e5e5e5;
+  background: rgba(233, 69, 96, 0.3);
+  border-color: #e94560;
 }
 
 /* Right Side */
@@ -608,13 +632,13 @@ h1 {
 .movie-title {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #333;
+  color: #fff;
   margin-bottom: 0.5rem;
 }
 
 .movie-genre {
   font-size: 0.9rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 1rem;
   font-weight: bold;
 }
@@ -684,13 +708,13 @@ h1 {
   left: 10px;
   width: 40px;
   height: 40px;
-  background-color: #fff;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   border-radius: 50%;
 }
 
 .availability-text {
   font-size: 0.9rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
   font-weight: bold;
 }
@@ -713,11 +737,11 @@ h1 {
 
 .meta-label {
   font-weight: 700;
-  color: #333;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .meta-value {
-  color: #333;
+  color: #fff;
   font-weight: 600;
 }
 
