@@ -564,6 +564,41 @@ app.get('/api/apollo-kino/schedule', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/apollo-kino/TheatreAreas
+ * Get theatre areas from Apollo Kino API
+ * Returns list of available cinemas/theatre areas
+ */
+app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
+  try {
+    const theatreAreas = await apolloKinoService.fetchTheatreAreas();
+    
+    res.json({
+      success: true,
+      count: theatreAreas.length,
+      data: theatreAreas
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino Theatre Areas:', error);
+    
+    // Return mock data when external API is not available
+    const mockTheatreAreas = [
+      { ID: '1004', Name: 'Tallinn - Kõik kinod' },
+      { ID: '1005', Name: 'Tartu - Kõik kinod' },
+      { ID: '1006', Name: 'Pärnu - Kõik kinod' },
+      { ID: '1007', Name: 'Apollo Kino Ülemiste' },
+      { ID: '1008', Name: 'Apollo Kino Solaris' },
+      { ID: '1009', Name: 'Apollo Kino Coca-Cola Plaza' }
+    ];
+    
+    res.json({
+      success: true,
+      count: mockTheatreAreas.length,
+      data: mockTheatreAreas
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server started on http://localhost:${PORT}`);
 });

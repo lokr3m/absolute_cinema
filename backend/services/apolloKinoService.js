@@ -109,6 +109,44 @@ class ApolloKinoService {
   }
 
   /**
+   * Fetch Theatre Areas data from Apollo Kino API
+   * @returns {Promise<Array>} Array of theatre areas
+   */
+  async fetchTheatreAreas() {
+    try {
+      const theatreAreasData = await this.fetchJSON("/TheatreAreas");
+      
+      // Parse TheatreAreas structure
+      let theatreAreas = [];
+      
+      if (theatreAreasData) {
+        if (theatreAreasData.TheatreAreas && theatreAreasData.TheatreAreas.TheatreArea) {
+          // Structure: { TheatreAreas: { TheatreArea: [...] } }
+          theatreAreas = Array.isArray(theatreAreasData.TheatreAreas.TheatreArea) 
+            ? theatreAreasData.TheatreAreas.TheatreArea 
+            : [theatreAreasData.TheatreAreas.TheatreArea];
+        } else if (Array.isArray(theatreAreasData.TheatreAreas)) {
+          // Structure: { TheatreAreas: [...] }
+          theatreAreas = theatreAreasData.TheatreAreas;
+        } else if (Array.isArray(theatreAreasData)) {
+          // Structure: [...]
+          theatreAreas = theatreAreasData;
+        } else if (theatreAreasData.TheatreArea) {
+          // Structure: { TheatreArea: [...] }
+          theatreAreas = Array.isArray(theatreAreasData.TheatreArea) 
+            ? theatreAreasData.TheatreArea 
+            : [theatreAreasData.TheatreArea];
+        }
+      }
+      
+      return theatreAreas;
+    } catch (error) {
+      console.error('Error fetching Apollo Kino Theatre Areas:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch Events data from Apollo Kino API
    * @returns {Promise<Array>} Array of movie events
    */

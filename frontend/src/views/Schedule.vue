@@ -300,14 +300,41 @@ export default {
     async fetchCinemas() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/cinemas`);
         
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            this.cinemas = data.data || [];
+        // Fetch both local cinemas and Apollo Kino theatre areas
+        const [localCinemasResponse, theatreAreasResponse] = await Promise.all([
+          fetch(`${apiUrl}/api/cinemas`).catch(() => null),
+          fetch(`${apiUrl}/api/apollo-kino/TheatreAreas`).catch(() => null)
+        ]);
+        
+        let allCinemas = [];
+        
+        // Process local cinemas
+        if (localCinemasResponse && localCinemasResponse.ok) {
+          const data = await localCinemasResponse.json();
+          if (data.success && data.data) {
+            allCinemas = data.data.map(cinema => ({
+              _id: cinema._id,
+              name: cinema.name
+            }));
           }
         }
+        
+        // Process Apollo Kino theatre areas
+        // Note: Apollo Kino API returns ID/Name fields vs local cinemas' _id/name
+        if (theatreAreasResponse && theatreAreasResponse.ok) {
+          const data = await theatreAreasResponse.json();
+          if (data.success && data.data) {
+            const theatreAreas = data.data.map(area => ({
+              _id: area.ID,
+              name: area.Name
+            }));
+            // Add theatre areas to cinemas list
+            allCinemas = [...allCinemas, ...theatreAreas];
+          }
+        }
+        
+        this.cinemas = allCinemas;
       } catch (err) {
         console.error('Error fetching cinemas:', err);
       }
