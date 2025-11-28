@@ -67,6 +67,7 @@ Represents physical cinema locations.
 | phone | String | No | Cinema contact phone |
 | email | String | No | Cinema contact email |
 | facilities | Array[String] | No | Available facilities (e.g., parking, cafe) |
+| apolloKinoId | String | No | External ID from Apollo Kino API |
 | createdAt | Date | Auto | Creation timestamp |
 
 **Relationships:**
@@ -123,6 +124,9 @@ Stores information about movies available for screening.
 | trailerUrl | String | No | URL to trailer video |
 | rating | Number | No | Film rating (0-10) |
 | isActive | Boolean | Yes | Whether film is currently showing (default: true) |
+| apolloKinoId | String | No | External ID from Apollo Kino API |
+| productionYear | Number | No | Year the film was produced |
+| eventUrl | String | No | URL to the event page |
 | createdAt | Date | Auto | Creation timestamp |
 
 **Relationships:**
