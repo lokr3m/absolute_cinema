@@ -373,13 +373,37 @@ export default {
           }
           
           if (shows.length > 0) {
+            // Debug: Log first show object to see actual field names
+            if (shows[0]) {
+              console.log('Sample show object fields:', Object.keys(shows[0]));
+              console.log('Sample show seat-related fields:', {
+                SeatsAvailable: shows[0].SeatsAvailable,
+                nbrOfSeats: shows[0].nbrOfSeats,
+                FreeSeats: shows[0].FreeSeats,
+                AvailableSeats: shows[0].AvailableSeats,
+                TotalSeats: shows[0].TotalSeats,
+                TotalSeatsInAuditorium: shows[0].TotalSeatsInAuditorium,
+                Capacity: shows[0].Capacity
+              });
+            }
+            
             this.sessions = shows.map((show, index) => {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
-              const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
-              const totalSeats = parseInt(show.TotalSeats) || 100;
+              // Try multiple possible field names for seat availability from Apollo Kino API
+              const seatsAvailable = parseInt(show.SeatsAvailable) 
+                || parseInt(show.nbrOfSeats) 
+                || parseInt(show.FreeSeats) 
+                || parseInt(show.AvailableSeats)
+                || parseInt(show.SeatsRemaining) 
+                || 0;
+              const totalSeats = parseInt(show.TotalSeats) 
+                || parseInt(show.SeatsTotal) 
+                || parseInt(show.TotalSeatsInAuditorium)
+                || parseInt(show.Capacity)
+                || 100;
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;
