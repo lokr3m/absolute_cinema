@@ -370,21 +370,64 @@ app.get('/api/apollo-kino/raw', async (req, res) => {
  * GET /api/apollo-kino/events
  * Get movie events from Apollo Kino API
  * Returns transformed movie data from the Events endpoint
+ * Query parameters:
+ *   - save: If 'true', saves the data to MongoDB (optional)
  */
 app.get('/api/apollo-kino/events', async (req, res) => {
   try {
+    const { save } = req.query;
     const events = await apolloKinoService.fetchEvents();
     
     // Transform events to film format
     const films = events.map(event => apolloKinoService.transformEventToFilm(event));
     
+    const syncResults = {
+      added: 0,
+      updated: 0,
+      errors: []
+    };
+
+    // Save to MongoDB if requested
+    if (save === 'true') {
+      for (const filmData of films) {
+        try {
+          // Check if film already exists by originalTitle
+          const existingFilm = await Film.findOne({ 
+            originalTitle: filmData.originalTitle 
+          });
+
+          if (existingFilm) {
+            // Update existing film
+            await Film.findByIdAndUpdate(existingFilm._id, filmData);
+            syncResults.updated++;
+          } else {
+            // Create new film
+            await Film.create(filmData);
+            syncResults.added++;
+          }
+        } catch (error) {
+          console.error('Error saving film to MongoDB:', error);
+          syncResults.errors.push({
+            title: filmData.title,
+            error: error.message
+          });
+        }
+      }
+    }
+    
     res.json({
       success: true,
       count: films.length,
-      movies: films
+      movies: films,
+      ...(save === 'true' && { syncResults })
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino events:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Apollo Kino events',
+      message: error.message
+    });
   }
 });
 /**
@@ -395,10 +438,11 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  *   - area: Theatre Area ID (optional)
  *   - dt: Date in dd.mm.yyyy format (optional)
  *   - nrOfDays: Number of days to fetch, 1-31 (optional, defaults to 14)
+ *   - save: If 'true', saves the films to MongoDB (optional)
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
-    const { area, dt, nrOfDays } = req.query;
+    const { area, dt, nrOfDays, save } = req.query;
     
     // Build options for fetchSchedule
     // Parse nrOfDays as integer, default to 14 days to cover two weeks
@@ -419,12 +463,65 @@ app.get('/api/apollo-kino/schedule', async (req, res) => {
       });
     }
 
+    const syncResults = {
+      films: { added: 0, updated: 0, errors: [] }
+    };
+
+    // Save films from events to MongoDB if requested
+    if (save === 'true' && data.events) {
+      // Parse events structure
+      let events = [];
+      if (data.events) {
+        if (data.events.Events && data.events.Events.Event) {
+          events = Array.isArray(data.events.Events.Event) 
+            ? data.events.Events.Event 
+            : [data.events.Events.Event];
+        } else if (Array.isArray(data.events.Events)) {
+          events = data.events.Events;
+        } else if (Array.isArray(data.events)) {
+          events = data.events;
+        } else if (data.events.Event) {
+          events = Array.isArray(data.events.Event) 
+            ? data.events.Event 
+            : [data.events.Event];
+        }
+      }
+
+      for (const event of events) {
+        try {
+          const filmData = apolloKinoService.transformEventToFilm(event);
+          
+          // Check if film already exists by originalTitle
+          const existingFilm = await Film.findOne({ 
+            originalTitle: filmData.originalTitle 
+          });
+
+          if (existingFilm) {
+            // Update existing film
+            await Film.findByIdAndUpdate(existingFilm._id, filmData);
+            syncResults.films.updated++;
+          } else {
+            // Create new film
+            await Film.create(filmData);
+            syncResults.films.added++;
+          }
+        } catch (error) {
+          console.error('Error saving film to MongoDB:', error);
+          syncResults.films.errors.push({
+            title: event.Title || event.OriginalTitle,
+            error: error.message
+          });
+        }
+      }
+    }
+
     res.json({
       success: true,
       movies: data.movies,
       shows: data.shows,
       schedule: data.schedule,
-      events: data.events
+      events: data.events,
+      ...(save === 'true' && { syncResults })
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino schedule:', error);
@@ -440,18 +537,73 @@ app.get('/api/apollo-kino/schedule', async (req, res) => {
  * GET /api/apollo-kino/TheatreAreas
  * Get theatre areas from Apollo Kino API
  * Returns list of available cinemas/theatre areas
+ * Query parameters:
+ *   - save: If 'true', saves the theatre areas to MongoDB as Cinemas (optional)
  */
 app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
   try {
+    const { save } = req.query;
     const theatreAreas = await apolloKinoService.fetchTheatreAreas();
+    
+    const syncResults = {
+      added: 0,
+      updated: 0,
+      errors: []
+    };
+
+    // Save to MongoDB as Cinemas if requested
+    if (save === 'true') {
+      for (const area of theatreAreas) {
+        try {
+          const cinemaData = {
+            name: area.Name || `Apollo Kino ${area.ID}`,
+            address: {
+              street: area.Address || 'Unknown',
+              city: area.City || 'Tallinn',
+              postalCode: area.PostalCode || '00000',
+              country: 'Estonia'
+            },
+            phone: area.Phone || '',
+            email: area.Email || '',
+            facilities: [],
+            apolloKinoId: area.ID
+          };
+
+          // Check if cinema already exists by name
+          const existingCinema = await Cinema.findOne({ name: cinemaData.name });
+
+          if (existingCinema) {
+            // Update existing cinema
+            await Cinema.findByIdAndUpdate(existingCinema._id, cinemaData);
+            syncResults.updated++;
+          } else {
+            // Create new cinema
+            await Cinema.create(cinemaData);
+            syncResults.added++;
+          }
+        } catch (error) {
+          console.error('Error saving cinema to MongoDB:', error);
+          syncResults.errors.push({
+            name: area.Name || area.ID,
+            error: error.message
+          });
+        }
+      }
+    }
     
     res.json({
       success: true,
       count: theatreAreas.length,
-      data: theatreAreas
+      data: theatreAreas,
+      ...(save === 'true' && { syncResults })
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino Theatre Areas:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Apollo Kino Theatre Areas',
+      message: error.message
+    });
   }
 });
 
