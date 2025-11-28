@@ -373,7 +373,8 @@ export default {
           }
           
           if (shows.length > 0) {
-            // Debug: Log first show object to see actual field names
+            // DEBUG: Temporary logging to identify correct API field names for seat availability
+            // TODO: Remove this debug logging once the correct field names are identified
             if (shows[0]) {
               console.log('Sample show object fields:', Object.keys(shows[0]));
               console.log('Sample show seat-related fields:', {
@@ -395,12 +396,10 @@ export default {
               // Try multiple possible field names for seat availability from Apollo Kino API
               // Apollo Kino XML API may use various field names
               const seatsAvailable = parseInt(show.SeatsAvailable) 
-                || parseInt(show.nbrOfSeats) 
                 || parseInt(show.nbrOfFreeSeats)
                 || parseInt(show.FreeSeats) 
                 || parseInt(show.AvailableSeats)
                 || parseInt(show.SeatsRemaining)
-                || parseInt(show.seatCount)
                 || parseInt(show.freeSeats)
                 || parseInt(show.availableSeats)
                 || 0;
