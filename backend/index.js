@@ -389,28 +389,52 @@ app.get('/api/apollo-kino/events', async (req, res) => {
 
     // Save to MongoDB if requested
     if (save === 'true') {
+      // Get all original titles for bulk lookup
+      const originalTitles = films.map(f => f.originalTitle);
+      const existingFilms = await Film.find({ originalTitle: { $in: originalTitles } });
+      const existingTitlesMap = new Map(existingFilms.map(f => [f.originalTitle, f]));
+
+      const bulkOps = [];
       for (const filmData of films) {
         try {
-          // Check if film already exists by originalTitle
-          const existingFilm = await Film.findOne({ 
-            originalTitle: filmData.originalTitle 
-          });
-
+          const existingFilm = existingTitlesMap.get(filmData.originalTitle);
           if (existingFilm) {
-            // Update existing film
-            await Film.findByIdAndUpdate(existingFilm._id, filmData);
+            bulkOps.push({
+              updateOne: {
+                filter: { _id: existingFilm._id },
+                update: { $set: filmData }
+              }
+            });
             syncResults.updated++;
           } else {
-            // Create new film
-            await Film.create(filmData);
+            bulkOps.push({
+              insertOne: { document: filmData }
+            });
             syncResults.added++;
           }
         } catch (error) {
-          console.error('Error saving film to MongoDB:', error);
+          console.error('Error preparing film for MongoDB:', error);
           syncResults.errors.push({
             title: filmData.title,
             error: error.message
           });
+        }
+      }
+
+      if (bulkOps.length > 0) {
+        try {
+          await Film.bulkWrite(bulkOps, { ordered: false });
+        } catch (bulkError) {
+          console.error('Bulk write error:', bulkError);
+          // Handle partial failures
+          if (bulkError.writeErrors) {
+            for (const writeError of bulkError.writeErrors) {
+              syncResults.errors.push({
+                title: 'Bulk operation error',
+                error: writeError.errmsg
+              });
+            }
+          }
         }
       }
     }
@@ -487,30 +511,55 @@ app.get('/api/apollo-kino/schedule', async (req, res) => {
         }
       }
 
-      for (const event of events) {
-        try {
-          const filmData = apolloKinoService.transformEventToFilm(event);
-          
-          // Check if film already exists by originalTitle
-          const existingFilm = await Film.findOne({ 
-            originalTitle: filmData.originalTitle 
-          });
+      // Transform events to film format
+      const films = events.map(event => apolloKinoService.transformEventToFilm(event));
+      
+      // Get all original titles for bulk lookup
+      const originalTitles = films.map(f => f.originalTitle);
+      const existingFilms = await Film.find({ originalTitle: { $in: originalTitles } });
+      const existingTitlesMap = new Map(existingFilms.map(f => [f.originalTitle, f]));
 
+      const bulkOps = [];
+      for (const filmData of films) {
+        try {
+          const existingFilm = existingTitlesMap.get(filmData.originalTitle);
           if (existingFilm) {
-            // Update existing film
-            await Film.findByIdAndUpdate(existingFilm._id, filmData);
+            bulkOps.push({
+              updateOne: {
+                filter: { _id: existingFilm._id },
+                update: { $set: filmData }
+              }
+            });
             syncResults.films.updated++;
           } else {
-            // Create new film
-            await Film.create(filmData);
+            bulkOps.push({
+              insertOne: { document: filmData }
+            });
             syncResults.films.added++;
           }
         } catch (error) {
-          console.error('Error saving film to MongoDB:', error);
+          console.error('Error preparing film for MongoDB:', error);
           syncResults.films.errors.push({
-            title: event.Title || event.OriginalTitle,
+            title: filmData.title || (events.find(e => apolloKinoService.transformEventToFilm(e).originalTitle === filmData.originalTitle)?.Title),
             error: error.message
           });
+        }
+      }
+
+      if (bulkOps.length > 0) {
+        try {
+          await Film.bulkWrite(bulkOps, { ordered: false });
+        } catch (bulkError) {
+          console.error('Bulk write error:', bulkError);
+          // Handle partial failures
+          if (bulkError.writeErrors) {
+            for (const writeError of bulkError.writeErrors) {
+              syncResults.films.errors.push({
+                title: 'Bulk operation error',
+                error: writeError.errmsg
+              });
+            }
+          }
         }
       }
     }
@@ -553,6 +602,12 @@ app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
 
     // Save to MongoDB as Cinemas if requested
     if (save === 'true') {
+      // Get all cinema names for bulk lookup
+      const cinemaNames = theatreAreas.map(area => area.Name || `Apollo Kino ${area.ID}`);
+      const existingCinemas = await Cinema.find({ name: { $in: cinemaNames } });
+      const existingNamesMap = new Map(existingCinemas.map(c => [c.name, c]));
+
+      const bulkOps = [];
       for (const area of theatreAreas) {
         try {
           const cinemaData = {
@@ -569,24 +624,44 @@ app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
             apolloKinoId: area.ID
           };
 
-          // Check if cinema already exists by name
-          const existingCinema = await Cinema.findOne({ name: cinemaData.name });
-
+          const existingCinema = existingNamesMap.get(cinemaData.name);
           if (existingCinema) {
-            // Update existing cinema
-            await Cinema.findByIdAndUpdate(existingCinema._id, cinemaData);
+            bulkOps.push({
+              updateOne: {
+                filter: { _id: existingCinema._id },
+                update: { $set: cinemaData }
+              }
+            });
             syncResults.updated++;
           } else {
-            // Create new cinema
-            await Cinema.create(cinemaData);
+            bulkOps.push({
+              insertOne: { document: cinemaData }
+            });
             syncResults.added++;
           }
         } catch (error) {
-          console.error('Error saving cinema to MongoDB:', error);
+          console.error('Error preparing cinema for MongoDB:', error);
           syncResults.errors.push({
             name: area.Name || area.ID,
             error: error.message
           });
+        }
+      }
+
+      if (bulkOps.length > 0) {
+        try {
+          await Cinema.bulkWrite(bulkOps, { ordered: false });
+        } catch (bulkError) {
+          console.error('Bulk write error:', bulkError);
+          // Handle partial failures
+          if (bulkError.writeErrors) {
+            for (const writeError of bulkError.writeErrors) {
+              syncResults.errors.push({
+                name: 'Bulk operation error',
+                error: writeError.errmsg
+              });
+            }
+          }
         }
       }
     }
