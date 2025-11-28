@@ -393,16 +393,25 @@ export default {
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
               // Try multiple possible field names for seat availability from Apollo Kino API
+              // Apollo Kino XML API may use various field names
               const seatsAvailable = parseInt(show.SeatsAvailable) 
                 || parseInt(show.nbrOfSeats) 
+                || parseInt(show.nbrOfFreeSeats)
                 || parseInt(show.FreeSeats) 
                 || parseInt(show.AvailableSeats)
-                || parseInt(show.SeatsRemaining) 
+                || parseInt(show.SeatsRemaining)
+                || parseInt(show.seatCount)
+                || parseInt(show.freeSeats)
+                || parseInt(show.availableSeats)
                 || 0;
               const totalSeats = parseInt(show.TotalSeats) 
                 || parseInt(show.SeatsTotal) 
                 || parseInt(show.TotalSeatsInAuditorium)
+                || parseInt(show.TotalNbrOfSeats)
+                || parseInt(show.nbrOfSeats)
                 || parseInt(show.Capacity)
+                || parseInt(show.capacity)
+                || parseInt(show.totalSeats)
                 || 100;
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
