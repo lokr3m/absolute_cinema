@@ -238,8 +238,7 @@ export default {
       return this.sessions.filter(session => {
         let matches = true
         
-        // Convert both IDs to strings for comparison to handle type mismatches
-        if (this.selectedCinema && session.cinemaId?.toString() !== this.selectedCinema?.toString()) {
+        if (this.selectedCinema && session.cinemaId !== this.selectedCinema) {
           matches = false
         }
         

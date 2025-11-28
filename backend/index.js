@@ -391,10 +391,25 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  * GET /api/apollo-kino/schedule
  * Get schedule data from Apollo Kino API
  * Returns movies and shows data from the Schedule endpoint
+ * Query parameters:
+ *   - area: Theatre Area ID (optional)
+ *   - dt: Date in dd.mm.yyyy format (optional)
+ *   - nrOfDays: Number of days to fetch, 1-31 (optional, defaults to 14)
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
-    const data = await apolloKinoService.fetchSchedule();
+    const { area, dt, nrOfDays } = req.query;
+    
+    // Build options for fetchSchedule
+    // Parse nrOfDays as integer, default to 14 days to cover two weeks
+    const parsedNrOfDays = nrOfDays ? parseInt(nrOfDays, 10) : 14;
+    const options = {
+      nrOfDays: (parsedNrOfDays >= 1 && parsedNrOfDays <= 31) ? parsedNrOfDays : 14
+    };
+    if (area) options.area = area;
+    if (dt) options.dt = dt;
+    
+    const data = await apolloKinoService.fetchSchedule(options);
     
     if (data.error) {
       return res.status(503).json({
