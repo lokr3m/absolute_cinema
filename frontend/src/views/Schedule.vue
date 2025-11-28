@@ -373,45 +373,26 @@ export default {
           }
           
           if (shows.length > 0) {
-            // DEBUG: Temporary logging to identify correct API field names for seat availability
-            // TODO: Remove this debug logging once the correct field names are identified
-            if (shows[0]) {
-              console.log('Sample show object fields:', Object.keys(shows[0]));
-              console.log('Sample show seat-related fields:', {
-                SeatsAvailable: shows[0].SeatsAvailable,
-                nbrOfSeats: shows[0].nbrOfSeats,
-                FreeSeats: shows[0].FreeSeats,
-                AvailableSeats: shows[0].AvailableSeats,
-                TotalSeats: shows[0].TotalSeats,
-                TotalSeatsInAuditorium: shows[0].TotalSeatsInAuditorium,
-                Capacity: shows[0].Capacity
-              });
-            }
-            
             this.sessions = shows.map((show, index) => {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
-              // Try multiple possible field names for seat availability from Apollo Kino API
-              // Apollo Kino XML API may use various field names
-              const seatsAvailable = parseInt(show.SeatsAvailable) 
-                || parseInt(show.nbrOfFreeSeats)
-                || parseInt(show.FreeSeats) 
-                || parseInt(show.AvailableSeats)
-                || parseInt(show.SeatsRemaining)
-                || parseInt(show.freeSeats)
-                || parseInt(show.availableSeats)
-                || 0;
-              const totalSeats = parseInt(show.TotalSeats) 
-                || parseInt(show.SeatsTotal) 
-                || parseInt(show.TotalSeatsInAuditorium)
-                || parseInt(show.TotalNbrOfSeats)
-                || parseInt(show.nbrOfSeats)
-                || parseInt(show.Capacity)
-                || parseInt(show.capacity)
-                || parseInt(show.totalSeats)
-                || 100;
+              // Parse seat availability - Apollo Kino API may return null for these fields
+              // Use AvailableSeats and TotalSeats (PascalCase) as the API returns
+              // When null/undefined, default to reasonable values
+              const parsedAvailable = show.AvailableSeats !== null && show.AvailableSeats !== undefined 
+                ? parseInt(show.AvailableSeats) 
+                : null;
+              const parsedTotal = show.TotalSeats !== null && show.TotalSeats !== undefined 
+                ? parseInt(show.TotalSeats) 
+                : null;
+              
+              // Default total seats to 200 (typical auditorium size) when not provided
+              const totalSeats = parsedTotal || 200;
+              // When available seats not provided, assume 70% availability
+              const seatsAvailable = parsedAvailable !== null ? parsedAvailable : Math.floor(totalSeats * 0.7);
+              
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;
