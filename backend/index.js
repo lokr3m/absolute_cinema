@@ -385,6 +385,11 @@ app.get('/api/apollo-kino/events', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino events:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch events',
+      message: error.message
+    });
   }
 });
 /**
@@ -437,6 +442,11 @@ app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino Theatre Areas:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Theatre Areas',
+      message: error.message
+    });
   }
 });
 
