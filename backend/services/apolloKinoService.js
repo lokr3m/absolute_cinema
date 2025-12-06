@@ -261,29 +261,19 @@ class ApolloKinoService {
 
   /**
    * Fetch and parse all Apollo Kino data
-   * @param {Object} options - Query options
-   * @param {string} options.area - Theatre Area ID (optional)
-   * @param {string} options.dt - Date in dd.mm.yyyy format (optional)
-   * @param {number} options.nrOfDays - Number of days to fetch (1-31, optional)
    * @returns {Promise<Object>} Object containing movies and shows
    */
-  async fetchSchedule(options = {}) {
+  async fetchSchedule() {
     try {
-      // Build query string for Schedule endpoint
-      const params = new URLSearchParams();
-      if (options.area) params.append('area', options.area);
-      if (options.dt) params.append('dt', options.dt);
-      if (options.nrOfDays) params.append('nrOfDays', options.nrOfDays);
-      
-      const queryString = params.toString();
-      const schedulePath = queryString ? `/Schedule?${queryString}` : '/Schedule';
-      
-      const schedule = await this.fetchJSON(schedulePath);
+      const schedule = await this.fetchJSON("/Schedule");
       const events = await this.fetchJSON("/Events");
       
       // The structure may vary, so we'll handle different possible structures
       let movies = [];
       let shows = [];
+
+      console.log("data from schedule ", schedule)
+      console.log("data from events ", events)
 
       return { movies, shows, schedule, events };
     } catch (error) {

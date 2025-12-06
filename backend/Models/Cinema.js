@@ -36,10 +36,6 @@ const cinemaSchema = new mongoose.Schema({
   facilities: [{
     type: String
   }],
-  apolloKinoId: {
-    type: String,
-    trim: true
-  },
   createdAt: {
     type: Date,
     default: Date.now

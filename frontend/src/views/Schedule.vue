@@ -378,21 +378,8 @@ export default {
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
-              // Parse seat availability - Apollo Kino API may return null for these fields
-              // Use AvailableSeats and TotalSeats (PascalCase) as the API returns
-              // When null/undefined, default to reasonable values
-              const parsedAvailable = show.AvailableSeats !== null && show.AvailableSeats !== undefined 
-                ? parseInt(show.AvailableSeats) 
-                : null;
-              const parsedTotal = show.TotalSeats !== null && show.TotalSeats !== undefined 
-                ? parseInt(show.TotalSeats) 
-                : null;
-              
-              // Default total seats to 200 (typical auditorium size) when not provided
-              const totalSeats = parsedTotal || 200;
-              // When available seats not provided, assume 70% availability
-              const seatsAvailable = parsedAvailable !== null ? parsedAvailable : Math.floor(totalSeats * 0.7);
-              
+              const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
+              const totalSeats = parseInt(show.TotalSeats) || 100;
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;

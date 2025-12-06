@@ -61,16 +61,6 @@ const filmSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  apolloKinoId: {
-    type: String,
-    trim: true
-  },
-  productionYear: {
-    type: Number
-  },
-  eventUrl: {
-    type: String
-  },
   createdAt: {
     type: Date,
     default: Date.now
