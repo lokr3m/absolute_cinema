@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { Film, Session, Cinema, Hall } = require('./models');
+const { Film, Session, Cinema, Hall } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
 const app = express();
