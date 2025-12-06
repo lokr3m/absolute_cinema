@@ -202,6 +202,7 @@ export default {
   name: 'Schedule',
   data() {
     const today = new Date().toISOString().split('T')[0]
+    const estonianDays = ['L', 'P', 'E', 'T', 'K', 'N', 'R'] // Estonian day abbreviations (L=Sunday, P=Monday, etc.)
     
     return {
       selectedCinema: '',
@@ -216,7 +217,8 @@ export default {
       error: null,
       cinemaDropdownOpen: false,
       genreDropdownOpen: false,
-      formatDropdownOpen: false
+      formatDropdownOpen: false,
+      estonianDays: estonianDays
     }
   },
   created() {
@@ -307,15 +309,15 @@ export default {
           if (data.success && data.data && data.data.length > 0) {
             // Transform API dates to our date format
             const dates = [];
-            const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R']; // Estonian day abbreviations
             
             data.data.forEach(dateItem => {
-              // Handle different possible field names from API
+              // Handle different possible field names from API (Date, dt, date)
+              // Apollo Kino API structure may vary
               const dateStr = dateItem.Date || dateItem.dt || dateItem.date;
               if (dateStr) {
                 const date = new Date(dateStr);
                 dates.push({
-                  day: days[date.getDay()],
+                  day: this.estonianDays[date.getDay()],
                   number: date.getDate(),
                   value: date.toISOString().split('T')[0]
                 });
@@ -481,13 +483,12 @@ export default {
     generateDates() {
       const dates = []
       const today = new Date()
-      const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R'] // Estonian day abbreviations (L=Sunday, P=Monday, etc.)
       
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)
         date.setDate(today.getDate() + i)
         dates.push({
-          day: days[date.getDay()],
+          day: this.estonianDays[date.getDay()],
           number: date.getDate(),
           value: date.toISOString().split('T')[0]
         })
