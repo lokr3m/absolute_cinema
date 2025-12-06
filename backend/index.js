@@ -440,6 +440,30 @@ app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/apollo-kino/ScheduleDates
+ * Get schedule dates from Apollo Kino API
+ * Returns list of available dates for movie schedules
+ */
+app.get('/api/apollo-kino/ScheduleDates', async (req, res) => {
+  try {
+    const scheduleDates = await apolloKinoService.fetchScheduleDates();
+    
+    res.json({
+      success: true,
+      count: scheduleDates.length,
+      data: scheduleDates
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino Schedule Dates:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch Schedule Dates',
+      message: error.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server started on http://localhost:${PORT}`);
 });

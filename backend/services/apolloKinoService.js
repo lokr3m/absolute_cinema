@@ -147,6 +147,44 @@ class ApolloKinoService {
   }
 
   /**
+   * Fetch Schedule Dates data from Apollo Kino API
+   * @returns {Promise<Array>} Array of schedule dates
+   */
+  async fetchScheduleDates() {
+    try {
+      const scheduleDatesData = await this.fetchJSON("/ScheduleDates");
+      
+      // Parse ScheduleDates structure
+      let scheduleDates = [];
+      
+      if (scheduleDatesData) {
+        if (scheduleDatesData.ScheduleDates && scheduleDatesData.ScheduleDates.ScheduleDate) {
+          // Structure: { ScheduleDates: { ScheduleDate: [...] } }
+          scheduleDates = Array.isArray(scheduleDatesData.ScheduleDates.ScheduleDate) 
+            ? scheduleDatesData.ScheduleDates.ScheduleDate 
+            : [scheduleDatesData.ScheduleDates.ScheduleDate];
+        } else if (Array.isArray(scheduleDatesData.ScheduleDates)) {
+          // Structure: { ScheduleDates: [...] }
+          scheduleDates = scheduleDatesData.ScheduleDates;
+        } else if (Array.isArray(scheduleDatesData)) {
+          // Structure: [...]
+          scheduleDates = scheduleDatesData;
+        } else if (scheduleDatesData.ScheduleDate) {
+          // Structure: { ScheduleDate: [...] }
+          scheduleDates = Array.isArray(scheduleDatesData.ScheduleDate) 
+            ? scheduleDatesData.ScheduleDate 
+            : [scheduleDatesData.ScheduleDate];
+        }
+      }
+      
+      return scheduleDates;
+    } catch (error) {
+      console.error('Error fetching Apollo Kino Schedule Dates:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Fetch Events data from Apollo Kino API
    * @returns {Promise<Array>} Array of movie events
    */
