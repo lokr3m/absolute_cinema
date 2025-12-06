@@ -197,7 +197,9 @@ TA23B-B5-projekt/
 
 ## API Endpoints
 
-### GET /
+### Public Endpoints
+
+#### GET /
 
 Returns a hardcoded string value.
 
@@ -209,6 +211,55 @@ curl http://localhost:3000/
 **Response:**
 ```json
 "abbik"
+```
+
+### Apollo Kino API Integration Endpoints
+
+#### GET /api/apollo-kino/ScheduleDates
+
+Get schedule dates from Apollo Kino API. Returns a list of available dates for movie schedules.
+
+**Example:**
+```bash
+curl http://localhost:3000/api/apollo-kino/ScheduleDates
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 7,
+  "data": [
+    // Array of schedule date objects
+  ]
+}
+```
+
+#### GET /api/apollo-kino/TheatreAreas
+
+Get theatre areas (cinemas) from Apollo Kino API.
+
+**Example:**
+```bash
+curl http://localhost:3000/api/apollo-kino/TheatreAreas
+```
+
+#### GET /api/apollo-kino/schedule
+
+Get movie schedule data from Apollo Kino API.
+
+**Example:**
+```bash
+curl http://localhost:3000/api/apollo-kino/schedule
+```
+
+#### GET /api/apollo-kino/events
+
+Get movie events from Apollo Kino API.
+
+**Example:**
+```bash
+curl http://localhost:3000/api/apollo-kino/events
 ```
 
 ## Technologies Used
