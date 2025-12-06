@@ -316,11 +316,14 @@ export default {
               const dateStr = dateItem.Date || dateItem.dt || dateItem.date;
               if (dateStr) {
                 const date = new Date(dateStr);
-                dates.push({
-                  day: this.estonianDays[date.getDay()],
-                  number: date.getDate(),
-                  value: date.toISOString().split('T')[0]
-                });
+                // Validate that the date is valid before using it
+                if (!isNaN(date.getTime())) {
+                  dates.push({
+                    day: this.estonianDays[date.getDay()],
+                    number: date.getDate(),
+                    value: date.toISOString().split('T')[0]
+                  });
+                }
               }
             });
             
