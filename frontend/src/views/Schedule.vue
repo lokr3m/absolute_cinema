@@ -220,7 +220,7 @@ export default {
     }
   },
   created() {
-    this.allDates = this.generateDates()
+    this.fetchScheduleDates()
     this.fetchCinemas()
     this.fetchSchedule()
     // Close dropdowns when clicking outside
@@ -296,6 +296,44 @@ export default {
     selectFormat(value) {
       this.selectedFormat = value
       this.formatDropdownOpen = false
+    },
+    async fetchScheduleDates() {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/apollo-kino/ScheduleDates`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data && data.data.length > 0) {
+            // Transform API dates to our date format
+            const dates = [];
+            const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R']; // Estonian day abbreviations
+            
+            data.data.forEach(dateItem => {
+              // Handle different possible field names from API
+              const dateStr = dateItem.Date || dateItem.dt || dateItem.date;
+              if (dateStr) {
+                const date = new Date(dateStr);
+                dates.push({
+                  day: days[date.getDay()],
+                  number: date.getDate(),
+                  value: date.toISOString().split('T')[0]
+                });
+              }
+            });
+            
+            if (dates.length > 0) {
+              this.allDates = dates;
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching schedule dates from API:', err);
+      }
+      
+      // Fallback to generated dates if API fails or returns no data
+      this.allDates = this.generateDates();
     },
     async fetchCinemas() {
       try {
