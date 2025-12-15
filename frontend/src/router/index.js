@@ -5,6 +5,7 @@ import MovieDetail from '../views/MovieDetail.vue'
 import Booking from '../views/Booking.vue'
 import Schedule from '../views/Schedule.vue'
 import Admin from '../views/Admin.vue'
+import News from '../views/News.vue'
 
 const routes = [
   {
@@ -36,6 +37,11 @@ const routes = [
     path: '/admin',
     name: 'Admin',
     component: Admin
+  },
+  {
+    path: '/news',
+    name: 'News',
+    component: News
   }
 ]
 

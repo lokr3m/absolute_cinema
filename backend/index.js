@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { Film, Session, Cinema, Hall } = require('./models');
+const { Film, Session, Cinema, Hall } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
 const app = express();
@@ -13,22 +13,20 @@ app.use(express.json()); // для парсинга JSON тела запросо
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 
-if (!MONGODB_URI) {
-  console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
-  console.error('Please copy .env.example to .env and configure your MongoDB Atlas connection string');
-  console.error('See QUICKSTART.md for setup instructions');
-  process.exit(1);
+if (!MONGODB_URI || !MONGODB_URI.includes('mongodb')) {
+  console.warn('⚠️  MONGODB_URI is not set or invalid in environment variables');
+  console.warn('Continuing without database connection - only Apollo Kino API endpoints will be available');
+} else {
+  mongoose.connect(MONGODB_URI)
+    .then(() => {
+      const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
+      console.log(`✓ ${dbName} connected successfully`);
+    })
+    .catch(err => {
+      console.warn('⚠️  MongoDB connection error:', err.message);
+      console.warn('Continuing without database connection - only mock data will be available');
+    });
 }
-
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
-    console.log(`✓ ${dbName} connected successfully`);
-  })
-  .catch(err => {
-    console.warn('⚠️  MongoDB connection error:', err.message);
-    console.warn('Continuing without database connection - only mock data will be available');
-  });
 
 // Initialize Apollo Kino Service
 const apolloKinoService = new ApolloKinoService();
@@ -437,6 +435,54 @@ app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino Theatre Areas:', error);
+  }
+});
+
+/**
+ * GET /api/apollo-kino/NewsCategories
+ * Get news categories from Apollo Kino API
+ * Returns list of available news categories
+ */
+app.get('/api/apollo-kino/NewsCategories', async (req, res) => {
+  try {
+    const newsCategories = await apolloKinoService.fetchNewsCategories();
+    
+    res.json({
+      success: true,
+      count: newsCategories.length,
+      data: newsCategories
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino News Categories:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch news categories',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/apollo-kino/News
+ * Get news articles from Apollo Kino API
+ * Returns list of news articles
+ */
+app.get('/api/apollo-kino/News', async (req, res) => {
+  try {
+    const news = await apolloKinoService.fetchNews();
+    
+    res.json({
+      success: true,
+      count: news.length,
+      data: news
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino News:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch news',
+      message: error.message
+    });
   }
 });
 

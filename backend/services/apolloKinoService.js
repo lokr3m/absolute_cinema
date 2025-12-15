@@ -282,6 +282,82 @@ class ApolloKinoService {
       return { movies: [], shows: [], schedule: null, events: null, error: error.message };
     }
   }
+
+  /**
+   * Fetch NewsCategories data from Apollo Kino API
+   * @returns {Promise<Array>} Array of news categories
+   */
+  async fetchNewsCategories() {
+    try {
+      const newsCategoriesData = await this.fetchJSON("/NewsCategories");
+      
+      // Parse NewsCategories structure
+      let newsCategories = [];
+      
+      if (newsCategoriesData) {
+        if (newsCategoriesData.NewsCategories && newsCategoriesData.NewsCategories.NewsArticleCategory) {
+          // Structure: { NewsCategories: { NewsArticleCategory: [...] } }
+          newsCategories = Array.isArray(newsCategoriesData.NewsCategories.NewsArticleCategory) 
+            ? newsCategoriesData.NewsCategories.NewsArticleCategory 
+            : [newsCategoriesData.NewsCategories.NewsArticleCategory];
+        } else if (Array.isArray(newsCategoriesData.NewsCategories)) {
+          // Structure: { NewsCategories: [...] }
+          newsCategories = newsCategoriesData.NewsCategories;
+        } else if (Array.isArray(newsCategoriesData)) {
+          // Structure: [...]
+          newsCategories = newsCategoriesData;
+        } else if (newsCategoriesData.NewsArticleCategory) {
+          // Structure: { NewsArticleCategory: [...] }
+          newsCategories = Array.isArray(newsCategoriesData.NewsArticleCategory) 
+            ? newsCategoriesData.NewsArticleCategory 
+            : [newsCategoriesData.NewsArticleCategory];
+        }
+      }
+      
+      return newsCategories;
+    } catch (error) {
+      console.error('Error fetching Apollo Kino News Categories:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch News data from Apollo Kino API
+   * @returns {Promise<Array>} Array of news articles
+   */
+  async fetchNews() {
+    try {
+      const newsData = await this.fetchJSON("/News");
+      
+      // Parse News structure
+      let news = [];
+      
+      if (newsData) {
+        if (newsData.News && newsData.News.NewsArticle) {
+          // Structure: { News: { NewsArticle: [...] } }
+          news = Array.isArray(newsData.News.NewsArticle) 
+            ? newsData.News.NewsArticle 
+            : [newsData.News.NewsArticle];
+        } else if (Array.isArray(newsData.News)) {
+          // Structure: { News: [...] }
+          news = newsData.News;
+        } else if (Array.isArray(newsData)) {
+          // Structure: [...]
+          news = newsData;
+        } else if (newsData.NewsArticle) {
+          // Structure: { NewsArticle: [...] }
+          news = Array.isArray(newsData.NewsArticle) 
+            ? newsData.NewsArticle 
+            : [newsData.NewsArticle];
+        }
+      }
+      
+      return news;
+    } catch (error) {
+      console.error('Error fetching Apollo Kino News:', error.message);
+      throw error;
+    }
+  }
 }
 
 module.exports = ApolloKinoService;
