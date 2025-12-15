@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { Film, Session, Cinema, Hall } = require('./models');
+const { Film, Session, Cinema, Hall } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
 const app = express();
@@ -13,22 +13,20 @@ app.use(express.json()); // для парсинга JSON тела запросо
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 
-if (!MONGODB_URI) {
-  console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
-  console.error('Please copy .env.example to .env and configure your MongoDB Atlas connection string');
-  console.error('See QUICKSTART.md for setup instructions');
-  process.exit(1);
+if (!MONGODB_URI || !MONGODB_URI.includes('mongodb')) {
+  console.warn('⚠️  MONGODB_URI is not set or invalid in environment variables');
+  console.warn('Continuing without database connection - only Apollo Kino API endpoints will be available');
+} else {
+  mongoose.connect(MONGODB_URI)
+    .then(() => {
+      const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
+      console.log(`✓ ${dbName} connected successfully`);
+    })
+    .catch(err => {
+      console.warn('⚠️  MongoDB connection error:', err.message);
+      console.warn('Continuing without database connection - only mock data will be available');
+    });
 }
-
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
-    console.log(`✓ ${dbName} connected successfully`);
-  })
-  .catch(err => {
-    console.warn('⚠️  MongoDB connection error:', err.message);
-    console.warn('Continuing without database connection - only mock data will be available');
-  });
 
 // Initialize Apollo Kino Service
 const apolloKinoService = new ApolloKinoService();
@@ -437,6 +435,130 @@ app.get('/api/apollo-kino/TheatreAreas', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino Theatre Areas:', error);
+  }
+});
+
+/**
+ * GET /api/apollo-kino/NewsCategories
+ * Get news categories from Apollo Kino API
+ * Returns list of available news categories
+ */
+app.get('/api/apollo-kino/NewsCategories', async (req, res) => {
+  try {
+    const newsCategories = await apolloKinoService.fetchNewsCategories();
+    
+    res.json({
+      success: true,
+      count: newsCategories.length,
+      data: newsCategories
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino News Categories:', error);
+    
+    // Return mock data if API is unavailable (for testing)
+    if (error.message.includes('ENOTFOUND') || error.message.includes('EREFUSED')) {
+      return res.json({
+        success: true,
+        count: 3,
+        data: [
+          { ID: '1010', Name: 'Uudised', NewsArticleCount: '1' },
+          { ID: '1013', Name: 'Mobile App News', NewsArticleCount: '20' },
+          { ID: '101', Name: 'Special Offers', NewsArticleCount: '10' }
+        ]
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch news categories',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/apollo-kino/News
+ * Get news articles from Apollo Kino API
+ * Returns list of news articles
+ */
+app.get('/api/apollo-kino/News', async (req, res) => {
+  try {
+    const news = await apolloKinoService.fetchNews();
+    
+    res.json({
+      success: true,
+      count: news.length,
+      data: news
+    });
+  } catch (error) {
+    console.error('Error fetching Apollo Kino News:', error);
+    
+    // Return mock data if API is unavailable (for testing)
+    if (error.message.includes('ENOTFOUND') || error.message.includes('EREFUSED')) {
+      return res.json({
+        success: true,
+        count: 3,
+        data: [
+          {
+            ID: '1575',
+            Title: 'Eriüritused: Oranž esmaspäev',
+            Copyright: '',
+            PublishDate: '2025-12-15T00:00:00',
+            HTMLLead: '',
+            HTMLContent: '',
+            ArticleURL: 'https://www.apollokino.ee/news/1575',
+            ImageURL: 'https://mcswebsites.blob.core.windows.net/1013/news/1575//Oranz_esmaspaev_Eriyrituse_1400x660px.jpg',
+            ThumbnailURL: 'https://mcswebsites.blob.core.windows.net/1013/news/1575//THUMB_Oranz_esmaspaev_Eriyrituse_1400x660px.jpg',
+            Categories: {
+              NewsArticleCategory: {
+                ID: '1010',
+                Name: 'Uudised'
+              }
+            }
+          },
+          {
+            ID: '1574',
+            Title: 'New Movie Releases This Week',
+            Copyright: '',
+            PublishDate: '2025-12-14T00:00:00',
+            HTMLLead: '',
+            HTMLContent: '',
+            ArticleURL: 'https://www.apollokino.ee/news/1574',
+            ImageURL: 'https://via.placeholder.com/1400x660/1a1a2e/e94560?text=New+Releases',
+            ThumbnailURL: 'https://via.placeholder.com/400x300/1a1a2e/e94560?text=New+Releases',
+            Categories: {
+              NewsArticleCategory: {
+                ID: '1013',
+                Name: 'Mobile App News'
+              }
+            }
+          },
+          {
+            ID: '1573',
+            Title: 'Special Discount for Students',
+            Copyright: '',
+            PublishDate: '2025-12-13T00:00:00',
+            HTMLLead: '',
+            HTMLContent: '',
+            ArticleURL: 'https://www.apollokino.ee/news/1573',
+            ImageURL: 'https://via.placeholder.com/1400x660/0f3460/e94560?text=Student+Discount',
+            ThumbnailURL: 'https://via.placeholder.com/400x300/0f3460/e94560?text=Student+Discount',
+            Categories: {
+              NewsArticleCategory: {
+                ID: '101',
+                Name: 'Special Offers'
+              }
+            }
+          }
+        ]
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch news',
+      message: error.message
+    });
   }
 });
 

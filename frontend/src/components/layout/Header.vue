@@ -9,6 +9,7 @@
           <router-link to="/" class="nav-link">Home</router-link>
           <router-link to="/movies" class="nav-link">Movies</router-link>
           <router-link to="/schedule" class="nav-link">Schedule</router-link>
+          <router-link to="/news" class="nav-link">News</router-link>
           <router-link to="/booking" class="nav-link">Booking</router-link>
           <router-link to="/admin" class="nav-link">Admin</router-link>
         </nav>
