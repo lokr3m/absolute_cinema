@@ -45,7 +45,7 @@
           :key="index"
         >
           <div class="news-image">
-            <img :src="article.ImageURL || article.ThumbnailURL || 'https://via.placeholder.com/400x300/1a1a2e/e94560?text=' + encodeURIComponent(article.Title)" :alt="article.Title">
+            <img :src="getArticleImage(article)" :alt="article.Title">
             <div class="image-overlay">
               <div class="overlay-content">
                 <a
@@ -100,6 +100,14 @@ export default {
     this.getNews();
   },
   computed: {
+    categoryMap() {
+      // Create a map of category name to ID for O(1) lookups
+      const map = {};
+      this.categories.forEach(cat => {
+        map[cat.Name] = cat.ID;
+      });
+      return map;
+    },
     filteredNews() {
       if (this.selectedCategory === null) {
         return this.news;
@@ -109,10 +117,8 @@ export default {
         if (!article.Categories) return false;
         
         const categories = this.getArticleCategories(article.Categories);
-        return categories.some(cat => {
-          // Find matching category by ID
-          const matchingCategory = this.categories.find(c => c.Name === cat);
-          return matchingCategory && matchingCategory.ID === this.selectedCategory;
+        return categories.some(catName => {
+          return this.categoryMap[catName] === this.selectedCategory;
         });
       });
     }
@@ -145,6 +151,11 @@ export default {
           this.loading = false;
           this.error = `Cannot connect to the backend server. Please make sure the backend is running on ${apiUrl}`;
         });
+    },
+    getArticleImage(article) {
+      return article.ImageURL || 
+             article.ThumbnailURL || 
+             `https://via.placeholder.com/400x300/1a1a2e/e94560?text=${encodeURIComponent(article.Title)}`;
     },
     formatDate(dateString) {
       if (!dateString) return 'Unknown';
