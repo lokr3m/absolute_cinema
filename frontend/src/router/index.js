@@ -26,7 +26,11 @@ const routes = [
   {
     path: '/booking',
     name: 'Booking',
-    component: Booking
+    component: Booking,
+    props: route => ({ 
+      filmId: route.query.filmId, 
+      sessionId: route.query.sessionId 
+    })
   },
   {
     path: '/schedule',
