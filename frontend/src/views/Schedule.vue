@@ -478,10 +478,14 @@ export default {
       return (availability / 100) * 180
     },
     buyTickets(session) {
-      // Redirect to internal booking page
-      // Note: User will need to manually select the film from the booking page
-      // as Apollo Kino sessions may not have corresponding local database records
-      this.$router.push({ name: 'Booking' })
+      // Redirect to internal booking page with film title
+      // The booking page will try to find a matching film by title
+      this.$router.push({ 
+        name: 'Booking',
+        query: {
+          filmTitle: session.movieTitle
+        }
+      })
     }
   }
 }

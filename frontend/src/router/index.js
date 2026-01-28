@@ -29,7 +29,8 @@ const routes = [
     component: Booking,
     props: route => ({ 
       filmId: route.query.filmId, 
-      sessionId: route.query.sessionId 
+      sessionId: route.query.sessionId,
+      filmTitle: route.query.filmTitle
     })
   },
   {

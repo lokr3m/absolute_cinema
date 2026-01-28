@@ -184,7 +184,8 @@ export default {
   name: 'Booking',
   props: {
     filmId: String,
-    sessionId: String
+    sessionId: String,
+    filmTitle: String
   },
   data() {
     return {
@@ -245,6 +246,19 @@ export default {
   },
   async mounted() {
     await this.loadFilms()
+    
+    // If filmTitle is provided (from Schedule page), find matching film
+    if (this.filmTitle && !this.filmId) {
+      const matchingFilm = this.films.find(film => 
+        film.title.toLowerCase() === this.filmTitle.toLowerCase() ||
+        film.originalTitle?.toLowerCase() === this.filmTitle.toLowerCase()
+      )
+      
+      if (matchingFilm) {
+        this.selectedFilmId = matchingFilm._id
+        await this.loadSessions()
+      }
+    }
     
     // If filmId is provided, select it and load sessions
     if (this.filmId) {
