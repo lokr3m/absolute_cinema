@@ -25,6 +25,12 @@
         <div class="main-content">
           <div v-if="currentStep === 1" class="step-content">
             <h2>Select Movie & Time</h2>
+            
+            <!-- Film not found message -->
+            <div v-if="filmNotFoundMessage" class="info-message">
+              {{ filmNotFoundMessage }}
+            </div>
+            
             <div class="movie-selection">
               <div class="form-group">
                 <label>Movie:</label>
@@ -209,7 +215,8 @@ export default {
       loading: true,
       loadingSeats: false,
       error: null,
-      submitting: false
+      submitting: false,
+      filmNotFoundMessage: null
     }
   },
   computed: {
@@ -257,6 +264,9 @@ export default {
       if (matchingFilm) {
         this.selectedFilmId = matchingFilm._id
         await this.loadSessions()
+      } else {
+        // Film not found in database
+        this.filmNotFoundMessage = `Film "${this.filmTitle}" is not currently available for booking. Please select from available films below.`
       }
     }
     
@@ -717,6 +727,16 @@ h1 {
   border-radius: 4px;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+.info-message {
+  padding: 1rem;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+  border: 1px solid #90caf9;
 }
 
 .no-sessions {
