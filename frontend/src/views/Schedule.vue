@@ -480,19 +480,11 @@ export default {
     buyTickets(session) {
       // If there's a show URL from Apollo Kino, open it in a new tab
       if (session.showUrl && session.showUrl !== '#') {
-        window.open(session.showUrl, '_blank')
+        window.open(session.showUrl, '_blank', 'noopener,noreferrer')
       } else {
-        // Otherwise, redirect to our booking page
-        // Try to find the film in our local database by title match
-        this.$router.push({
-          name: 'Booking',
-          query: {
-            title: session.movieTitle,
-            time: session.time,
-            date: session.date,
-            cinema: session.cinema
-          }
-        })
+        // If no Apollo Kino URL, redirect to booking page
+        // Note: Booking page requires filmId from local database
+        this.$router.push({ name: 'Booking' })
       }
     }
   }
