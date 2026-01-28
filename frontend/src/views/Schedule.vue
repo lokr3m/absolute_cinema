@@ -167,7 +167,7 @@
               <!-- Action Buttons -->
               <div class="action-buttons">
                 <button class="btn-schedule">Vaata Kava</button>
-                <button class="btn-buy">Osta Piletid</button>
+                <button class="btn-buy" @click="buyTickets(session)">Osta Piletid</button>
               </div>
 
               <!-- Language, Subtitles, Format -->
@@ -476,6 +476,24 @@ export default {
     getRotation(availability) {
       // Calculate rotation based on availability percentage
       return (availability / 100) * 180
+    },
+    buyTickets(session) {
+      // If there's a show URL from Apollo Kino, open it in a new tab
+      if (session.showUrl && session.showUrl !== '#') {
+        window.open(session.showUrl, '_blank')
+      } else {
+        // Otherwise, redirect to our booking page
+        // Try to find the film in our local database by title match
+        this.$router.push({
+          name: 'Booking',
+          query: {
+            title: session.movieTitle,
+            time: session.time,
+            date: session.date,
+            cinema: session.cinema
+          }
+        })
+      }
     }
   }
 }
