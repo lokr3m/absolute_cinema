@@ -254,10 +254,16 @@ export default {
   async mounted() {
     await this.loadFilms()
     
+    // Priority: filmId > filmTitle
+    // If filmId is provided, use it directly
+    if (this.filmId) {
+      this.selectedFilmId = this.filmId
+      await this.loadSessions()
+    }
     // If filmTitle is provided (from Schedule page), find matching film
-    if (this.filmTitle && !this.filmId) {
+    else if (this.filmTitle) {
       const matchingFilm = this.films.find(film => 
-        film.title.toLowerCase() === this.filmTitle.toLowerCase() ||
+        film.title?.toLowerCase() === this.filmTitle.toLowerCase() ||
         film.originalTitle?.toLowerCase() === this.filmTitle.toLowerCase()
       )
       
@@ -268,12 +274,6 @@ export default {
         // Film not found in database
         this.filmNotFoundMessage = `Film "${this.filmTitle}" is not currently available for booking. Please select from available films below.`
       }
-    }
-    
-    // If filmId is provided, select it and load sessions
-    if (this.filmId) {
-      this.selectedFilmId = this.filmId
-      await this.loadSessions()
     }
     
     // If sessionId is provided, select it and load seats
@@ -344,6 +344,9 @@ export default {
       }
     },
     async onFilmChange() {
+      // Clear film not found message when user manually selects a film
+      this.filmNotFoundMessage = null
+      
       this.selectedSessionId = ''
       this.selectedSession = null
       this.sessions = []
