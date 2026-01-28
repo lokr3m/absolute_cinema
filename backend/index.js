@@ -253,7 +253,14 @@ app.get('/api/films/:id/sessions', async (req, res) => {
       status: 'scheduled',
       startTime: { $gte: new Date() }
     })
-      .populate('hall', 'name cinema screenType soundSystem')
+      .populate({
+        path: 'hall',
+        select: 'name cinema screenType soundSystem',
+        populate: {
+          path: 'cinema',
+          select: 'name address'
+        }
+      })
       .sort({ startTime: 1 });
 
     res.json({
