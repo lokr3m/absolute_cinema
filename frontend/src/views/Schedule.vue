@@ -197,11 +197,14 @@
 import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
+const formatLocalDate = (date) => (
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+)
 
 export default {
   name: 'Schedule',
   data() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = formatLocalDate(new Date())
     
     return {
       selectedCinema: '',
@@ -347,10 +350,10 @@ export default {
       
       // Calculate date range: today to 14 days ahead (using local timezone)
       const today = new Date();
-      const dtFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const dtFrom = formatLocalDate(today);
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + 14);
-      const dtTo = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+      const dtTo = formatLocalDate(futureDate);
       
       axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
         params: { dtFrom, dtTo }
@@ -386,7 +389,7 @@ export default {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
-              const showDate = startTime.toISOString().split('T')[0];
+              const showDate = formatLocalDate(startTime);
               const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
               const totalSeats = parseInt(show.TotalSeats) || 100;
               const availabilityPercent = totalSeats > 0 
@@ -460,7 +463,7 @@ export default {
         dates.push({
           day: days[date.getDay()],
           number: date.getDate(),
-          value: date.toISOString().split('T')[0]
+          value: formatLocalDate(date)
         })
       }
       
