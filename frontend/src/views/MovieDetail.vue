@@ -1,84 +1,64 @@
 <template>
   <div class="movie-detail">
     <div class="container">
-      <div v-if="loading" class="loading">Loading movie details...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else>
-        <div class="movie-header">
-          <div class="movie-poster">
-            <img :src="film.posterUrl || 'https://via.placeholder.com/400x600'" :alt="film.title">
-          </div>
-          <div class="movie-info">
-            <h1>{{ film.title }}</h1>
-            <p v-if="film.originalTitle && film.originalTitle !== film.title" class="original-title">
-              {{ film.originalTitle }}
-            </p>
-            <div class="meta">
-              <span class="rating" v-if="film.rating">⭐ {{ film.rating }}/10</span>
-              <span class="year" v-if="film.productionYear">{{ film.productionYear }}</span>
-              <span class="duration">{{ film.duration }} min</span>
-              <span class="age-rating">{{ film.ageRating }}</span>
-            </div>
-            <div class="genres" v-if="film.genre && film.genre.length > 0">
-              <span class="genre-tag" v-for="(genre, idx) in film.genre" :key="idx">{{ genre }}</span>
-            </div>
-            <p class="description">{{ film.description }}</p>
-            <div class="cast" v-if="film.cast && film.cast.length > 0">
-              <h3>Cast:</h3>
-              <p>{{ film.cast.join(', ') }}</p>
-            </div>
-            <div class="director" v-if="film.director">
-              <h3>Director:</h3>
-              <p>{{ film.director }}</p>
-            </div>
-            <router-link 
-              :to="{ name: 'Booking', query: { filmId: film._id } }" 
-              class="btn btn-primary"
-            >
-              Book Tickets
-            </router-link>
-          </div>
+      <div class="movie-header">
+        <div class="movie-poster">
+          <img src="https://via.placeholder.com/400x600" alt="Movie Poster">
         </div>
+        <div class="movie-info">
+          <h1>Movie Title {{ $route.params.id }}</h1>
+          <div class="meta">
+            <span class="rating">⭐ 8.5/10</span>
+            <span class="year">2024</span>
+            <span class="duration">120 min</span>
+            <span class="age-rating">PG-13</span>
+          </div>
+          <div class="genres">
+            <span class="genre-tag">Action</span>
+            <span class="genre-tag">Adventure</span>
+            <span class="genre-tag">Sci-Fi</span>
+          </div>
+          <p class="description">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+          </p>
+          <div class="cast">
+            <h3>Cast:</h3>
+            <p>Actor 1, Actor 2, Actor 3</p>
+          </div>
+          <div class="director">
+            <h3>Director:</h3>
+            <p>Famous Director</p>
+          </div>
+          <router-link to="/booking" class="btn btn-primary">Book Tickets</router-link>
+        </div>
+      </div>
 
-        <div class="showtimes" v-if="sessions.length > 0">
-          <h2>Showtimes</h2>
-          <div class="sessions-by-date">
-            <div v-for="(sessionsOnDate, date) in groupedSessions" :key="date" class="date-group">
-              <h3 class="date-header">{{ formatDate(date) }}</h3>
-              <div class="sessions-by-cinema">
-                <div v-for="(sessionsByCinema, cinemaName) in sessionsOnDate" :key="cinemaName" class="cinema">
-                  <h4>{{ cinemaName }}</h4>
-                  <div class="times">
-                    <button 
-                      class="time-btn" 
-                      v-for="session in sessionsByCinema" 
-                      :key="session._id"
-                      @click="bookSession(session)"
-                    >
-                      <div class="time">{{ formatTime(session.startTime) }}</div>
-                      <div class="hall-info">{{ session.hall.name }}</div>
-                      <div class="price">€{{ session.price.standard }}</div>
-                    </button>
-                  </div>
-                </div>
-              </div>
+      <div class="showtimes">
+        <h2>Showtimes</h2>
+        <div class="date-selector">
+          <button class="date-btn active">Today</button>
+          <button class="date-btn">Tomorrow</button>
+          <button class="date-btn">Wed</button>
+          <button class="date-btn">Thu</button>
+          <button class="date-btn">Fri</button>
+        </div>
+        <div class="cinema-showtimes">
+          <div class="cinema" v-for="cinema in 3" :key="cinema">
+            <h3>Cinema {{ cinema }}</h3>
+            <div class="times">
+              <button class="time-btn" v-for="time in ['10:00', '13:30', '16:45', '19:00', '21:30']" :key="time">
+                {{ time }}
+              </button>
             </div>
           </div>
         </div>
-        <div v-else class="no-sessions">
-          <p>No sessions available for this film at the moment.</p>
-        </div>
+      </div>
 
-        <div class="trailer" v-if="film.trailerUrl">
-          <h2>Trailer</h2>
-          <div class="video-container">
-            <iframe 
-              :src="film.trailerUrl" 
-              frameborder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowfullscreen
-            ></iframe>
-          </div>
+      <div class="trailer">
+        <h2>Trailer</h2>
+        <div class="video-placeholder">
+          <p>Trailer video would be embedded here</p>
         </div>
       </div>
     </div>
@@ -86,103 +66,8 @@
 </template>
 
 <script>
-import axios from 'axios'
-
 export default {
-  name: 'MovieDetail',
-  data() {
-    return {
-      film: null,
-      sessions: [],
-      loading: true,
-      error: null
-    }
-  },
-  computed: {
-    apiUrl() {
-      return import.meta.env.VITE_API_URL || 'http://localhost:3000'
-    },
-    groupedSessions() {
-      const grouped = {}
-      
-      this.sessions.forEach(session => {
-        const date = new Date(session.startTime).toDateString()
-        const cinemaName = session.hall?.cinema?.name || 'Unknown Cinema'
-        
-        if (!grouped[date]) {
-          grouped[date] = {}
-        }
-        
-        if (!grouped[date][cinemaName]) {
-          grouped[date][cinemaName] = []
-        }
-        
-        grouped[date][cinemaName].push(session)
-      })
-      
-      return grouped
-    }
-  },
-  async mounted() {
-    await this.loadFilmDetails()
-    await this.loadSessions()
-  },
-  methods: {
-    async loadFilmDetails() {
-      try {
-        const filmId = this.$route.params.id
-        const response = await axios.get(`${this.apiUrl}/api/films/${filmId}`)
-        this.film = response.data.data
-        this.loading = false
-      } catch (err) {
-        console.error('Error loading film:', err)
-        this.error = 'Failed to load film details'
-        this.loading = false
-      }
-    },
-    async loadSessions() {
-      try {
-        const filmId = this.$route.params.id
-        const response = await axios.get(`${this.apiUrl}/api/films/${filmId}/sessions`)
-        this.sessions = response.data.data || []
-      } catch (err) {
-        console.error('Error loading sessions:', err)
-      }
-    },
-    formatDate(dateString) {
-      const date = new Date(dateString)
-      const today = new Date()
-      const tomorrow = new Date(today)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      
-      if (date.toDateString() === today.toDateString()) {
-        return 'Today'
-      } else if (date.toDateString() === tomorrow.toDateString()) {
-        return 'Tomorrow'
-      } else {
-        return date.toLocaleDateString('en-GB', { 
-          weekday: 'long', 
-          month: 'short', 
-          day: 'numeric' 
-        })
-      }
-    },
-    formatTime(dateTime) {
-      return new Date(dateTime).toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
-    },
-    bookSession(session) {
-      this.$router.push({
-        name: 'Booking',
-        query: {
-          filmId: this.film._id,
-          sessionId: session._id
-        }
-      })
-    }
-  }
+  name: 'MovieDetail'
 }
 </script>
 
@@ -196,23 +81,6 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
-}
-
-.loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 3rem;
-  font-size: 1.2rem;
-  color: #666;
-}
-
-.error {
-  padding: 2rem;
-  background: #ffebee;
-  color: #c62828;
-  border-radius: 8px;
-  text-align: center;
 }
 
 .movie-header {
@@ -230,15 +98,8 @@ export default {
 
 .movie-info h1 {
   font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  color: #333;
-}
-
-.original-title {
-  font-size: 1.1rem;
-  color: #666;
-  font-style: italic;
   margin-bottom: 1rem;
+  color: #333;
 }
 
 .meta {
@@ -246,7 +107,6 @@ export default {
   gap: 1.5rem;
   margin-bottom: 1rem;
   font-size: 1.1rem;
-  flex-wrap: wrap;
 }
 
 .rating {
@@ -264,7 +124,6 @@ export default {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  flex-wrap: wrap;
 }
 
 .genre-tag {
@@ -328,38 +187,36 @@ export default {
   color: #333;
 }
 
-.sessions-by-date {
+.date-selector {
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-.date-group {
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 1.5rem;
+.date-btn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.date-group:last-child {
-  border-bottom: none;
+.date-btn.active,
+.date-btn:hover {
+  background-color: #e50914;
+  color: #fff;
+  border-color: #e50914;
 }
 
-.date-header {
-  font-size: 1.4rem;
+.cinema {
+  margin-bottom: 1.5rem;
+}
+
+.cinema h3 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
   color: #333;
-  margin-bottom: 1rem;
-  font-weight: 600;
-}
-
-.sessions-by-cinema {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.cinema h4 {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: #555;
 }
 
 .times {
@@ -376,11 +233,6 @@ export default {
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  align-items: center;
-  min-width: 100px;
 }
 
 .time-btn:hover {
@@ -389,59 +241,21 @@ export default {
   border-color: #333;
 }
 
-.time-btn .time {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.time-btn .hall-info {
-  font-size: 0.8rem;
-  font-weight: 400;
-}
-
-.time-btn .price {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #e50914;
-}
-
-.time-btn:hover .price {
-  color: #fff;
-}
-
-.no-sessions {
-  background: #fff3cd;
-  padding: 2rem;
-  border-radius: 8px;
-  text-align: center;
-  color: #856404;
-  margin-bottom: 3rem;
-}
-
-.trailer {
-  margin-bottom: 2rem;
-}
-
 .trailer h2 {
   font-size: 2rem;
   margin-bottom: 1.5rem;
   color: #333;
 }
 
-.video-container {
-  position: relative;
-  padding-bottom: 56.25%;
-  height: 0;
-  overflow: hidden;
+.video-placeholder {
+  background: #000;
+  height: 500px;
   border-radius: 8px;
-}
-
-.video-container iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.2rem;
 }
 
 @media (max-width: 768px) {
@@ -449,6 +263,7 @@ export default {
     grid-template-columns: 1fr;
   }
   
+  .date-selector,
   .times {
     flex-wrap: wrap;
   }

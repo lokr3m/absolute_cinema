@@ -2,7 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { Film, Session, Cinema, Hall, Booking, Seat, User } = require('./Models');
+const crypto = require('crypto');
+const { Film, Session, Cinema, Hall, Booking, Seat } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
 const app = express();
@@ -12,21 +13,24 @@ app.use(express.json()); // для парсинга JSON тела запросо
 // MongoDB Atlas connection
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
+const BOOKING_ID_BYTES = 6;
 
-if (!MONGODB_URI || !MONGODB_URI.includes('mongodb')) {
-  console.warn('⚠️  MONGODB_URI is not set or invalid in environment variables');
-  console.warn('Continuing without database connection - only Apollo Kino API endpoints will be available');
-} else {
-  mongoose.connect(MONGODB_URI)
-    .then(() => {
-      const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
-      console.log(`✓ ${dbName} connected successfully`);
-    })
-    .catch(err => {
-      console.warn('⚠️  MongoDB connection error:', err.message);
-      console.warn('Continuing without database connection - only mock data will be available');
-    });
+if (!MONGODB_URI) {
+  console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
+  console.error('Please copy .env.example to .env and configure your MongoDB Atlas connection string');
+  console.error('See QUICKSTART.md for setup instructions');
+  process.exit(1);
 }
+
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
+    console.log(`✓ ${dbName} connected successfully`);
+  })
+  .catch(err => {
+    console.warn('⚠️  MongoDB connection error:', err.message);
+    console.warn('Continuing without database connection - only mock data will be available');
+  });
 
 // Initialize Apollo Kino Service
 const apolloKinoService = new ApolloKinoService();
@@ -201,6 +205,79 @@ app.get('/api/sessions', async (req, res) => {
 });
 
 /**
+ * GET /api/sessions/:id/seats
+ * Get seat layout and occupied seats for a specific session
+ */
+app.get('/api/sessions/:id/seats', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID'
+      });
+    }
+
+    const session = await Session.findById(id)
+      .populate({
+        path: 'hall',
+        select: 'name rows seatsPerRow capacity cinema',
+        populate: {
+          path: 'cinema',
+          select: 'name'
+        }
+      })
+      .populate('film', 'title duration');
+
+    if (!session || !session.hall) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    const existingBookings = await Booking.find({
+      session: id,
+      status: { $in: ['pending', 'confirmed'] }
+    }).populate('seats');
+
+    const occupiedSeats = [];
+    for (const booking of existingBookings) {
+      for (const seat of booking.seats) {
+        occupiedSeats.push({ row: seat.row, number: seat.number });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        session: {
+          id: session._id,
+          film: session.film ? session.film.title : null,
+          startTime: session.startTime,
+          hall: session.hall.name,
+          cinema: session.hall.cinema ? session.hall.cinema.name : null
+        },
+        layout: {
+          rows: session.hall.rows,
+          seatsPerRow: session.hall.seatsPerRow,
+          capacity: session.hall.capacity,
+          available: Math.max(session.hall.capacity - occupiedSeats.length, 0)
+        },
+        occupied: occupiedSeats
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching session seats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch seat layout'
+    });
+  }
+});
+
+/**
  * GET /api/cinemas
  * List all cinemas
  */
@@ -253,14 +330,7 @@ app.get('/api/films/:id/sessions', async (req, res) => {
       status: 'scheduled',
       startTime: { $gte: new Date() }
     })
-      .populate({
-        path: 'hall',
-        select: 'name cinema screenType soundSystem',
-        populate: {
-          path: 'cinema',
-          select: 'name address'
-        }
-      })
+      .populate('hall', 'name cinema screenType soundSystem')
       .sort({ startTime: 1 });
 
     res.json({
@@ -461,20 +531,6 @@ app.get('/api/apollo-kino/NewsCategories', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino News Categories:', error);
-    
-    // Return mock data if API is unavailable (for testing)
-    if (error.message.includes('ENOTFOUND') || error.message.includes('EREFUSED')) {
-      return res.json({
-        success: true,
-        count: 3,
-        data: [
-          { ID: '1010', Name: 'Uudised', NewsArticleCount: '1' },
-          { ID: '1013', Name: 'Mobile App News', NewsArticleCount: '20' },
-          { ID: '101', Name: 'Special Offers', NewsArticleCount: '10' }
-        ]
-      });
-    }
-    
     res.status(500).json({
       success: false,
       error: 'Failed to fetch news categories',
@@ -499,68 +555,6 @@ app.get('/api/apollo-kino/News', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching Apollo Kino News:', error);
-    
-    // Return mock data if API is unavailable (for testing)
-    if (error.message.includes('ENOTFOUND') || error.message.includes('EREFUSED')) {
-      return res.json({
-        success: true,
-        count: 3,
-        data: [
-          {
-            ID: '1575',
-            Title: 'Eriüritused: Oranž esmaspäev',
-            Copyright: '',
-            PublishDate: '2025-12-15T00:00:00',
-            HTMLLead: '',
-            HTMLContent: '',
-            ArticleURL: 'https://www.apollokino.ee/news/1575',
-            ImageURL: 'https://mcswebsites.blob.core.windows.net/1013/news/1575//Oranz_esmaspaev_Eriyrituse_1400x660px.jpg',
-            ThumbnailURL: 'https://mcswebsites.blob.core.windows.net/1013/news/1575//THUMB_Oranz_esmaspaev_Eriyrituse_1400x660px.jpg',
-            Categories: {
-              NewsArticleCategory: {
-                ID: '1010',
-                Name: 'Uudised'
-              }
-            }
-          },
-          {
-            ID: '1574',
-            Title: 'New Movie Releases This Week',
-            Copyright: '',
-            PublishDate: '2025-12-14T00:00:00',
-            HTMLLead: '',
-            HTMLContent: '',
-            ArticleURL: 'https://www.apollokino.ee/news/1574',
-            ImageURL: 'https://via.placeholder.com/1400x660/1a1a2e/e94560?text=New+Releases',
-            ThumbnailURL: 'https://via.placeholder.com/400x300/1a1a2e/e94560?text=New+Releases',
-            Categories: {
-              NewsArticleCategory: {
-                ID: '1013',
-                Name: 'Mobile App News'
-              }
-            }
-          },
-          {
-            ID: '1573',
-            Title: 'Special Discount for Students',
-            Copyright: '',
-            PublishDate: '2025-12-13T00:00:00',
-            HTMLLead: '',
-            HTMLContent: '',
-            ArticleURL: 'https://www.apollokino.ee/news/1573',
-            ImageURL: 'https://via.placeholder.com/1400x660/0f3460/e94560?text=Student+Discount',
-            ThumbnailURL: 'https://via.placeholder.com/400x300/0f3460/e94560?text=Student+Discount',
-            Categories: {
-              NewsArticleCategory: {
-                ID: '101',
-                Name: 'Special Offers'
-              }
-            }
-          }
-        ]
-      });
-    }
-    
     res.status(500).json({
       success: false,
       error: 'Failed to fetch news',
@@ -570,98 +564,20 @@ app.get('/api/apollo-kino/News', async (req, res) => {
 });
 
 /**
- * GET /api/sessions/:id/seats
- * Get all seats for a specific session with availability status
- */
-app.get('/api/sessions/:id/seats', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Validate session ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid session ID'
-      });
-    }
-
-    // Get session with hall information
-    const session = await Session.findById(id).populate('hall');
-    if (!session) {
-      return res.status(404).json({
-        success: false,
-        error: 'Session not found'
-      });
-    }
-
-    // Get all seats for the hall
-    const seats = await Seat.find({ hall: session.hall._id, isActive: true })
-      .sort({ row: 1, number: 1 });
-
-    // Get all bookings for this session
-    const bookings = await Booking.find({ 
-      session: id, 
-      status: { $in: ['pending', 'confirmed'] } 
-    }).populate('seats');
-
-    // Create a set of booked seat IDs
-    const bookedSeatIds = new Set();
-    bookings.forEach(booking => {
-      booking.seats.forEach(seat => {
-        bookedSeatIds.add(seat._id.toString());
-      });
-    });
-
-    // Map seats with availability status
-    const seatsWithStatus = seats.map(seat => ({
-      _id: seat._id,
-      row: seat.row,
-      number: seat.number,
-      seatType: seat.seatType,
-      isAvailable: !bookedSeatIds.has(seat._id.toString())
-    }));
-
-    res.json({
-      success: true,
-      session: {
-        id: session._id,
-        availableSeats: session.availableSeats
-      },
-      hall: {
-        name: session.hall.name,
-        rows: session.hall.rows,
-        seatsPerRow: session.hall.seatsPerRow
-      },
-      count: seatsWithStatus.length,
-      data: seatsWithStatus
-    });
-  } catch (error) {
-    console.error('Error fetching session seats:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch session seats'
-    });
-  }
-});
-
-/**
  * POST /api/bookings
- * Create a new booking
- * Body: { sessionId, seatIds, contactEmail, contactPhone, userId (optional) }
+ * Create a booking with seat selection
  */
 app.post('/api/bookings', async (req, res) => {
   try {
-    const { sessionId, seatIds, contactEmail, contactPhone, userId } = req.body;
+    const { sessionId, seats, contactEmail, contactPhone, paymentMethod, userId } = req.body;
 
-    // Validate required fields
-    if (!sessionId || !seatIds || !Array.isArray(seatIds) || seatIds.length === 0 || !contactEmail) {
+    if (!sessionId || !Array.isArray(seats) || seats.length === 0 || !contactEmail) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: sessionId, seatIds, and contactEmail are required'
+        error: 'sessionId, seats[], and contactEmail are required'
       });
     }
 
-    // Validate session ID
     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({
         success: false,
@@ -669,152 +585,132 @@ app.post('/api/bookings', async (req, res) => {
       });
     }
 
-    // Validate seat IDs
-    const invalidSeatId = seatIds.find(id => !mongoose.Types.ObjectId.isValid(id));
-    if (invalidSeatId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid seat ID format'
-      });
-    }
-
-    // Get session
-    const session = await Session.findById(sessionId).populate('film');
-    if (!session) {
+    const session = await Session.findById(sessionId).populate('hall');
+    if (!session || !session.hall) {
       return res.status(404).json({
         success: false,
         error: 'Session not found'
       });
     }
 
-    // Check if session is in the future
-    if (new Date(session.startTime) < new Date()) {
+    const normalizedSeats = seats.map(seat => ({
+      row: Number(seat.row),
+      number: Number(seat.number)
+    }));
+
+    const invalidSeat = normalizedSeats.find(
+      seat =>
+        seat.row < 1 ||
+        seat.number < 1 ||
+        seat.row > session.hall.rows ||
+        seat.number > session.hall.seatsPerRow
+    );
+
+    if (invalidSeat) {
       return res.status(400).json({
         success: false,
-        error: 'Cannot book seats for past sessions'
+        error: 'One or more seats are outside hall layout'
       });
     }
 
-    // Check if seats exist
-    const seats = await Seat.find({ _id: { $in: seatIds } });
-    if (seats.length !== seatIds.length) {
-      return res.status(404).json({
-        success: false,
-        error: 'One or more seats not found'
-      });
+    const uniqueSeatKeys = new Set();
+    for (const seat of normalizedSeats) {
+      const key = `${seat.row}-${seat.number}`;
+      if (uniqueSeatKeys.has(key)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Duplicate seats in request'
+        });
+      }
+      uniqueSeatKeys.add(key);
     }
 
-    // Check if seats are already booked
     const existingBookings = await Booking.find({
       session: sessionId,
-      status: { $in: ['pending', 'confirmed'] },
-      seats: { $in: seatIds }
-    });
+      status: { $in: ['pending', 'confirmed'] }
+    }).populate('seats');
 
-    if (existingBookings.length > 0) {
+    const occupiedSeatKeys = new Set();
+    for (const booking of existingBookings) {
+      for (const seat of booking.seats) {
+        occupiedSeatKeys.add(`${seat.row}-${seat.number}`);
+      }
+    }
+
+    const conflictingSeat = normalizedSeats.find(seat =>
+      occupiedSeatKeys.has(`${seat.row}-${seat.number}`)
+    );
+
+    if (conflictingSeat) {
       return res.status(409).json({
         success: false,
-        error: 'One or more seats are already booked'
+        error: `Seat ${conflictingSeat.row}-${conflictingSeat.number} is already booked`
       });
     }
 
-    // Get or create user
-    let user;
-    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
-      user = await User.findById(userId);
-    }
-    
-    // If no user ID or user not found, create a guest user
-    if (!user) {
-      user = await User.create({
-        firstName: 'Guest',
-        lastName: 'User',
-        email: contactEmail,
-        password: 'guest', // In production, this should be handled differently
-        phone: contactPhone || '',
-        role: 'user'
-      });
+    const seatIds = [];
+    for (const seat of normalizedSeats) {
+      const seatDoc = await Seat.findOneAndUpdate(
+        { hall: session.hall._id, row: seat.row, number: seat.number },
+        { hall: session.hall._id, row: seat.row, number: seat.number },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+      seatIds.push(seatDoc._id);
     }
 
-    // Calculate total price based on seat types
-    let totalPrice = 0;
-    seats.forEach(seat => {
-      if (seat.seatType === 'vip' && session.price.vip) {
-        totalPrice += session.price.vip;
-      } else {
-        totalPrice += session.price.standard;
-      }
-    });
+    let bookingNumber;
+    do {
+      bookingNumber = `BK-${crypto.randomBytes(BOOKING_ID_BYTES).toString('hex')}`;
+    } while (await Booking.exists({ bookingNumber }));
+    const ticketPrice = session.price && session.price.standard ? session.price.standard : 0;
+    const totalPrice = ticketPrice * seatIds.length;
 
-    // Generate booking number
-    const bookingNumber = 'BK-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-
-    // Create booking
     const booking = await Booking.create({
-      user: user._id,
+      user: userId && mongoose.Types.ObjectId.isValid(userId) ? userId : undefined,
       session: sessionId,
       seats: seatIds,
       totalPrice,
       bookingNumber,
       status: 'pending',
       paymentStatus: 'pending',
+      paymentMethod,
       contactEmail,
-      contactPhone: contactPhone || ''
+      contactPhone
     });
-
-    // Update available seats count
-    await Session.findByIdAndUpdate(sessionId, {
-      $inc: { availableSeats: -seatIds.length }
-    });
-
-    // Populate booking data for response
-    const populatedBooking = await Booking.findById(booking._id)
-      .populate('session')
-      .populate('seats')
-      .populate('user', 'firstName lastName email');
 
     res.status(201).json({
       success: true,
-      message: 'Booking created successfully',
-      data: populatedBooking
+      data: {
+        bookingId: booking._id,
+        bookingNumber: booking.bookingNumber,
+        totalPrice: booking.totalPrice,
+        seats: normalizedSeats,
+        session: sessionId,
+        status: booking.status
+      }
     });
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to create booking',
-      message: error.message
+      error: 'Failed to create booking'
     });
   }
 });
 
 /**
- * GET /api/bookings/:id
- * Get booking by ID
+ * GET /api/bookings/:bookingNumber
+ * Retrieve a booking by booking number
  */
-app.get('/api/bookings/:id', async (req, res) => {
+app.get('/api/bookings/:bookingNumber', async (req, res) => {
   try {
-    const { id } = req.params;
-
-    // Validate booking ID
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid booking ID'
-      });
-    }
-
-    // Get booking with populated references
-    const booking = await Booking.findById(id)
+    const { bookingNumber } = req.params;
+    const booking = await Booking.findOne({ bookingNumber })
+      .populate('session', 'startTime')
       .populate({
-        path: 'session',
-        populate: [
-          { path: 'film', select: 'title originalTitle duration posterUrl' },
-          { path: 'hall', select: 'name cinema', populate: { path: 'cinema', select: 'name address' } }
-        ]
-      })
-      .populate('seats')
-      .populate('user', 'firstName lastName email phone');
+        path: 'seats',
+        select: 'row number'
+      });
 
     if (!booking) {
       return res.status(404).json({
@@ -836,17 +732,392 @@ app.get('/api/bookings/:id', async (req, res) => {
   }
 });
 
+// Admin API Endpoints
+
 /**
- * PUT /api/bookings/:id
- * Update booking status or payment information
- * Body: { status, paymentStatus, paymentMethod }
+ * GET /api/admin/sessions
+ * Get all sessions (including past ones) for admin management
  */
-app.put('/api/bookings/:id', async (req, res) => {
+app.get('/api/admin/sessions', async (req, res) => {
+  try {
+    const sessions = await Session.find()
+      .populate('film', 'title originalTitle duration genre ageRating posterUrl rating')
+      .populate({
+        path: 'hall',
+        select: 'name cinema screenType soundSystem capacity rows seatsPerRow',
+        populate: {
+          path: 'cinema',
+          select: 'name address'
+        }
+      })
+      .sort({ startTime: -1 });
+
+    res.json({
+      success: true,
+      count: sessions.length,
+      data: sessions
+    });
+  } catch (error) {
+    console.error('Error fetching sessions:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch sessions'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/sessions/:id
+ * Get a specific session by ID for editing
+ */
+app.get('/api/admin/sessions/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, paymentStatus, paymentMethod } = req.body;
 
-    // Validate booking ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID'
+      });
+    }
+
+    const session = await Session.findById(id)
+      .populate('film')
+      .populate('hall');
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: session
+    });
+  } catch (error) {
+    console.error('Error fetching session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch session'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/sessions
+ * Create a new session
+ */
+app.post('/api/admin/sessions', async (req, res) => {
+  try {
+    const { film, hall, startTime, endTime, price, is3D, subtitles, status } = req.body;
+
+    // Validate required fields
+    if (!film || !hall || !startTime || !endTime || !price || !price.standard) {
+      return res.status(400).json({
+        success: false,
+        error: 'film, hall, startTime, endTime, and price.standard are required'
+      });
+    }
+
+    // Validate ObjectIds
+    if (!mongoose.Types.ObjectId.isValid(film)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid film ID'
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(hall)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid hall ID'
+      });
+    }
+
+    // Check if film exists
+    const filmDoc = await Film.findById(film);
+    if (!filmDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Film not found'
+      });
+    }
+
+    // Check if hall exists
+    const hallDoc = await Hall.findById(hall);
+    if (!hallDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Hall not found'
+      });
+    }
+
+    // Validate time range
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (end <= start) {
+      return res.status(400).json({
+        success: false,
+        error: 'End time must be after start time'
+      });
+    }
+
+    // Create session
+    const session = await Session.create({
+      film,
+      hall,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      price,
+      is3D: is3D || false,
+      subtitles: subtitles || '',
+      availableSeats: hallDoc.capacity,
+      status: status || 'scheduled'
+    });
+
+    const populatedSession = await Session.findById(session._id)
+      .populate('film', 'title originalTitle duration')
+      .populate('hall', 'name cinema');
+
+    res.status(201).json({
+      success: true,
+      data: populatedSession
+    });
+  } catch (error) {
+    console.error('Error creating session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create session'
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/sessions/:id
+ * Update an existing session
+ */
+app.put('/api/admin/sessions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { film, hall, startTime, endTime, price, is3D, subtitles, status, availableSeats } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID'
+      });
+    }
+
+    const session = await Session.findById(id);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    // Validate film if provided
+    if (film && !mongoose.Types.ObjectId.isValid(film)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid film ID'
+      });
+    }
+
+    // Validate hall if provided
+    if (hall && !mongoose.Types.ObjectId.isValid(hall)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid hall ID'
+      });
+    }
+
+    // Build update object
+    const updateData = {};
+    if (film !== undefined) {
+      const filmDoc = await Film.findById(film);
+      if (!filmDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Film not found'
+        });
+      }
+      updateData.film = film;
+    }
+    if (hall !== undefined) {
+      const hallDoc = await Hall.findById(hall);
+      if (!hallDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Hall not found'
+        });
+      }
+      updateData.hall = hall;
+      // Update available seats if hall changes
+      if (availableSeats === undefined) {
+        updateData.availableSeats = hallDoc.capacity;
+      }
+    }
+    if (startTime !== undefined) updateData.startTime = new Date(startTime);
+    if (endTime !== undefined) updateData.endTime = new Date(endTime);
+    
+    // Validate time range if both times are being updated
+    if (updateData.startTime || updateData.endTime) {
+      const start = updateData.startTime || session.startTime;
+      const end = updateData.endTime || session.endTime;
+      if (end <= start) {
+        return res.status(400).json({
+          success: false,
+          error: 'End time must be after start time'
+        });
+      }
+    }
+    
+    if (price !== undefined) updateData.price = price;
+    if (is3D !== undefined) updateData.is3D = is3D;
+    if (subtitles !== undefined) updateData.subtitles = subtitles;
+    if (status !== undefined) updateData.status = status;
+    if (availableSeats !== undefined) updateData.availableSeats = availableSeats;
+
+    const updatedSession = await Session.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    )
+      .populate('film', 'title originalTitle duration')
+      .populate('hall', 'name cinema');
+
+    res.json({
+      success: true,
+      data: updatedSession
+    });
+  } catch (error) {
+    console.error('Error updating session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update session'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/sessions/:id
+ * Delete a session
+ */
+app.delete('/api/admin/sessions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid session ID'
+      });
+    }
+
+    const session = await Session.findById(id);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found'
+      });
+    }
+
+    // Check if there are any bookings for this session
+    const bookingCount = await Booking.countDocuments({
+      session: id,
+      status: { $in: ['pending', 'confirmed'] }
+    });
+
+    if (bookingCount > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot delete session with ${bookingCount} active booking(s). Cancel bookings first.`
+      });
+    }
+
+    await Session.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Session deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete session'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/halls
+ * Get all halls for admin use
+ */
+app.get('/api/admin/halls', async (req, res) => {
+  try {
+    const halls = await Hall.find()
+      .populate('cinema', 'name address')
+      .sort({ 'cinema.name': 1, name: 1 });
+
+    res.json({
+      success: true,
+      count: halls.length,
+      data: halls
+    });
+  } catch (error) {
+    console.error('Error fetching halls:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch halls'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/bookings
+ * Get all bookings for admin management
+ */
+app.get('/api/admin/bookings', async (req, res) => {
+  try {
+    const bookings = await Booking.find()
+      .populate({
+        path: 'session',
+        select: 'startTime film hall',
+        populate: [
+          { path: 'film', select: 'title' },
+          { path: 'hall', select: 'name cinema', populate: { path: 'cinema', select: 'name' } }
+        ]
+      })
+      .populate('seats', 'row number')
+      .populate('user', 'firstName lastName email')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: bookings.length,
+      data: bookings
+    });
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bookings'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/bookings/:id
+ * Delete a booking
+ */
+app.delete('/api/admin/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -854,7 +1125,6 @@ app.put('/api/bookings/:id', async (req, res) => {
       });
     }
 
-    // Get existing booking
     const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({
@@ -863,47 +1133,25 @@ app.put('/api/bookings/:id', async (req, res) => {
       });
     }
 
-    // Prepare update object
-    const updateData = {};
-    if (status) updateData.status = status;
-    if (paymentStatus) updateData.paymentStatus = paymentStatus;
-    if (paymentMethod) updateData.paymentMethod = paymentMethod;
-    updateData.updatedAt = Date.now();
-
-    // If cancelling, restore available seats
-    if (status === 'cancelled' && booking.status !== 'cancelled') {
+    // Update session available seats when booking is deleted
+    const session = await Session.findById(booking.session);
+    if (session) {
       await Session.findByIdAndUpdate(booking.session, {
         $inc: { availableSeats: booking.seats.length }
       });
     }
 
-    // Update booking
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    )
-      .populate({
-        path: 'session',
-        populate: [
-          { path: 'film', select: 'title originalTitle duration posterUrl' },
-          { path: 'hall', select: 'name cinema', populate: { path: 'cinema', select: 'name address' } }
-        ]
-      })
-      .populate('seats')
-      .populate('user', 'firstName lastName email phone');
+    await Booking.findByIdAndDelete(id);
 
     res.json({
       success: true,
-      message: 'Booking updated successfully',
-      data: updatedBooking
+      message: 'Booking deleted successfully'
     });
   } catch (error) {
-    console.error('Error updating booking:', error);
+    console.error('Error deleting booking:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update booking',
-      message: error.message
+      error: 'Failed to delete booking'
     });
   }
 });
