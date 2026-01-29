@@ -443,7 +443,7 @@ export default {
     generateDates() {
       const dates = []
       const today = new Date()
-      const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R'] // Estonian day abbreviations (L=Sunday, P=Monday, etc.)
+      const days = ['P', 'E', 'T', 'K', 'N', 'R', 'L'] // Estonian day abbreviations (P=Pühapäev/Sunday, E=Esmaspäev/Monday, T=Teisipäev/Tuesday, K=Kolmapäev/Wednesday, N=Neljapäev/Thursday, R=Reede/Friday, L=Laupäev/Saturday)
       
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)

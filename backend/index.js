@@ -356,10 +356,28 @@ app.get('/api/films/:id/sessions', async (req, res) => {
  * GET /api/apollo-kino/sync
  * Fetch and sync data from Apollo Kino API to database
  * This endpoint fetches movies and sessions from Apollo Kino and stores them in the database
+ * Query parameters:
+ *   - dtFrom: Start date (YYYY-MM-DD) - defaults to today
+ *   - dtTo: End date (YYYY-MM-DD) - defaults to 14 days from dtFrom
  */
 app.get('/api/apollo-kino/sync', async (req, res) => {
   try {
-    const data = await apolloKinoService.fetchSchedule();
+    // Get date parameters from query string or use defaults
+    let { dtFrom, dtTo } = req.query;
+    
+    // Default to today if not provided
+    if (!dtFrom) {
+      dtFrom = new Date().toISOString().split('T')[0];
+    }
+    
+    // Default to 14 days from dtFrom if not provided
+    if (!dtTo) {
+      const toDate = new Date(dtFrom);
+      toDate.setDate(toDate.getDate() + 14);
+      dtTo = toDate.toISOString().split('T')[0];
+    }
+    
+    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
     if (data.error) {
       return res.status(503).json({
@@ -466,10 +484,28 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  * GET /api/apollo-kino/schedule
  * Get schedule data from Apollo Kino API
  * Returns movies and shows data from the Schedule endpoint
+ * Query parameters:
+ *   - dtFrom: Start date (YYYY-MM-DD) - defaults to today
+ *   - dtTo: End date (YYYY-MM-DD) - defaults to 14 days from dtFrom
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
-    const data = await apolloKinoService.fetchSchedule();
+    // Get date parameters from query string or use defaults
+    let { dtFrom, dtTo } = req.query;
+    
+    // Default to today if not provided
+    if (!dtFrom) {
+      dtFrom = new Date().toISOString().split('T')[0];
+    }
+    
+    // Default to 14 days from dtFrom if not provided
+    if (!dtTo) {
+      const toDate = new Date(dtFrom);
+      toDate.setDate(toDate.getDate() + 14);
+      dtTo = toDate.toISOString().split('T')[0];
+    }
+    
+    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
     if (data.error) {
       return res.status(503).json({

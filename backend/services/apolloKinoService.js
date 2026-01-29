@@ -261,11 +261,28 @@ class ApolloKinoService {
 
   /**
    * Fetch and parse all Apollo Kino data
+   * @param {string} dateFrom - Start date in YYYY-MM-DD format (optional)
+   * @param {string} dateTo - End date in YYYY-MM-DD format (optional)
    * @returns {Promise<Object>} Object containing movies and shows
    */
-  async fetchSchedule() {
+  async fetchSchedule(dateFrom = null, dateTo = null) {
     try {
-      const schedule = await this.fetchJSON("/Schedule");
+      // Build query parameters for date range
+      let schedulePath = "/Schedule";
+      const params = [];
+      
+      if (dateFrom) {
+        params.push(`dtFrom=${dateFrom}`);
+      }
+      if (dateTo) {
+        params.push(`dtTo=${dateTo}`);
+      }
+      
+      if (params.length > 0) {
+        schedulePath += `?${params.join('&')}`;
+      }
+
+      const schedule = await this.fetchJSON(schedulePath);
       const events = await this.fetchJSON("/Events");
 
       // The structure may vary, so we'll handle different possible structures
