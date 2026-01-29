@@ -345,7 +345,16 @@ export default {
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      axios.get(`${apiUrl}/api/apollo-kino/schedule`)
+      // Calculate date range: today to 14 days ahead
+      const today = new Date();
+      const dtFrom = today.toISOString().split('T')[0];
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + 14);
+      const dtTo = futureDate.toISOString().split('T')[0];
+      
+      axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
+        params: { dtFrom, dtTo }
+      })
         .then(res => {
           // Transform the schedule data to sessions format
           const scheduleData = res.data.schedule;
