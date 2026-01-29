@@ -201,7 +201,8 @@ const DEFAULT_AVAILABILITY_PERCENT = 70
 export default {
   name: 'Schedule',
   data() {
-    const today = new Date().toISOString().split('T')[0]
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
     
     return {
       selectedCinema: '',
@@ -386,7 +387,7 @@ export default {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
-              const showDate = startTime.toISOString().split('T')[0];
+              const showDate = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`;
               const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
               const totalSeats = parseInt(show.TotalSeats) || 100;
               const availabilityPercent = totalSeats > 0 
@@ -460,7 +461,7 @@ export default {
         dates.push({
           day: days[date.getDay()],
           number: date.getDate(),
-          value: date.toISOString().split('T')[0]
+          value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
         })
       }
       
