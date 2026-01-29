@@ -345,7 +345,16 @@ export default {
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      axios.get(`${apiUrl}/api/apollo-kino/schedule`)
+      // Calculate date range: today to 14 days ahead (using local timezone)
+      const today = new Date();
+      const dtFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + 14);
+      const dtTo = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
+      
+      axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
+        params: { dtFrom, dtTo }
+      })
         .then(res => {
           // Transform the schedule data to sessions format
           const scheduleData = res.data.schedule;
@@ -443,7 +452,7 @@ export default {
     generateDates() {
       const dates = []
       const today = new Date()
-      const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R'] // Estonian day abbreviations (L=Sunday, P=Monday, etc.)
+      const days = ['P', 'E', 'T', 'K', 'N', 'R', 'L'] // Estonian day abbreviations (P=Pühapäev/Sunday, E=Esmaspäev/Monday, T=Teisipäev/Tuesday, K=Kolmapäev/Wednesday, N=Neljapäev/Thursday, R=Reede/Friday, L=Laupäev/Saturday)
       
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)
