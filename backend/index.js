@@ -251,7 +251,7 @@ app.get('/api/films/:id/sessions', async (req, res) => {
     const sessions = await Session.find({
       film: id,
       status: 'scheduled',
-      startTime: { $gte: new Date() }
+      //startTime: { $gte: new Date() }
     })
       .populate({
         path: 'hall',
@@ -262,6 +262,8 @@ app.get('/api/films/:id/sessions', async (req, res) => {
         }
       })
       .sort({ startTime: 1 });
+
+    console.log(sessions)
 
     res.json({
       success: true,

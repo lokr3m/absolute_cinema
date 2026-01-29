@@ -25,6 +25,12 @@
         <div class="main-content">
           <div v-if="currentStep === 1" class="step-content">
             <h2>Select Movie & Time</h2>
+            
+            <!-- Film not found message -->
+            <div v-if="filmNotFoundMessage" class="info-message">
+              {{ filmNotFoundMessage }}
+            </div>
+            
             <div class="movie-selection">
               <div class="form-group">
                 <label>Movie:</label>
@@ -184,7 +190,8 @@ export default {
   name: 'Booking',
   props: {
     filmId: String,
-    sessionId: String
+    sessionId: String,
+    filmTitle: String
   },
   data() {
     return {
@@ -208,7 +215,8 @@ export default {
       loading: true,
       loadingSeats: false,
       error: null,
-      submitting: false
+      submitting: false,
+      filmNotFoundMessage: null
     }
   },
   computed: {
@@ -246,10 +254,26 @@ export default {
   async mounted() {
     await this.loadFilms()
     
-    // If filmId is provided, select it and load sessions
+    // Priority: filmId > filmTitle
+    // If filmId is provided, use it directly
     if (this.filmId) {
       this.selectedFilmId = this.filmId
       await this.loadSessions()
+    }
+    // If filmTitle is provided (from Schedule page), find matching film
+    else if (this.filmTitle) {
+      const matchingFilm = this.films.find(film => 
+        film.title?.toLowerCase() === this.filmTitle.toLowerCase() ||
+        film.originalTitle?.toLowerCase() === this.filmTitle.toLowerCase()
+      )
+      
+      if (matchingFilm) {
+        this.selectedFilmId = matchingFilm._id
+        await this.loadSessions()
+      } else {
+        // Film not found in database
+        this.filmNotFoundMessage = `Film "${this.filmTitle}" is not currently available for booking. Please select from available films below.`
+      }
     }
     
     // If sessionId is provided, select it and load seats
@@ -320,6 +344,9 @@ export default {
       }
     },
     async onFilmChange() {
+      // Clear film not found message when user manually selects a film
+      this.filmNotFoundMessage = null
+      
       this.selectedSessionId = ''
       this.selectedSession = null
       this.sessions = []
@@ -703,6 +730,16 @@ h1 {
   border-radius: 4px;
   margin-bottom: 1rem;
   text-align: center;
+}
+
+.info-message {
+  padding: 1rem;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-align: center;
+  border: 1px solid #90caf9;
 }
 
 .no-sessions {
