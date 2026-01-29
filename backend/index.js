@@ -35,6 +35,59 @@ mongoose.connect(MONGODB_URI)
 // Initialize Apollo Kino Service
 const apolloKinoService = new ApolloKinoService();
 
+// Helper function to format date in YYYY-MM-DD format (local timezone)
+function formatDateLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper function to validate and parse date string
+function validateDate(dateStr) {
+  if (!dateStr) return null;
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateStr)) {
+    throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD.`);
+  }
+  const date = new Date(dateStr + 'T00:00:00'); // Parse as local time
+  if (isNaN(date.getTime())) {
+    throw new Error(`Invalid date: ${dateStr}`);
+  }
+  return dateStr;
+}
+
+// Helper function to get default date range
+function getDefaultDateRange(dtFrom, dtTo) {
+  let fromDate = dtFrom;
+  let toDate = dtTo;
+  
+  // Default to today if not provided
+  if (!fromDate) {
+    fromDate = formatDateLocal(new Date());
+  } else {
+    fromDate = validateDate(fromDate);
+  }
+  
+  // Default to 14 days from dtFrom if not provided
+  if (!toDate) {
+    const fromDateObj = new Date(fromDate + 'T00:00:00');
+    fromDateObj.setDate(fromDateObj.getDate() + 14);
+    toDate = formatDateLocal(fromDateObj);
+  } else {
+    toDate = validateDate(toDate);
+  }
+  
+  // Validate that dtTo is not before dtFrom
+  const fromDateObj = new Date(fromDate + 'T00:00:00');
+  const toDateObj = new Date(toDate + 'T00:00:00');
+  if (toDateObj < fromDateObj) {
+    throw new Error('End date (dtTo) cannot be before start date (dtFrom)');
+  }
+  
+  return { dtFrom: fromDate, dtTo: toDate };
+}
+
 // Роуты
 
 app.get('/', async (req, res) => {
@@ -362,20 +415,8 @@ app.get('/api/films/:id/sessions', async (req, res) => {
  */
 app.get('/api/apollo-kino/sync', async (req, res) => {
   try {
-    // Get date parameters from query string or use defaults
-    let { dtFrom, dtTo } = req.query;
-    
-    // Default to today if not provided
-    if (!dtFrom) {
-      dtFrom = new Date().toISOString().split('T')[0];
-    }
-    
-    // Default to 14 days from dtFrom if not provided
-    if (!dtTo) {
-      const toDate = new Date(dtFrom);
-      toDate.setDate(toDate.getDate() + 14);
-      dtTo = toDate.toISOString().split('T')[0];
-    }
+    // Get and validate date parameters
+    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
     
     const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
@@ -490,20 +531,8 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
-    // Get date parameters from query string or use defaults
-    let { dtFrom, dtTo } = req.query;
-    
-    // Default to today if not provided
-    if (!dtFrom) {
-      dtFrom = new Date().toISOString().split('T')[0];
-    }
-    
-    // Default to 14 days from dtFrom if not provided
-    if (!dtTo) {
-      const toDate = new Date(dtFrom);
-      toDate.setDate(toDate.getDate() + 14);
-      dtTo = toDate.toISOString().split('T')[0];
-    }
+    // Get and validate date parameters
+    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
     
     const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     

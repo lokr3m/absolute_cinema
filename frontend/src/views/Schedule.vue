@@ -345,12 +345,12 @@ export default {
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      // Calculate date range: today to 14 days ahead
+      // Calculate date range: today to 14 days ahead (using local timezone)
       const today = new Date();
-      const dtFrom = today.toISOString().split('T')[0];
+      const dtFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + 14);
-      const dtTo = futureDate.toISOString().split('T')[0];
+      const dtTo = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
       
       axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
         params: { dtFrom, dtTo }

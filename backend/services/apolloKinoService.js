@@ -272,10 +272,10 @@ class ApolloKinoService {
       const params = [];
       
       if (dateFrom) {
-        params.push(`dtFrom=${dateFrom}`);
+        params.push(`dtFrom=${encodeURIComponent(dateFrom)}`);
       }
       if (dateTo) {
-        params.push(`dtTo=${dateTo}`);
+        params.push(`dtTo=${encodeURIComponent(dateTo)}`);
       }
       
       if (params.length > 0) {
