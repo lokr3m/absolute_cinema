@@ -202,13 +202,15 @@ const DEFAULT_AVAILABILITY_PERCENT = 70
 export default {
   name: 'Schedule',
   data() {
-    const today = new Date().toISOString().split('T')[0]
+    // Use local date instead of UTC to avoid timezone issues
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     return {
       selectedCinema: '',
       selectedGenre: '',
       selectedFormat: '',
-      selectedDate: today,
+      selectedDate: todayStr,
       currentWeekIndex: 0,
       allDates: [],
       sessions: [],
@@ -217,7 +219,8 @@ export default {
       error: null,
       cinemaDropdownOpen: false,
       genreDropdownOpen: false,
-      formatDropdownOpen: false
+      formatDropdownOpen: false,
+      isAutoSelecting: false
     }
   },
   created() {
@@ -303,6 +306,20 @@ export default {
       return [...new Set(this.sessions.map(s => s.date))].sort()
     }
   },
+  watch: {
+    selectedDate(newDate) {
+      // Prevent infinite loop
+      if (this.isAutoSelecting) {
+        return;
+      }
+      
+      this.autoSelectAvailableDate(newDate);
+    },
+    sessions() {
+      // When sessions data changes, also check if we need to auto-select
+      this.autoSelectAvailableDate(this.selectedDate);
+    }
+  },
   methods: {
     closeAllDropdowns(event) {
       if (!event.target.closest('.custom-dropdown')) {
@@ -340,6 +357,37 @@ export default {
     selectFormat(value) {
       this.selectedFormat = value
       this.formatDropdownOpen = false
+    },
+    autoSelectAvailableDate(targetDate) {
+      // Prevent infinite loop
+      if (this.isAutoSelecting) {
+        return;
+      }
+      
+      // Auto-select first available date if no sessions for selected date
+      this.$nextTick(() => {
+        if (this.filteredSessions.length === 0 && this.sessions.length > 0) {
+          const availableDates = [...new Set(this.sessions.map(s => s.date))].sort();
+          if (availableDates.length > 0) {
+            // Find the closest available date to the selected date
+            const selectedTime = new Date(targetDate).getTime();
+            const closestDate = availableDates.reduce((closest, date) => {
+              const dateTime = new Date(date).getTime();
+              const closestTime = new Date(closest).getTime();
+              return Math.abs(dateTime - selectedTime) < Math.abs(closestTime - selectedTime) ? date : closest;
+            });
+            
+            // Only update if different to avoid unnecessary updates
+            if (this.selectedDate !== closestDate) {
+              this.isAutoSelecting = true;
+              this.selectedDate = closestDate;
+              this.$nextTick(() => {
+                this.isAutoSelecting = false;
+              });
+            }
+          }
+        }
+      });
     },
     async fetchCinemas() {
       try {
@@ -421,7 +469,8 @@ export default {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
-              const showDate = startTime.toISOString().split('T')[0];
+              // Use local date instead of UTC to avoid timezone issues
+              const showDate = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`;
               const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
               const totalSeats = parseInt(show.TotalSeats) || 100;
               const availabilityPercent = totalSeats > 0 
@@ -464,14 +513,6 @@ export default {
               };
             });
             
-            // Auto-select first available date if no sessions for selected date
-            const sessionsForSelectedDate = this.sessions.filter(s => s.date === this.selectedDate);
-            if (sessionsForSelectedDate.length === 0 && this.sessions.length > 0) {
-              const availableDates = [...new Set(this.sessions.map(s => s.date))].sort();
-              if (availableDates.length > 0) {
-                this.selectedDate = availableDates[0];
-              }
-            }
           } else {
             this.sessions = [];
           }
@@ -492,10 +533,12 @@ export default {
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)
         date.setDate(today.getDate() + i)
+        // Use local date instead of UTC to avoid timezone issues
+        const dateValue = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         dates.push({
           day: days[date.getDay()],
           number: date.getDate(),
-          value: date.toISOString().split('T')[0]
+          value: dateValue
         })
       }
       
