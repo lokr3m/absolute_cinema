@@ -201,13 +201,15 @@ const DEFAULT_AVAILABILITY_PERCENT = 70
 export default {
   name: 'Schedule',
   data() {
-    const today = new Date().toISOString().split('T')[0]
+    // Use local date instead of UTC to avoid timezone issues
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     return {
       selectedCinema: '',
       selectedGenre: '',
       selectedFormat: '',
-      selectedDate: today,
+      selectedDate: todayStr,
       currentWeekIndex: 0,
       allDates: [],
       sessions: [],
@@ -432,7 +434,8 @@ export default {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
-              const showDate = startTime.toISOString().split('T')[0];
+              // Use local date instead of UTC to avoid timezone issues
+              const showDate = `${startTime.getFullYear()}-${String(startTime.getMonth() + 1).padStart(2, '0')}-${String(startTime.getDate()).padStart(2, '0')}`;
               const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
               const totalSeats = parseInt(show.TotalSeats) || 100;
               const availabilityPercent = totalSeats > 0 
@@ -495,10 +498,12 @@ export default {
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)
         date.setDate(today.getDate() + i)
+        // Use local date instead of UTC to avoid timezone issues
+        const dateValue = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         dates.push({
           day: days[date.getDay()],
           number: date.getDate(),
-          value: date.toISOString().split('T')[0]
+          value: dateValue
         })
       }
       
