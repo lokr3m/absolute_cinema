@@ -44,7 +44,8 @@
               v-for="(date, index) in displayedDates"
               :key="index"
               @click="selectedDate = date.value"
-              :class="['date-btn', { active: selectedDate === date.value }]"
+              :class="['date-btn', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
+              :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
             >
               <div class="date-day">{{ date.day }}</div>
               <div class="date-number">{{ date.number }}</div>
@@ -229,10 +230,49 @@ export default {
   beforeUnmount() {
     document.removeEventListener('click', this.closeAllDropdowns)
   },
+  watch: {
+    selectedDate(newDate) {
+      // When a date is selected, check if it has sessions
+      // If not, find the nearest date with sessions
+      if (this.sessions.length > 0) {
+        const sessionsForDate = this.sessions.filter(s => s.date === newDate)
+        if (sessionsForDate.length === 0 && this.availableDates.length > 0) {
+          // Find the closest available date
+          const selectedDateObj = new Date(newDate)
+          let closestDate = this.availableDates[0]
+          let minDiff = Math.abs(new Date(this.availableDates[0]) - selectedDateObj)
+          
+          for (const availDate of this.availableDates) {
+            const diff = Math.abs(new Date(availDate) - selectedDateObj)
+            if (diff < minDiff) {
+              minDiff = diff
+              closestDate = availDate
+            }
+          }
+          
+          // Only update if we found a different date
+          if (closestDate !== newDate) {
+            this.$nextTick(() => {
+              this.selectedDate = closestDate
+            })
+          }
+        }
+      }
+    }
+  },
   computed: {
     displayedDates() {
       const startIndex = this.currentWeekIndex * 7
-      return this.allDates.slice(startIndex, startIndex + 7)
+      const dates = this.allDates.slice(startIndex, startIndex + 7)
+      
+      // Get all available dates from sessions
+      const availableDates = new Set(this.sessions.map(s => s.date))
+      
+      // Mark dates that have sessions
+      return dates.map(date => ({
+        ...date,
+        hasSchedule: availableDates.has(date.value)
+      }))
     },
     filteredSessions() {
       return this.sessions.filter(session => {
@@ -257,6 +297,10 @@ export default {
         
         return matches
       })
+    },
+    availableDates() {
+      // Get unique dates that have sessions, sorted
+      return [...new Set(this.sessions.map(s => s.date))].sort()
     }
   },
   methods: {
@@ -345,16 +389,7 @@ export default {
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      // Calculate date range: today to 14 days ahead (using local timezone)
-      const today = new Date();
-      const dtFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const futureDate = new Date(today);
-      futureDate.setDate(today.getDate() + 14);
-      const dtTo = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}-${String(futureDate.getDate()).padStart(2, '0')}`;
-      
-      axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
-        params: { dtFrom, dtTo }
-      })
+      axios.get(`${apiUrl}/api/apollo-kino/schedule`)
         .then(res => {
           // Transform the schedule data to sessions format
           const scheduleData = res.data.schedule;
@@ -452,7 +487,7 @@ export default {
     generateDates() {
       const dates = []
       const today = new Date()
-      const days = ['P', 'E', 'T', 'K', 'N', 'R', 'L'] // Estonian day abbreviations (P=Pühapäev/Sunday, E=Esmaspäev/Monday, T=Teisipäev/Tuesday, K=Kolmapäev/Wednesday, N=Neljapäev/Thursday, R=Reede/Friday, L=Laupäev/Saturday)
+      const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R'] // Estonian day abbreviations (L=Sunday, P=Monday, etc.)
       
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)
@@ -696,6 +731,16 @@ h1 {
 .date-btn.active {
   background-color: #e67e22;
   border-color: #e67e22;
+}
+
+.date-btn.no-schedule {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.date-btn.no-schedule:hover {
+  background-color: #2a2a2a;
+  transform: none;
 }
 
 .date-day {
