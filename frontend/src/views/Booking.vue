@@ -3,10 +3,13 @@
     <div class="container">
       <h1>Book Your Tickets</h1>
       
+      <div v-if="error" class="error-message">{{ error }}</div>
+      <div v-if="loading" class="loading-message">Loading...</div>
+      
       <div class="booking-steps">
         <div class="step" :class="{ active: currentStep === 1 }">
           <span class="step-number">1</span>
-          <span class="step-label">Select Movie</span>
+          <span class="step-label">Select Movie & Session</span>
         </div>
         <div class="step" :class="{ active: currentStep === 2 }">
           <span class="step-number">2</span>
@@ -21,85 +24,110 @@
       <div class="booking-content">
         <div class="main-content">
           <div v-if="currentStep === 1" class="step-content">
-            <h2>Select Movie & Time</h2>
+            <h2>Select Movie & Session</h2>
             <div class="movie-selection">
               <div class="form-group">
-                <label>Movie:</label>
-                <select v-model="selectedMovie">
-                  <option value="">Choose a movie</option>
-                  <option v-for="i in 5" :key="i" :value="i">Movie Title {{ i }}</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Date:</label>
-                <input type="date" v-model="selectedDate">
-              </div>
-              <div class="form-group">
-                <label>Time:</label>
-                <select v-model="selectedTime">
-                  <option value="">Choose a time</option>
-                  <option v-for="time in ['10:00', '13:30', '16:45', '19:00', '21:30']" :key="time" :value="time">
-                    {{ time }}
+                <label>Film:</label>
+                <select v-model="selectedFilm" @change="onFilmChange" :disabled="loading">
+                  <option :value="null">Choose a film</option>
+                  <option v-for="film in films" :key="film._id" :value="film._id">
+                    {{ film.title }}
                   </option>
                 </select>
               </div>
+              
               <div class="form-group">
                 <label>Cinema:</label>
-                <select v-model="selectedCinema">
-                  <option value="">Choose a cinema</option>
-                  <option v-for="i in 3" :key="i" :value="i">Cinema {{ i }}</option>
+                <select v-model="selectedCinema" @change="onCinemaChange" :disabled="loading">
+                  <option :value="null">Choose a cinema</option>
+                  <option v-for="cinema in cinemas" :key="cinema._id" :value="cinema._id">
+                    {{ cinema.name }}
+                  </option>
                 </select>
+              </div>
+
+              <div class="form-group" v-if="selectedCinema">
+                <label>Hall:</label>
+                <select v-model="selectedHall" @change="onHallChange" :disabled="loading || !halls.length">
+                  <option :value="null">Choose a hall</option>
+                  <option v-for="hall in halls" :key="hall._id" :value="hall._id">
+                    {{ hall.name }} ({{ hall.screenType }})
+                  </option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label>Date:</label>
+                <input type="date" v-model="selectedDate" @change="onDateChange" :disabled="loading" :min="getTodayDate()">
+              </div>
+
+              <div class="form-group" v-if="selectedFilm && selectedDate">
+                <label>Session:</label>
+                <select v-model="selectedSession" @change="onSessionChange" :disabled="loading || !filteredSessions.length">
+                  <option :value="null">Choose a session</option>
+                  <option v-for="session in filteredSessions" :key="session._id" :value="session._id">
+                    {{ formatSessionTime(session) }} - 
+                    {{ session.hall ? session.hall.name : 'N/A' }} - 
+                    €{{ session.price?.standard || 'N/A' }}
+                  </option>
+                </select>
+                <p v-if="!filteredSessions.length && selectedFilm" class="info-text">
+                  No sessions available for the selected criteria
+                </p>
               </div>
             </div>
           </div>
 
           <div v-if="currentStep === 2" class="step-content">
             <h2>Select Your Seats</h2>
-            <div class="screen">SCREEN</div>
-            <div class="seating-chart">
-              <div class="row" v-for="row in 8" :key="row">
-                <span class="row-label">{{ String.fromCharCode(64 + row) }}</span>
-                <button 
-                  v-for="seat in 12" 
-                  :key="seat"
-                  class="seat"
-                  :class="{ 
-                    selected: isSelected(row, seat),
-                    occupied: isOccupied(row, seat)
-                  }"
-                  @click="toggleSeat(row, seat)"
-                  :disabled="isOccupied(row, seat)"
-                >
-                  {{ seat }}
-                </button>
+            <div v-if="seatLayout" class="seat-selection">
+              <div class="screen">SCREEN</div>
+              <div class="seating-chart">
+                <div class="row" v-for="row in seatLayout.rows" :key="row">
+                  <span class="row-label">{{ String.fromCharCode(64 + row) }}</span>
+                  <button 
+                    v-for="seat in seatLayout.seatsPerRow" 
+                    :key="seat"
+                    class="seat"
+                    :class="{ 
+                      selected: isSelected(row, seat),
+                      occupied: isOccupied(row, seat)
+                    }"
+                    @click="toggleSeat(row, seat)"
+                    :disabled="isOccupied(row, seat)"
+                  >
+                    {{ seat }}
+                  </button>
+                </div>
+              </div>
+              <div class="legend">
+                <div class="legend-item">
+                  <span class="seat-example available"></span>
+                  <span>Available</span>
+                </div>
+                <div class="legend-item">
+                  <span class="seat-example selected"></span>
+                  <span>Selected</span>
+                </div>
+                <div class="legend-item">
+                  <span class="seat-example occupied"></span>
+                  <span>Occupied</span>
+                </div>
               </div>
             </div>
-            <div class="legend">
-              <div class="legend-item">
-                <span class="seat-example available"></span>
-                <span>Available</span>
-              </div>
-              <div class="legend-item">
-                <span class="seat-example selected"></span>
-                <span>Selected</span>
-              </div>
-              <div class="legend-item">
-                <span class="seat-example occupied"></span>
-                <span>Occupied</span>
-              </div>
-            </div>
+            <div v-else class="loading-message">Loading seat layout...</div>
           </div>
 
           <div v-if="currentStep === 3" class="step-content">
             <h2>Payment Details</h2>
-            <form class="payment-form">
+            <form class="payment-form" @submit.prevent="confirmBooking">
               <div class="form-group">
-                <label>Full Name:</label>
-                <input type="text" v-model="paymentInfo.name" placeholder="John Doe">
+                <label>Full Name: *</label>
+                <input type="text" v-model="paymentInfo.name" placeholder="John Doe" required>
               </div>
               <div class="form-group">
-                <label>Email:</label>
-                <input type="email" v-model="paymentInfo.email" placeholder="john@example.com">
+                <label>Email: *</label>
+                <input type="email" v-model="paymentInfo.email" placeholder="john@example.com" required>
               </div>
               <div class="form-group">
                 <label>Phone:</label>
@@ -123,35 +151,39 @@
           </div>
 
           <div class="navigation-buttons">
-            <button v-if="currentStep > 1" @click="previousStep" class="btn btn-secondary">
+            <button v-if="currentStep > 1" @click="previousStep" class="btn btn-secondary" :disabled="loading">
               Previous
             </button>
-            <button v-if="currentStep < 3" @click="nextStep" class="btn btn-primary">
+            <button v-if="currentStep < 3" @click="nextStep" class="btn btn-primary" :disabled="loading">
               Next
             </button>
-            <button v-if="currentStep === 3" @click="confirmBooking" class="btn btn-primary">
-              Confirm Booking
+            <button v-if="currentStep === 3" @click="confirmBooking" class="btn btn-primary" :disabled="loading">
+              {{ loading ? 'Processing...' : 'Confirm Booking' }}
             </button>
           </div>
         </div>
 
         <div class="booking-summary">
           <h3>Booking Summary</h3>
-          <div class="summary-item" v-if="selectedMovie">
-            <span>Movie:</span>
-            <span>Movie Title {{ selectedMovie }}</span>
+          <div class="summary-item" v-if="selectedFilm">
+            <span>Film:</span>
+            <span>{{ getFilmTitle(selectedFilm) }}</span>
+          </div>
+          <div class="summary-item" v-if="selectedCinema">
+            <span>Cinema:</span>
+            <span>{{ getCinemaName(selectedCinema) }}</span>
+          </div>
+          <div class="summary-item" v-if="selectedHall">
+            <span>Hall:</span>
+            <span>{{ getHallName(selectedHall) }}</span>
           </div>
           <div class="summary-item" v-if="selectedDate">
             <span>Date:</span>
             <span>{{ selectedDate }}</span>
           </div>
-          <div class="summary-item" v-if="selectedTime">
+          <div class="summary-item" v-if="selectedSession && getSelectedSessionDetails()">
             <span>Time:</span>
-            <span>{{ selectedTime }}</span>
-          </div>
-          <div class="summary-item" v-if="selectedCinema">
-            <span>Cinema:</span>
-            <span>Cinema {{ selectedCinema }}</span>
+            <span>{{ formatSessionTime(getSelectedSessionDetails()) }}</span>
           </div>
           <div class="summary-item" v-if="selectedSeats.length > 0">
             <span>Seats:</span>
@@ -169,17 +201,27 @@
 </template>
 
 <script>
+import axios from 'axios'
+
+const API_BASE_URL = 'http://localhost:3000/api'
+
 export default {
   name: 'Booking',
   data() {
     return {
       currentStep: 1,
-      selectedMovie: '',
-      selectedDate: '',
-      selectedTime: '',
-      selectedCinema: '',
+      films: [],
+      cinemas: [],
+      halls: [],
+      sessions: [],
+      selectedFilm: null,
+      selectedCinema: null,
+      selectedHall: null,
+      selectedSession: null,
+      selectedDate: this.getTodayDate(),
+      seatLayout: null,
+      occupiedSeats: [],
       selectedSeats: [],
-      occupiedSeats: [[2, 3], [2, 4], [5, 6], [5, 7]],
       paymentInfo: {
         name: '',
         email: '',
@@ -188,16 +230,168 @@ export default {
         expiry: '',
         cvv: ''
       },
-      ticketPrice: 9.50
+      loading: false,
+      error: null
     }
   },
   computed: {
+    ticketPrice() {
+      if (this.selectedSession && this.selectedSession.price) {
+        return this.selectedSession.price.standard || 0
+      }
+      return 9.50
+    },
     total() {
       return (this.selectedSeats.length * this.ticketPrice).toFixed(2)
+    },
+    canProceedToStep2() {
+      return this.selectedFilm && this.selectedCinema && this.selectedHall && this.selectedSession && this.selectedDate
+    },
+    filteredSessions() {
+      if (!this.sessions.length) return []
+      
+      return this.sessions.filter(session => {
+        const matchesFilm = !this.selectedFilm || session.film._id === this.selectedFilm
+        const matchesCinema = !this.selectedCinema || 
+          (session.hall && session.hall.cinema && session.hall.cinema._id === this.selectedCinema)
+        const matchesHall = !this.selectedHall || 
+          (session.hall && session.hall._id === this.selectedHall)
+        
+        return matchesFilm && matchesCinema && matchesHall
+      })
     }
   },
+  async mounted() {
+    await this.loadFilms()
+    await this.loadCinemas()
+  },
   methods: {
-    nextStep() {
+    getTodayDate() {
+      const today = new Date()
+      return today.toISOString().split('T')[0]
+    },
+    async loadFilms() {
+      try {
+        this.loading = true
+        const response = await axios.get(`${API_BASE_URL}/films`)
+        this.films = response.data.data || []
+      } catch (error) {
+        console.error('Error loading films:', error)
+        this.error = 'Failed to load films'
+      } finally {
+        this.loading = false
+      }
+    },
+    async loadCinemas() {
+      try {
+        this.loading = true
+        const response = await axios.get(`${API_BASE_URL}/cinemas`)
+        this.cinemas = response.data.data || []
+      } catch (error) {
+        console.error('Error loading cinemas:', error)
+        this.error = 'Failed to load cinemas'
+      } finally {
+        this.loading = false
+      }
+    },
+    async loadHalls() {
+      if (!this.selectedCinema) {
+        this.halls = []
+        return
+      }
+      
+      try {
+        this.loading = true
+        const response = await axios.get(`${API_BASE_URL}/cinemas/${this.selectedCinema}/halls`)
+        this.halls = response.data.data || []
+      } catch (error) {
+        console.error('Error loading halls:', error)
+        this.error = 'Failed to load halls'
+        this.halls = []
+      } finally {
+        this.loading = false
+      }
+    },
+    async loadSessions() {
+      if (!this.selectedFilm || !this.selectedDate) {
+        this.sessions = []
+        return
+      }
+      
+      try {
+        this.loading = true
+        const params = {
+          filmId: this.selectedFilm,
+          date: this.selectedDate
+        }
+        
+        if (this.selectedHall) {
+          params.hallId = this.selectedHall
+        }
+        
+        const response = await axios.get(`${API_BASE_URL}/sessions`, { params })
+        this.sessions = response.data.data || []
+      } catch (error) {
+        console.error('Error loading sessions:', error)
+        this.error = 'Failed to load sessions'
+        this.sessions = []
+      } finally {
+        this.loading = false
+      }
+    },
+    async loadSeatLayout() {
+      if (!this.selectedSession) return
+      
+      try {
+        this.loading = true
+        const response = await axios.get(`${API_BASE_URL}/sessions/${this.selectedSession}/seats`)
+        this.seatLayout = response.data.data.layout
+        this.occupiedSeats = response.data.data.occupied.map(s => [s.row, s.number])
+      } catch (error) {
+        console.error('Error loading seat layout:', error)
+        this.error = 'Failed to load seat layout'
+      } finally {
+        this.loading = false
+      }
+    },
+    async onFilmChange() {
+      this.selectedSession = null
+      await this.loadSessions()
+    },
+    async onCinemaChange() {
+      this.selectedHall = null
+      this.selectedSession = null
+      this.halls = []
+      await this.loadHalls()
+      await this.loadSessions()
+    },
+    async onHallChange() {
+      this.selectedSession = null
+      await this.loadSessions()
+    },
+    async onDateChange() {
+      this.selectedSession = null
+      await this.loadSessions()
+    },
+    async onSessionChange() {
+      if (this.selectedSession) {
+        await this.loadSeatLayout()
+      }
+    },
+    async nextStep() {
+      if (this.currentStep === 1) {
+        if (!this.canProceedToStep2) {
+          alert('Please select a film, cinema, hall, and session to continue')
+          return
+        }
+        await this.loadSeatLayout()
+      } else if (this.currentStep === 2) {
+        if (this.selectedSeats.length === 0) {
+          alert('Please select at least one seat')
+          return
+        }
+      }
+      
       if (this.currentStep < 3) {
         this.currentStep++
       }
@@ -208,22 +402,69 @@ export default {
       }
     },
     isSelected(row, seat) {
-      return this.selectedSeats.some(s => s[0] === row && s[1] === seat)
+      return this.selectedSeats.some(s => s.row === row && s.number === seat)
     },
     isOccupied(row, seat) {
       return this.occupiedSeats.some(s => s[0] === row && s[1] === seat)
     },
     toggleSeat(row, seat) {
-      const index = this.selectedSeats.findIndex(s => s[0] === row && s[1] === seat)
+      const index = this.selectedSeats.findIndex(s => s.row === row && s.number === seat)
       if (index > -1) {
         this.selectedSeats.splice(index, 1)
       } else {
-        this.selectedSeats.push([row, seat])
+        this.selectedSeats.push({ row, number: seat })
       }
     },
-    confirmBooking() {
-      alert('Booking confirmed! Thank you for your purchase.')
-      this.$router.push('/')
+    async confirmBooking() {
+      if (!this.paymentInfo.email || !this.paymentInfo.name) {
+        alert('Please fill in your contact information')
+        return
+      }
+      
+      try {
+        this.loading = true
+        const bookingData = {
+          sessionId: this.selectedSession,
+          seats: this.selectedSeats,
+          contactEmail: this.paymentInfo.email,
+          contactPhone: this.paymentInfo.phone,
+          paymentMethod: 'card'
+        }
+        
+        const response = await axios.post(`${API_BASE_URL}/bookings`, bookingData)
+        
+        if (response.data.success) {
+          alert(`Booking confirmed! Your booking number is: ${response.data.data.bookingNumber}\nTotal: €${response.data.data.totalPrice}`)
+          this.$router.push('/')
+        }
+      } catch (error) {
+        console.error('Error creating booking:', error)
+        const errorMsg = error.response?.data?.error || 'Failed to create booking'
+        alert(`Error: ${errorMsg}`)
+      } finally {
+        this.loading = false
+      }
+    },
+    getFilmTitle(filmId) {
+      const film = this.films.find(f => f._id === filmId)
+      return film ? film.title : ''
+    },
+    getCinemaName(cinemaId) {
+      const cinema = this.cinemas.find(c => c._id === cinemaId)
+      return cinema ? cinema.name : ''
+    },
+    getHallName(hallId) {
+      const hall = this.halls.find(h => h._id === hallId)
+      return hall ? hall.name : ''
+    },
+    formatSessionTime(session) {
+      if (!session || !session.startTime) return ''
+      const date = new Date(session.startTime)
+      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    },
+    getSelectedSessionDetails() {
+      const session = this.sessions.find(s => s._id === this.selectedSession)
+      return session || null
     }
   }
 }
@@ -245,6 +486,31 @@ h1 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
   color: #333;
+}
+
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #f5c6cb;
+}
+
+.loading-message {
+  background: #d1ecf1;
+  color: #0c5460;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #bee5eb;
+  text-align: center;
+}
+
+.info-text {
+  color: #666;
+  font-style: italic;
+  margin-top: 0.5rem;
 }
 
 .booking-steps {
