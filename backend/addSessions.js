@@ -72,9 +72,9 @@ async function addUpcomingSessions() {
               child: 5.0,
               vip: 12.0
             },
-            is3D: film.genre.includes('Animation') && Math.random() > 0.5,
-            subtitles: film.subtitles[0],
-            availableSeats: hall.capacity - Math.floor(Math.random() * 30),
+            is3D: Array.isArray(film.genre) && film.genre.includes('Animation') && Math.random() > 0.5,
+            subtitles: film.subtitles && film.subtitles.length > 0 ? film.subtitles[0] : 'None',
+            availableSeats: Math.max(0, hall.capacity - Math.floor(Math.random() * 30)),
             status: 'scheduled'
           };
 
