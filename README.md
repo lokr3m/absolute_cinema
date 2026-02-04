@@ -187,6 +187,8 @@ TA23B-B5-projekt/
 
 - `npm start` - Starts the backend server in production mode
 - `npm run dev` - Starts the backend server in development mode with nodemon
+- `npm run seed` - Seeds the database with sample data (clears existing data)
+- `npm run add-sessions` - Adds upcoming sessions without clearing existing data (recommended for production)
 - `npm test` - Placeholder for tests (not yet implemented)
 
 ### Frontend Scripts
@@ -194,6 +196,33 @@ TA23B-B5-projekt/
 - `cd frontend && npm run dev` - Starts the frontend development server
 - `cd frontend && npm run build` - Builds the frontend for production
 - `cd frontend && npm run preview` - Preview the production build
+
+## Database Management
+
+### Seeding the Database
+
+To populate the database with sample data:
+
+```bash
+npm run seed
+```
+
+**Warning:** This will delete all existing films, sessions, halls, and cinemas. Use this only for initial setup or testing.
+
+### Refreshing Sessions
+
+If your booking page shows "No sessions available", it likely means the sessions in your database are outdated. To add fresh sessions for the next 7 days without deleting existing bookings:
+
+```bash
+npm run add-sessions
+```
+
+This script will:
+- Remove sessions older than today
+- Add new sessions for the next 7 days
+- Preserve all existing bookings and future sessions
+
+**Note:** Make sure your `MONGODB_URI` environment variable is set before running these scripts.
 
 ## API Endpoints
 
@@ -209,6 +238,45 @@ curl http://localhost:3000/
 **Response:**
 ```json
 "abbik"
+```
+
+## Troubleshooting
+
+### "No sessions available for the selected criteria" on Booking Page
+
+This error typically occurs when the sessions in your database are outdated. The booking system only shows sessions for current and future dates.
+
+**Solution:**
+```bash
+npm run add-sessions
+```
+
+This will remove old sessions and create new ones for the next 7 days.
+
+**Alternative:** If you want to start fresh with all sample data:
+```bash
+npm run seed
+```
+
+### MongoDB Connection Issues
+
+If you see connection errors, ensure:
+
+1. MongoDB is running:
+   ```bash
+   mongosh --eval "db.version()"
+   ```
+
+2. Your `MONGODB_URI` environment variable is set:
+   ```bash
+   # For local MongoDB
+   export MONGODB_URI="mongodb://localhost:27017/cinema"
+   
+   # For MongoDB Atlas
+   export MONGODB_URI="mongodb+srv://username:password@cluster.mongodb.net/cinema"
+   ```
+
+3. Check network connectivity and firewall settings
 ```
 
 ## Technologies Used
