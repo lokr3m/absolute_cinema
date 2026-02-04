@@ -154,33 +154,24 @@ class ApolloKinoService {
     try {
       const eventsData = await this.fetchJSON("/Events");
 
-      console.log('Raw Events data structure:', JSON.stringify(eventsData, null, 2).substring(0, 500));
-
       // Parse Events structure - API returns JSON directly
       let events = [];
 
-      // Try different possible structures
       if (eventsData) {
         if (eventsData.Events && eventsData.Events.Event) {
-          // Structure: { Events: { Event: [...] } }
           events = Array.isArray(eventsData.Events.Event)
             ? eventsData.Events.Event
             : [eventsData.Events.Event];
         } else if (Array.isArray(eventsData.Events)) {
-          // Structure: { Events: [...] }
           events = eventsData.Events;
         } else if (Array.isArray(eventsData)) {
-          // Structure: [...]
           events = eventsData;
         } else if (eventsData.Event) {
-          // Structure: { Event: [...] }
           events = Array.isArray(eventsData.Event)
             ? eventsData.Event
             : [eventsData.Event];
         }
       }
-
-      console.log(`Found ${events.length} events`);
 
       return events;
     } catch (error) {
@@ -288,9 +279,6 @@ class ApolloKinoService {
       // The structure may vary, so we'll handle different possible structures
       let movies = [];
       let shows = [];
-
-      console.log("data from schedule ", schedule)
-      console.log("data from events ", events)
 
       return { movies, shows, schedule, events };
     } catch (error) {

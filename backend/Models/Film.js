@@ -43,7 +43,7 @@ const filmSchema = new mongoose.Schema({
   }],
   ageRating: {
     type: String,
-    enum: ['G', 'PG', 'PG-13', 'R', 'NC-17', 'MS-6', 'MS-12', 'K-12', 'K-16'],
+    enum: ['G', 'PG', 'PG-13', 'R', 'NC-17', 'MS-6', 'MS-12', 'K-12', 'K-14', 'K-16', 'PERE', '-'],
     required: true
   },
   posterUrl: {

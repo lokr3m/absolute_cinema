@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -7,33 +7,319 @@ const { Film, Session, Cinema, Hall, Booking, Seat } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
 const app = express();
-app.use(cors()); // чтобы Vue мог обращаться к API
-app.use(express.json()); // для парсинга JSON тела запросов
+app.use(cors());
+app.use(express.json());
 
-// MongoDB Atlas connection
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 const BOOKING_ID_BYTES = 6;
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
-  console.error('Please copy .env.example to .env and configure your MongoDB Atlas connection string');
-  console.error('See QUICKSTART.md for setup instructions');
   process.exit(1);
 }
 
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
-    console.log(`✓ ${dbName} connected successfully`);
-  })
-  .catch(err => {
-    console.warn('⚠️  MongoDB connection error:', err.message);
-    console.warn('Continuing without database connection - only mock data will be available');
-  });
-
-// Initialize Apollo Kino Service
 const apolloKinoService = new ApolloKinoService();
+
+/**
+ * Refresh database with fresh data from Apollo Kino API
+ * Clears all existing data and populates from API
+ */
+async function refreshDatabaseFromApollo() {
+  console.log('🔄 Starting database refresh from Apollo Kino API...');
+  
+  try {
+    // Step 1: Clear all existing data
+    console.log('🗑️  Clearing existing data...');
+    await Promise.all([
+      Booking.deleteMany({}),
+      Seat.deleteMany({}),
+      Session.deleteMany({}),
+      Film.deleteMany({}),
+      Hall.deleteMany({}),
+      Cinema.deleteMany({})
+    ]);
+    console.log('✓ Cleared all existing data');
+
+    // Step 2: Fetch Theatre Areas and create Cinemas/Halls
+    console.log('📍 Fetching Theatre Areas...');
+    const theatreAreas = await apolloKinoService.fetchTheatreAreas();
+    console.log(`✓ Found ${theatreAreas.length} theatre areas`);
+
+    const cinemaMap = new Map(); // Map Apollo cinema ID to MongoDB cinema
+    const hallMap = new Map(); // Map Apollo hall/auditorium ID to MongoDB hall
+
+    for (const area of theatreAreas) {
+      try {
+        // Create cinema from theatre area
+        const cinemaData = {
+          name: area.Name || `Apollo Kino ${area.ID}`,
+          address: {
+            street: area.Address || 'Unknown',
+            city: area.City || 'Tallinn',
+            postalCode: area.PostalCode || '10000',
+            country: 'Estonia'
+          },
+          phone: area.Phone || '',
+          email: area.Email || 'info@apollokino.ee',
+          facilities: ['3D', 'Dolby Atmos', 'Parking']
+        };
+
+        const cinema = await Cinema.create(cinemaData);
+        cinemaMap.set(area.ID, cinema);
+        console.log(`  ✓ Created cinema: ${cinema.name}`);
+
+        // Create default halls for each cinema (3 halls per cinema)
+        for (let i = 1; i <= 3; i++) {
+          const hallData = {
+            cinema: cinema._id,
+            name: `Hall ${i}`,
+            capacity: 100 + (i * 50),
+            rows: 8 + i,
+            seatsPerRow: 12 + i,
+            screenType: i === 1 ? 'IMAX' : (i === 2 ? '3D' : 'Standard'),
+            soundSystem: i <= 2 ? 'Dolby Atmos' : 'Digital 5.1'
+          };
+          const hall = await Hall.create(hallData);
+          hallMap.set(`${area.ID}-${i}`, hall);
+        }
+      } catch (err) {
+        console.error(`  ⚠️ Error creating cinema for area ${area.ID}:`, err.message);
+      }
+    }
+
+    // If no theatre areas found, create default cinema
+    if (theatreAreas.length === 0) {
+      console.log('  ℹ️ No theatre areas from API, creating default cinema...');
+      const defaultCinema = await Cinema.create({
+        name: 'Apollo Kino Solaris',
+        address: { street: 'Estonia pst 9', city: 'Tallinn', postalCode: '10143', country: 'Estonia' },
+        phone: '+372 6273 500',
+        email: 'info@apollokino.ee',
+        facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
+      });
+      cinemaMap.set('default', defaultCinema);
+      
+      for (let i = 1; i <= 3; i++) {
+        const hall = await Hall.create({
+          cinema: defaultCinema._id,
+          name: `Hall ${i}`,
+          capacity: 100 + (i * 50),
+          rows: 8 + i,
+          seatsPerRow: 12 + i,
+          screenType: i === 1 ? 'IMAX' : (i === 2 ? '3D' : 'Standard'),
+          soundSystem: i <= 2 ? 'Dolby Atmos' : 'Digital 5.1'
+        });
+        hallMap.set(`default-${i}`, hall);
+      }
+    }
+
+    // Step 3: Fetch Events and create Films
+    console.log('🎬 Fetching Events (Films)...');
+    const events = await apolloKinoService.fetchEvents();
+    console.log(`✓ Found ${events.length} events`);
+
+    const filmMap = new Map(); // Map Apollo event ID to MongoDB film
+
+    for (const event of events) {
+      try {
+        const filmData = apolloKinoService.transformEventToFilm(event);
+        const film = await Film.create(filmData);
+        filmMap.set(event.ID, film);
+      } catch (err) {
+        console.error(`  ⚠️ Error creating film for event ${event.ID}:`, err.message);
+      }
+    }
+    console.log(`✓ Created ${filmMap.size} films`);
+
+    // Step 4: Fetch Schedule and create Sessions
+    console.log('📅 Fetching Schedule...');
+    const today = new Date();
+    const twoWeeksLater = new Date(today);
+    twoWeeksLater.setDate(today.getDate() + 14);
+    
+    const dtFrom = formatDateLocal(today);
+    const dtTo = formatDateLocal(twoWeeksLater);
+    
+    const scheduleData = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
+    
+    let sessionsCreated = 0;
+    
+    // Process schedule shows if available
+    if (scheduleData.schedule && scheduleData.schedule.Shows) {
+      const shows = Array.isArray(scheduleData.schedule.Shows) 
+        ? scheduleData.schedule.Shows 
+        : (scheduleData.schedule.Shows.Show ? 
+            (Array.isArray(scheduleData.schedule.Shows.Show) ? scheduleData.schedule.Shows.Show : [scheduleData.schedule.Shows.Show])
+            : [scheduleData.schedule.Shows]);
+      
+      console.log(`✓ Found ${shows.length} shows in schedule`);
+      
+      // Get all halls as array for random assignment
+      const allHalls = Array.from(hallMap.values());
+      
+      for (const show of shows) {
+        try {
+          // Find or create the film by event ID
+          let film = filmMap.get(show.EventID);
+          
+          // If film not found in events, create it from show data
+          if (!film && show.Title) {
+            try {
+              const ageRatingMap = {
+                'MS-6': 'MS-6',
+                'MS-12': 'MS-12',
+                'K-12': 'K-12',
+                'K-14': 'K-14',
+                'K-16': 'K-16',
+                'PERE': 'G',
+                'L': 'G',
+                '-': 'G',
+                '': 'G'
+              };
+              
+              const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : ['General'];
+              
+              const filmData = {
+                title: show.Title,
+                originalTitle: show.OriginalTitle || show.Title,
+                description: show.Synopsis || 'No description available',
+                duration: parseInt(show.LengthInMinutes) || 90,
+                genre: genres,
+                director: 'Unknown',
+                cast: [],
+                releaseDate: show.dtLocalRelease ? new Date(show.dtLocalRelease) : new Date(),
+                language: show.SpokenLanguage?.Name || 'Unknown',
+                subtitles: show.SubtitleLanguage1?.Name ? [show.SubtitleLanguage1.Name] : [],
+                ageRating: ageRatingMap[show.RatingLabel] || 'G',
+                posterUrl: show.Images?.EventMediumImagePortrait || '',
+                trailerUrl: '',
+                rating: 0,
+                isActive: true
+              };
+              
+              film = await Film.create(filmData);
+              filmMap.set(show.EventID, film);
+            } catch (filmErr) {
+              // Skip if film creation fails
+              continue;
+            }
+          }
+          
+          if (!film) continue;
+          
+          // Assign a hall (use TheatreAuditoriumID if available, otherwise random)
+          const hall = allHalls.length > 0 ? allHalls[Math.floor(Math.random() * allHalls.length)] : null;
+          if (!hall) continue;
+          
+          const startTime = new Date(show.dttmShowStart);
+          const endTime = new Date(show.dttmShowEnd || new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000));
+          
+          // Skip past sessions
+          if (startTime < new Date()) continue;
+          
+          const sessionData = {
+            film: film._id,
+            hall: hall._id,
+            startTime,
+            endTime,
+            price: {
+              standard: parseFloat(show.PriceInCents) / 100 || 9.50,
+              student: (parseFloat(show.PriceInCents) / 100 * 0.8) || 7.50,
+              child: (parseFloat(show.PriceInCents) / 100 * 0.6) || 5.50,
+              vip: (parseFloat(show.PriceInCents) / 100 * 1.5) || 14.00
+            },
+            is3D: show.PresentationMethod?.includes('3D') || false,
+            subtitles: show.SubtitleLanguage1?.Name || 'Estonian',
+            availableSeats: hall.capacity,
+            status: 'scheduled'
+          };
+          
+          await Session.create(sessionData);
+          sessionsCreated++;
+        } catch (err) {
+          // Silently skip individual show errors
+        }
+      }
+    }
+    
+    // If no sessions from API, create sample sessions for the next 7 days
+    if (sessionsCreated === 0 && filmMap.size > 0) {
+      console.log('  ℹ️ No sessions from API, creating sample sessions...');
+      const allFilms = Array.from(filmMap.values());
+      const allHalls = Array.from(hallMap.values());
+      
+      for (let day = 0; day < 7; day++) {
+        const date = new Date();
+        date.setDate(date.getDate() + day);
+        date.setHours(0, 0, 0, 0);
+        
+        for (const film of allFilms.slice(0, 10)) { // Limit to 10 films
+          const showTimes = ['10:00', '14:30', '19:00', '21:30'];
+          
+          for (let i = 0; i < showTimes.length; i++) {
+            const [hours, minutes] = showTimes[i].split(':');
+            const startTime = new Date(date);
+            startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+            
+            // Skip past times
+            if (startTime < new Date()) continue;
+            
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + film.duration + 15);
+            
+            const hall = allHalls[Math.floor(Math.random() * allHalls.length)];
+            
+            try {
+              await Session.create({
+                film: film._id,
+                hall: hall._id,
+                startTime,
+                endTime,
+                price: {
+                  standard: 8.50 + (i * 1.00),
+                  student: 6.50,
+                  child: 5.00,
+                  vip: 12.00
+                },
+                is3D: Math.random() > 0.7,
+                subtitles: 'Estonian',
+                availableSeats: hall.capacity,
+                status: 'scheduled'
+              });
+              sessionsCreated++;
+            } catch (err) {
+              // Skip duplicate sessions
+            }
+          }
+        }
+      }
+    }
+    
+    console.log(`✓ Created ${sessionsCreated} sessions`);
+    
+    // Summary
+    const [cinemaCount, hallCount, filmCount, sessionCount] = await Promise.all([
+      Cinema.countDocuments(),
+      Hall.countDocuments(),
+      Film.countDocuments(),
+      Session.countDocuments()
+    ]);
+    
+    console.log('═══════════════════════════════════════');
+    console.log('✅ Database refresh completed!');
+    console.log(`   Cinemas: ${cinemaCount}`);
+    console.log(`   Halls: ${hallCount}`);
+    console.log(`   Films: ${filmCount}`);
+    console.log(`   Sessions: ${sessionCount}`);
+    console.log('═══════════════════════════════════════');
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Database refresh failed:', error.message);
+    throw error;
+  }
+}
 
 // Helper function to format date in YYYY-MM-DD format (local timezone)
 function formatDateLocal(date) {
@@ -42,6 +328,33 @@ function formatDateLocal(date) {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Initialize server: connect to DB, refresh data, then start listening
+ */
+async function initializeServer() {
+  try {
+    // Connect to MongoDB
+    console.log('🔌 Connecting to MongoDB...');
+    await mongoose.connect(MONGODB_URI);
+    const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
+    console.log(`✓ ${dbName} connected successfully`);
+    
+    // Refresh database from Apollo API
+    await refreshDatabaseFromApollo();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server started on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('❌ Server initialization failed:', err.message);
+    process.exit(1);
+  }
+}
+
+// Start the server
+initializeServer();
 
 // Helper function to validate and parse date string
 function validateDate(dateStr) {
@@ -1265,8 +1578,4 @@ app.delete('/api/admin/bookings/:id', async (req, res) => {
       error: 'Failed to delete booking'
     });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Server started on http://localhost:${PORT}`);
 });
