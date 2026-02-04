@@ -1497,7 +1497,7 @@ app.get('/api/admin/halls', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch halls'
-    });s
+    });
   }
 });
 
