@@ -353,6 +353,52 @@ app.get('/api/cinemas', async (req, res) => {
 });
 
 /**
+ * GET /api/cinemas/:id/halls
+ * Get all halls for a specific cinema
+ */
+app.get('/api/cinemas/:id/halls', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid cinema ID'
+      });
+    }
+
+    // Check if cinema exists
+    const cinema = await Cinema.findById(id);
+    if (!cinema) {
+      return res.status(404).json({
+        success: false,
+        error: 'Cinema not found'
+      });
+    }
+
+    // Get all halls for this cinema
+    const halls = await Hall.find({ cinema: id }).sort({ name: 1 });
+
+    res.json({
+      success: true,
+      cinema: {
+        id: cinema._id,
+        name: cinema.name
+      },
+      count: halls.length,
+      data: halls
+    });
+  } catch (error) {
+    console.error('Error fetching cinema halls:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch cinema halls'
+    });
+  }
+});
+
+/**
  * GET /api/films/:id/sessions
  * Get all scheduled sessions for a specific film
  */
