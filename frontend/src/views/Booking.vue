@@ -1,7 +1,13 @@
 <template>
-  <div class="booking">
-    <div class="container">
-      <h1>Book Your Tickets</h1>
+  <div class="booking-page">
+    <div class="page-header">
+      <div class="container">
+        <h1>🎟️ Booking</h1>
+        <p class="subtitle">Book your tickets in a few easy steps</p>
+      </div>
+    </div>
+    <div class="booking">
+      <div class="container">
       
       <div v-if="error" class="error-message">{{ error }}</div>
       <div v-if="loading" class="loading-message">Loading...</div>
@@ -196,6 +202,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -264,8 +271,17 @@ export default {
   async mounted() {
     await this.loadFilms()
     await this.loadCinemas()
+    await this.applyPrefillFromQuery()
   },
   methods: {
+    normalizeTime(value) {
+      if (!value) return ''
+
+      const [hours, minutes] = value.toString().split(':')
+      if (!hours || !minutes) return ''
+
+      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+    },
     getTodayDate() {
       const today = new Date()
       return today.toISOString().split('T')[0]
@@ -292,6 +308,63 @@ export default {
         this.error = 'Failed to load cinemas'
       } finally {
         this.loading = false
+      }
+    },
+    async applyPrefillFromQuery() {
+      const { film, cinema, cinemaId, date, time } = this.$route.query
+      const filmName = Array.isArray(film) ? film[0] : film
+      const cinemaName = Array.isArray(cinema) ? cinema[0] : cinema
+      const cinemaKey = Array.isArray(cinemaId) ? cinemaId[0] : cinemaId
+      const dateValue = Array.isArray(date) ? date[0] : date
+      const timeValue = Array.isArray(time) ? time[0] : time
+
+      if (dateValue) {
+        this.selectedDate = dateValue
+      }
+
+      if (filmName) {
+        const filmMatch = this.films.find(item => item.title?.toLowerCase() === filmName.toLowerCase())
+        if (filmMatch) {
+          this.selectedFilm = filmMatch._id
+        }
+      }
+
+      if (cinemaKey) {
+        const cinemaMatch = this.cinemas.find(item => item._id === cinemaKey)
+        if (cinemaMatch) {
+          this.selectedCinema = cinemaMatch._id
+        }
+      }
+
+      if (!this.selectedCinema && cinemaName) {
+        const cinemaMatch = this.cinemas.find(item => item.name?.toLowerCase() === cinemaName.toLowerCase())
+        if (cinemaMatch) {
+          this.selectedCinema = cinemaMatch._id
+        }
+      }
+
+      if (this.selectedCinema) {
+        await this.loadHalls()
+      }
+
+      if (this.selectedFilm) {
+        await this.loadSessions()
+      }
+
+      const normalizedTime = this.normalizeTime(timeValue)
+      if (normalizedTime) {
+        const sessionsToSearch = this.filteredSessions.length ? this.filteredSessions : this.sessions
+        const sessionMatch = sessionsToSearch.find(
+          session => this.formatSessionTime(session) === normalizedTime
+        )
+
+        if (sessionMatch) {
+          this.selectedSession = sessionMatch._id
+          if (sessionMatch.hall?._id) {
+            this.selectedHall = sessionMatch.hall._id
+          }
+          await this.loadSeatLayout()
+        }
       }
     },
     async loadHalls() {
@@ -471,44 +544,62 @@ export default {
 </script>
 
 <style scoped>
-.booking {
-  padding: 3rem 0;
+.booking-page {
   min-height: calc(100vh - 200px);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.page-header {
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
+    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 2.5rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.page-header .subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+}
+
+.booking {
+  padding: 2.5rem 0 3rem;
+  color: #fff;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
-}
-
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
-  color: #333;
+  padding: 0 1.5rem;
 }
 
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(244, 67, 54, 0.12);
+  color: #ff6b6b;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-bottom: 1rem;
-  border: 1px solid #f5c6cb;
+  border: 1px solid rgba(244, 67, 54, 0.3);
 }
 
 .loading-message {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: rgba(233, 69, 96, 0.12);
+  color: #fff;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-bottom: 1rem;
-  border: 1px solid #bee5eb;
+  border: 1px solid rgba(233, 69, 96, 0.3);
   text-align: center;
 }
 
 .info-text {
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   font-style: italic;
   margin-top: 0.5rem;
 }
@@ -518,32 +609,39 @@ h1 {
   justify-content: center;
   gap: 2rem;
   margin-bottom: 3rem;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
 }
 
 .step {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #999;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .step.active {
-  color: #e50914;
+  color: #e94560;
 }
 
 .step-number {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #ddd;
+  background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  color: #fff;
 }
 
 .step.active .step-number {
-  background: #e50914;
+  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
   color: #fff;
 }
 
@@ -554,15 +652,17 @@ h1 {
 }
 
 .main-content {
-  background: #f5f5f5;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .step-content h2 {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
-  color: #333;
+  color: #fff;
 }
 
 .form-group {
@@ -573,16 +673,30 @@ h1 {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #333;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
   font-size: 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .form-row {
@@ -592,13 +706,14 @@ h1 {
 }
 
 .screen {
-  background: #333;
+  background: rgba(15, 52, 96, 0.6);
   color: #fff;
   text-align: center;
   padding: 1rem;
   margin-bottom: 2rem;
-  border-radius: 4px;
+  border-radius: 10px;
   font-weight: bold;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .seating-chart {
@@ -618,42 +733,45 @@ h1 {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .seat {
   width: 40px;
   height: 40px;
-  border: 2px solid #ddd;
-  background: #fff;
-  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.8rem;
+  color: #fff;
 }
 
 .seat:hover:not(:disabled) {
-  background: #e50914;
+  background: #e94560;
   color: #fff;
-  border-color: #e50914;
+  border-color: #e94560;
 }
 
 .seat.selected {
-  background: #e50914;
+  background: #e94560;
   color: #fff;
-  border-color: #e50914;
+  border-color: #e94560;
 }
 
 .seat.occupied {
-  background: #666;
-  border-color: #666;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.25);
   cursor: not-allowed;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .legend {
   display: flex;
   gap: 2rem;
   justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .legend-item {
@@ -665,22 +783,22 @@ h1 {
 .seat-example {
   width: 30px;
   height: 30px;
-  border: 2px solid #ddd;
-  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
 }
 
 .seat-example.available {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .seat-example.selected {
-  background: #e50914;
-  border-color: #e50914;
+  background: #e94560;
+  border-color: #e94560;
 }
 
 .seat-example.occupied {
-  background: #666;
-  border-color: #666;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .navigation-buttons {
@@ -693,60 +811,64 @@ h1 {
 .btn {
   padding: 0.75rem 2rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .btn-primary {
-  background-color: #e50914;
+  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
   color: #fff;
+  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
 }
 
-.btn-primary:hover {
-  background-color: #c00812;
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
 }
 
 .btn-secondary {
-  background-color: #333;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
 }
 
-.btn-secondary:hover {
-  background-color: #555;
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .booking-summary {
-  background: #fff;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   padding: 2rem;
-  border-radius: 8px;
+  border-radius: 16px;
   height: fit-content;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .booking-summary h3 {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  color: #333;
+  color: #fff;
 }
 
 .summary-item {
   display: flex;
   justify-content: space-between;
   margin-bottom: 1rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .summary-divider {
-  border-top: 2px solid #ddd;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
   margin: 1rem 0;
 }
 
 .summary-item.total {
   font-size: 1.3rem;
   font-weight: bold;
-  color: #333;
+  color: #fff;
 }
 
 @media (max-width: 968px) {

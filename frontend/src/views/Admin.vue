@@ -1,7 +1,13 @@
 <template>
-  <div class="admin">
-    <div class="container">
-      <h1>Admin Dashboard</h1>
+  <div class="admin-page">
+    <div class="page-header">
+      <div class="container">
+        <h1>⚙️ Admin Dashboard</h1>
+        <p class="subtitle">Manage movies, sessions, bookings, and cinemas</p>
+      </div>
+    </div>
+    <div class="admin">
+      <div class="container">
       
       <div class="admin-tabs">
         <button 
@@ -281,6 +287,7 @@
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   </div>
@@ -644,56 +651,81 @@ export default {
 </script>
 
 <style scoped>
-.admin {
-  padding: 3rem 0;
+.admin-page {
   min-height: calc(100vh - 200px);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.page-header {
+  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
+    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.page-header h1 {
+  font-size: 2.5rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.page-header .subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+}
+
+.admin {
+  padding: 2.5rem 0 3rem;
+  color: #fff;
 }
 
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1rem;
-}
-
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 2rem;
-  color: #333;
+  padding: 0 1.5rem;
 }
 
 .admin-tabs {
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  border-bottom: 2px solid #ddd;
+  padding: 0.75rem;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  flex-wrap: wrap;
 }
 
 .tab-btn {
-  padding: 1rem 2rem;
-  border: none;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
-  color: #666;
-  border-bottom: 3px solid transparent;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
   transition: all 0.3s ease;
 }
 
 .tab-btn:hover {
-  color: #333;
+  color: #fff;
 }
 
 .tab-btn.active {
-  color: #e50914;
-  border-bottom-color: #e50914;
+  color: #fff;
+  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
 }
 
 .admin-content {
-  background: #fff;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .section-header {
@@ -701,46 +733,50 @@ h1 {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
 }
 
 .section-header h2 {
   font-size: 1.8rem;
-  color: #333;
+  color: #fff;
 }
 
 .btn-primary {
-  background-color: #e50914;
+  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
   color: #fff;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #c00812;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
 }
 
 .btn-primary:disabled {
-  background-color: #ccc;
+  background: rgba(255, 255, 255, 0.2);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-secondary {
-  background-color: #6c757d;
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
   padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
-  background-color: #5a6268;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .data-table {
@@ -749,23 +785,24 @@ h1 {
 }
 
 .data-table thead {
-  background: #f5f5f5;
+  background: rgba(15, 52, 96, 0.6);
 }
 
 .data-table th,
 .data-table td {
   padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .data-table th {
   font-weight: 600;
-  color: #333;
+  color: #fff;
 }
 
 .data-table tbody tr:hover {
-  background: #f9f9f9;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .actions {
@@ -780,6 +817,7 @@ h1 {
   cursor: pointer;
   padding: 0.25rem;
   transition: transform 0.2s ease;
+  color: #fff;
 }
 
 .btn-icon:hover {
@@ -795,90 +833,96 @@ h1 {
 }
 
 .status-badge.confirmed {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(76, 175, 80, 0.2);
+  color: #8be28b;
 }
 
 .status-badge.pending {
-  background: #fff3cd;
-  color: #856404;
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffd36a;
 }
 
 .status-badge.scheduled {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: rgba(23, 162, 184, 0.2);
+  color: #7ad9e5;
 }
 
 .status-badge.cancelled {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(244, 67, 54, 0.2);
+  color: #ff8a80;
 }
 
 .status-badge.completed {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(76, 175, 80, 0.2);
+  color: #8be28b;
 }
 
 .loading {
   text-align: center;
   padding: 2rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 1.1rem;
 }
 
 .error {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(244, 67, 54, 0.12);
+  color: #ff6b6b;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-bottom: 1rem;
+  border: 1px solid rgba(244, 67, 54, 0.3);
 }
 
 .form-success {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(76, 175, 80, 0.15);
+  color: #8be28b;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-bottom: 1rem;
   font-weight: 600;
+  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .success-message {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(76, 175, 80, 0.15);
+  color: #8be28b;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-bottom: 1rem;
   font-weight: 600;
+  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .info-message {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: rgba(23, 162, 184, 0.15);
+  color: #7ad9e5;
   padding: 1rem;
-  border-radius: 4px;
+  border-radius: 12px;
   margin-bottom: 1rem;
-  border-left: 4px solid #17a2b8;
+  border-left: 4px solid rgba(23, 162, 184, 0.6);
 }
 
 .btn-success {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #28a745 0%, #1f8a3a 100%);
   color: #fff;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
 }
 
 .btn-success:hover:not(:disabled) {
-  background-color: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(40, 167, 69, 0.45);
 }
 
 .btn-success:disabled {
-  background-color: #ccc;
+  background: rgba(255, 255, 255, 0.2);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Modal Styles */
@@ -888,7 +932,7 @@ h1 {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -896,13 +940,15 @@ h1 {
 }
 
 .modal {
-  background: #fff;
-  border-radius: 8px;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  border-radius: 16px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
 }
 
 .modal-header {
@@ -910,33 +956,33 @@ h1 {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #333;
+  color: #fff;
 }
 
 .close-btn {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.08);
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #666;
+  color: #fff;
   padding: 0;
   width: 32px;
   height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 8px;
   transition: background-color 0.2s ease;
 }
 
 .close-btn:hover {
-  background: #f5f5f5;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .modal-body {
@@ -951,7 +997,7 @@ h1 {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #333;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .form-group input[type="text"],
@@ -960,16 +1006,19 @@ h1 {
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
   font-size: 1rem;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #e50914;
+  border-color: #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
 }
 
 .form-group input[type="checkbox"] {
@@ -979,17 +1028,17 @@ h1 {
 .form-help-text {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: #856404;
-  background-color: #fff3cd;
+  color: #ffd36a;
+  background-color: rgba(255, 193, 7, 0.15);
   padding: 0.5rem;
-  border-radius: 4px;
-  border-left: 3px solid #ffc107;
+  border-radius: 8px;
+  border-left: 3px solid rgba(255, 193, 7, 0.6);
 }
 
 .sync-warning {
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 4px;
+  background-color: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1.5rem;
   text-align: center;
@@ -997,7 +1046,7 @@ h1 {
 
 .sync-warning p {
   margin: 0.5rem 0;
-  color: #856404;
+  color: #ffd36a;
   font-weight: 600;
 }
 

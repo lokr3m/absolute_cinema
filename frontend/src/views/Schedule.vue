@@ -168,7 +168,7 @@
               <!-- Action Buttons -->
               <div class="action-buttons">
                 <button class="btn-schedule">Vaata Kava</button>
-                <button class="btn-buy">Osta Piletid</button>
+                <button class="btn-buy" @click="goToBooking(session)">Osta Piletid</button>
               </div>
 
               <!-- Language, Subtitles, Format -->
@@ -511,6 +511,20 @@ export default {
       if (this.currentWeekIndex < maxWeekIndex) {
         this.currentWeekIndex++
       }
+    },
+    goToBooking(session) {
+      if (!session) return
+
+      this.$router.push({
+        name: 'Booking',
+        query: {
+          film: session.movieTitle,
+          cinema: session.cinema,
+          cinemaId: session.cinemaId,
+          date: session.date,
+          time: session.time
+        }
+      })
     },
     getAvailabilityColor(availability) {
       // Calculate HSL color based on availability percentage
