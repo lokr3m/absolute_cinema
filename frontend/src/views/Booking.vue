@@ -277,10 +277,10 @@ export default {
     normalizeTime(value) {
       if (!value) return ''
 
-      const [hours, minutes] = value.toString().split(':')
-      if (!hours || !minutes) return ''
+      const match = value.toString().match(/^(\d{1,2}):(\d{2})$/)
+      if (!match) return ''
 
-      return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+      return `${match[1].padStart(2, '0')}:${match[2]}`
     },
     getTodayDate() {
       const today = new Date()
