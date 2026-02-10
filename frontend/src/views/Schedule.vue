@@ -1013,25 +1013,25 @@ h1 {
 
 .btn-schedule {
   padding: 0.75rem 1.5rem;
-  background-color: var(--color-primary-strong);
+  background-color: var(--color-primary-light);
   border: none;
   border-radius: 4px;
-  color: var(--color-on-primary);
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .btn-schedule:hover {
-  background-color: var(--color-primary-strong-hover);
+  background-color: var(--color-primary);
 }
 
 .btn-buy {
   padding: 0.75rem 1.5rem;
-  background-color: var(--color-primary-strong-hover);
+  background-color: var(--color-primary);
   border: none;
   border-radius: 4px;
-  color: var(--color-on-primary);
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -1039,6 +1039,7 @@ h1 {
 
 .btn-buy:hover {
   background-color: var(--color-primary-strong);
+  color: var(--color-on-primary);
 }
 
 /* Responsive Design */
