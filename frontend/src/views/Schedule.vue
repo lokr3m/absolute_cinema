@@ -131,7 +131,11 @@
               <div class="session-time">{{ session.time }}</div>
               <div class="hall-name">{{ formatHall(session.hall, session.cinema) }}</div>
               <button class="btn-trailer">
-                <span class="btn-trailer-icon">▶</span>
+                <span class="btn-trailer-icon" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" focusable="false">
+                    <path d="M5 3.5v9l7-4.5-7-4.5z" fill="currentColor" />
+                  </svg>
+                </span>
                 Трейлер
               </button>
             </div>
@@ -562,8 +566,9 @@ export default {
       const hallText = (hall || '').toString().trim()
       const cinemaText = (cinema || '').toString().trim()
       const hallNumber = hallText.match(/\d+/)?.[0]
+      const suffixCheck = HALL_SUFFIX.toLowerCase()
       const withSuffix = (value) =>
-        value.toLowerCase().includes(HALL_SUFFIX) ? value : `${value} ${HALL_SUFFIX}`
+        value.toLowerCase().includes(suffixCheck) ? value : `${value} ${HALL_SUFFIX}`
 
       if (hallNumber) {
         const base = cinemaText ? `${hallNumber}. ${cinemaText}` : `${hallNumber}.`
@@ -911,11 +916,20 @@ h1 {
 
 .btn-trailer:hover {
   background: var(--color-primary);
-  color: var(--color-on-primary);
+  color: var(--color-text-light);
 }
 
 .btn-trailer-icon {
-  font-size: 0.85rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-trailer-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* Right Side */
@@ -977,7 +991,7 @@ h1 {
   height: 60px;
   border-radius: 50%;
   flex-shrink: 0;
-  box-shadow: inset 0 0 0 4px rgba(34, 197, 94, 0.2);
+  box-shadow: inset 0 0 0 4px var(--color-success-soft);
 }
 
 .graph__circle {
@@ -1095,7 +1109,7 @@ h1 {
 
 .btn-schedule:hover {
   background-color: var(--color-primary);
-  color: var(--color-on-primary);
+  color: var(--color-text-light);
 }
 
 .btn-buy {
@@ -1103,12 +1117,12 @@ h1 {
   background-color: var(--color-primary);
   border: none;
   border-radius: 10px;
-  color: var(--color-on-primary);
+  color: var(--color-text-light);
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s;
-  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
+  box-shadow: 0 8px 20px var(--color-primary-shadow);
 }
 
 .btn-buy:hover {
