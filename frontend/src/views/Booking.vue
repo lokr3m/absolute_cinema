@@ -741,7 +741,7 @@ export default {
   width: 40px;
   height: 40px;
   border: 2px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-surface-muted);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
