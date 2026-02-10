@@ -1,7 +1,7 @@
 <template>
   <div class="schedule">
     <div class="container">
-      <h1>KAVA</h1>
+      <h1>Расписание</h1>
       
       <!-- Filters Section -->
       <div class="filters-container">
@@ -129,9 +129,11 @@
             <!-- Session Info -->
             <div class="session-info">
               <div class="session-time">{{ session.time }}</div>
-              <div class="cinema-name">{{ session.cinema }}</div>
-              <div class="hall-name">{{ session.hall }}</div>
-              <button class="btn-trailer">Vaata treilerit</button>
+              <div class="hall-name">{{ formatHall(session.hall, session.cinema) }}</div>
+              <button class="btn-trailer">
+                <span class="btn-trailer-icon">▶</span>
+                Трейлер
+              </button>
             </div>
           </div>
 
@@ -139,6 +141,7 @@
             <!-- Movie Title and Genre -->
             <div class="movie-details">
               <h3 class="movie-title">{{ session.movieTitle }}</h3>
+              <p class="movie-original-title">{{ session.originalTitle }}</p>
               <p class="movie-genre">{{ session.genre }}</p>
               
               <!-- Availability Indicator -->
@@ -159,7 +162,10 @@
                   </div>
                   <div class="graph__inset"></div>
                 </div>
-                <span class="availability-text">{{ session.availableSeats }} vabad kohad</span>
+                <div class="availability-text">
+                  <span>Свободно</span>
+                  <strong>{{ session.availableSeats }}</strong>
+                </div>
               </div>
             </div>
 
@@ -167,22 +173,22 @@
             <div class="right-section">
               <!-- Action Buttons -->
               <div class="action-buttons">
-                <button class="btn-schedule">Vaata Kava</button>
-                <button class="btn-buy" @click="goToBooking(session)">Osta Piletid</button>
+                <button class="btn-schedule">Все показы</button>
+                <button class="btn-buy" @click="goToBooking(session)">Купить билеты</button>
               </div>
 
               <!-- Language, Subtitles, Format -->
               <div class="meta-info">
                 <div class="meta-item">
-                  <span class="meta-label">Keel:</span>
+                  <span class="meta-label">Язык:</span>
                   <span class="meta-value">{{ session.language }}</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-label">Subtiitrid:</span>
+                  <span class="meta-label">Субтитры:</span>
                   <span class="meta-value">{{ session.subtitles }}</span>
                 </div>
                 <div class="meta-item">
-                  <span class="meta-label">Formaat:</span>
+                  <span class="meta-label">Формат:</span>
                   <span class="meta-value">{{ session.format }}</span>
                 </div>
               </div>
@@ -443,12 +449,19 @@ export default {
                 || show.EventMediumImagePortrait 
                 || show.Images?.EventSmallImagePortrait
                 || show.EventSmallImagePortrait
-                || 'https://via.placeholder.com/200x300/1a1a2e/e94560?text=' + encodeURIComponent(show.Title || 'No Image');
+                || 'https://via.placeholder.com/200x300/ffffff/f97316?text=' + encodeURIComponent(show.Title || 'No Image');
+
+              const originalTitle = show.OriginalTitle
+                || show.OriginalTitleName
+                || show.OriginalEventTitle
+                || show.Title
+                || 'Unknown';
               
               return {
                 id: show.ID || index,
                 movieTitle: show.Title || 'Unknown',
-                genre: show.Genres || '',
+                originalTitle,
+                genre: Array.isArray(show.Genres) ? show.Genres.join(', ') : (show.Genres || ''),
                 time: `${hours}:${minutes}`,
                 cinema: show.TheatreName || show.Theatre || 'Unknown Cinema',
                 cinemaId: show.TheatreID || '',
@@ -527,13 +540,27 @@ export default {
       })
     },
     getAvailabilityColor(availability) {
-      // Calculate HSL color based on availability percentage
-      const hue = (availability / 100) * 120 // 0 (red) to 120 (green)
-      return `hsl(${hue}, 77%, 50%)`
+      return '#22c55e'
     },
     getRotation(availability) {
       // Calculate rotation based on availability percentage
       return (availability / 100) * 180
+    },
+    formatHall(hall, cinema) {
+      const hallText = (hall || '').toString().trim()
+      const cinemaText = (cinema || '').toString().trim()
+      const hallNumber = hallText.match(/\d+/)?.[0]
+      const base = hallNumber ? `${hallNumber}.` : hallText
+
+      if (cinemaText) {
+        return `${base || '1.'} ${cinemaText} зал`
+      }
+
+      if (base && !base.toLowerCase().includes('зал')) {
+        return `${base} зал`
+      }
+
+      return hallText || '1. зал'
     }
   }
 }
@@ -773,7 +800,7 @@ h1 {
 .schedule-grid {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .loading,
@@ -837,39 +864,40 @@ h1 {
 }
 
 .session-time {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.9rem;
+  font-weight: 700;
   color: var(--color-text);
 }
 
-.cinema-name {
-  font-size: 0.95rem;
-  color: var(--color-text-muted);
-  font-weight: bold;
-}
-
 .hall-name {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--color-text-muted);
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .btn-trailer {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(249, 115, 22, 0.15);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  border-radius: 4px;
+  background: var(--color-primary-light);
+  border: none;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: bold;
-  color: var(--color-primary);
+  font-weight: 600;
+  color: var(--color-text);
   transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-trailer:hover {
-  background: rgba(249, 115, 22, 0.25);
-  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-trailer-icon {
+  font-size: 0.85rem;
 }
 
 /* Right Side */
@@ -878,7 +906,7 @@ h1 {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1.5rem;
 }
 
@@ -888,17 +916,23 @@ h1 {
 }
 
 .movie-title {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.8rem;
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 0.5rem;
+}
+
+.movie-original-title {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.4rem;
 }
 
 .movie-genre {
   font-size: 0.9rem;
   color: var(--color-text-muted);
-  margin-bottom: 1rem;
-  font-weight: bold;
+  margin-bottom: 1.2rem;
+  font-weight: 500;
 }
 
 /* Availability Container */
@@ -915,7 +949,8 @@ h1 {
   flex-direction: column;
   gap: 1rem;
   min-width: 250px;
-  align-self: flex-end;
+  align-self: center;
+  align-items: stretch;
 }
 
 .graph {
@@ -924,6 +959,7 @@ h1 {
   height: 60px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: inset 0 0 0 4px rgba(34, 197, 94, 0.2);
 }
 
 .graph__circle {
@@ -966,31 +1002,46 @@ h1 {
   left: 10px;
   width: 40px;
   height: 40px;
-  background: var(--color-surface-muted);
+  background: #fff;
   border-radius: 50%;
 }
 
 .availability-text {
-  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
   white-space: nowrap;
-  font-weight: bold;
+  font-weight: 500;
+}
+
+.availability-text strong {
+  font-size: 1.2rem;
+  color: var(--color-text);
 }
 
 /* Session Meta */
 .meta-info {
-  display: flex;
-  flex-direction: row;
-  gap: 2rem;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
   width: 100%;
 }
 
 .meta-item {
   display: flex;
-  gap: 0.5rem;
-  font-size: 1.1rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+  align-items: flex-start;
+  padding-right: 1rem;
+  border-right: 1px solid var(--color-border);
+}
+
+.meta-item:last-child {
+  border-right: none;
+  padding-right: 0;
 }
 
 .meta-label {
@@ -1006,40 +1057,44 @@ h1 {
 /* Action Buttons */
 .action-buttons {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   gap: 0.75rem;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .btn-schedule {
   padding: 0.75rem 1.5rem;
   background-color: var(--color-primary-light);
   border: none;
-  border-radius: 4px;
+  border-radius: 10px;
   color: var(--color-text);
   font-weight: 600;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .btn-schedule:hover {
   background-color: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .btn-buy {
   padding: 0.75rem 1.5rem;
   background-color: var(--color-primary);
   border: none;
-  border-radius: 4px;
-  color: var(--color-text);
+  border-radius: 10px;
+  color: var(--color-on-primary);
   font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
   transition: background-color 0.3s;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
 }
 
 .btn-buy:hover {
-  background-color: var(--color-primary-strong);
-  color: var(--color-on-primary);
+  background-color: var(--color-primary-dark);
 }
 
 /* Responsive Design */
@@ -1080,13 +1135,18 @@ h1 {
   }
 
   .meta-info {
-    flex-direction: column;
-    gap: 0.5rem;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .meta-item {
+    border-right: none;
+    padding-right: 0;
   }
 
   .action-buttons {
     width: 100%;
-    flex-direction: row;
+    flex-direction: column;
   }
 
   .btn-schedule,
