@@ -458,9 +458,14 @@ export default {
                 || show.Title
                 || 'Unknown';
 
-              const genre = Array.isArray(show.Genres)
-                ? show.Genres.filter((item) => typeof item === 'string' && item.trim()).join(', ')
-                : (typeof show.Genres === 'string' ? show.Genres : '');
+              let genre = ''
+              if (Array.isArray(show.Genres)) {
+                genre = show.Genres
+                  .filter((item) => typeof item === 'string' && item.trim())
+                  .join(', ')
+              } else if (typeof show.Genres === 'string') {
+                genre = show.Genres
+              }
               
               return {
                 id: show.ID || index,
@@ -545,6 +550,7 @@ export default {
       })
     },
     getAvailabilityColor(availability) {
+      // Keep the indicator green while varying lightness from 40% to 60%.
       const lightness = 40 + Math.min(Math.max(availability, 0), 100) * 0.2
       return `hsl(142, 70%, ${lightness}%)`
     },
@@ -556,17 +562,20 @@ export default {
       const hallText = (hall || '').toString().trim()
       const cinemaText = (cinema || '').toString().trim()
       const hallNumber = hallText.match(/\d+/)?.[0]
+      const withSuffix = (value) =>
+        value.toLowerCase().includes(HALL_SUFFIX) ? value : `${value} ${HALL_SUFFIX}`
+
       if (hallNumber) {
-        return cinemaText ? `${hallNumber}. ${cinemaText} ${HALL_SUFFIX}` : `${hallNumber}. ${HALL_SUFFIX}`
+        const base = cinemaText ? `${hallNumber}. ${cinemaText}` : `${hallNumber}.`
+        return withSuffix(base)
       }
 
       if (hallText) {
-        const hasHallWord = hallText.toLowerCase().includes('зал')
-        return hasHallWord ? hallText : `${hallText} ${HALL_SUFFIX}`
+        return withSuffix(hallText)
       }
 
       if (cinemaText) {
-        return `${cinemaText} ${HALL_SUFFIX}`
+        return withSuffix(cinemaText)
       }
 
       return 'Зал не указан'
