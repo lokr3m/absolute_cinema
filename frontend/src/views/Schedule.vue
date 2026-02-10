@@ -555,18 +555,19 @@ export default {
       const hallText = (hall || '').toString().trim()
       const cinemaText = (cinema || '').toString().trim()
       const hallNumber = hallText.match(/\d+/)?.[0]
+      const hallSuffix = ' зал'
 
       if (hallNumber) {
-        return cinemaText ? `${hallNumber}. ${cinemaText} зал` : `${hallNumber}. зал`
+        return cinemaText ? `${hallNumber}. ${cinemaText}${hallSuffix}` : `${hallNumber}.${hallSuffix}`
       }
 
       if (hallText) {
         const hasHallWord = hallText.toLowerCase().includes('зал')
-        return hasHallWord ? hallText : `${hallText} зал`
+        return hasHallWord ? hallText : `${hallText}${hallSuffix}`
       }
 
       if (cinemaText) {
-        return `${cinemaText} зал`
+        return `${cinemaText}${hallSuffix}`
       }
 
       return 'Зал не указан'
@@ -1011,7 +1012,7 @@ h1 {
   left: 10px;
   width: 40px;
   height: 40px;
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 50%;
 }
 

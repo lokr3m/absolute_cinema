@@ -11,6 +11,9 @@
   --color-primary-light: #fdba74;
   --color-primary-strong: #c2410c;
   --color-on-primary: #ffffff;
+  --color-on-dark: #ffffff;
+  --color-dark-muted: #2b2b2b;
+  --color-dark: #000000;
   --color-surface: #ffffff;
   --color-surface-muted: #f9fafb;
   --color-border: #e5e7eb;

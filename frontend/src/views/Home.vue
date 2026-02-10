@@ -140,12 +140,12 @@ export default {
 }
 
 .hero {
-  background: linear-gradient(180deg, #2b2b2b 0%, #000 100%);
+  background: linear-gradient(180deg, var(--color-dark-muted) 0%, var(--color-dark) 100%);
   height: 420px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-on-dark);
   text-align: center;
 }
 
