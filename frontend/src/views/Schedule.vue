@@ -456,12 +456,16 @@ export default {
                 || show.OriginalEventTitle
                 || show.Title
                 || 'Unknown';
+
+              const genre = Array.isArray(show.Genres)
+                ? show.Genres.filter((item) => typeof item === 'string' && item.trim()).join(', ')
+                : (typeof show.Genres === 'string' ? show.Genres : '');
               
               return {
                 id: show.ID || index,
                 movieTitle: show.Title || 'Unknown',
                 originalTitle,
-                genre: Array.isArray(show.Genres) ? show.Genres.join(', ') : (show.Genres || ''),
+                genre,
                 time: `${hours}:${minutes}`,
                 cinema: show.TheatreName || show.Theatre || 'Unknown Cinema',
                 cinemaId: show.TheatreID || '',
@@ -540,7 +544,8 @@ export default {
       })
     },
     getAvailabilityColor(availability) {
-      return '#22c55e'
+      const lightness = 40 + Math.min(Math.max(availability, 0), 100) * 0.2
+      return `hsl(142, 70%, ${lightness}%)`
     },
     getRotation(availability) {
       // Calculate rotation based on availability percentage
@@ -556,7 +561,8 @@ export default {
       }
 
       if (hallText) {
-        return cinemaText ? `${hallText} ${cinemaText} зал` : hallText
+        const hasHallWord = hallText.toLowerCase().includes('зал')
+        return hasHallWord ? hallText : `${hallText} зал`
       }
 
       if (cinemaText) {
