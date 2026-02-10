@@ -209,6 +209,9 @@ import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const HALL_SUFFIX = 'зал'
+const FALLBACK_POSTER = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect width="200" height="300" fill="#f97316"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="16" font-family="Arial" fill="#1f2937">No image</text></svg>'
+)}`
 
 export default {
   name: 'Schedule',
@@ -454,7 +457,7 @@ export default {
                 || show.EventMediumImagePortrait 
                 || show.Images?.EventSmallImagePortrait
                 || show.EventSmallImagePortrait
-                || 'https://via.placeholder.com/200x300/f97316/1f2937?text=' + encodeURIComponent(show.Title || 'No Image');
+                || FALLBACK_POSTER;
 
               const originalTitle = show.OriginalTitle
                 || show.OriginalTitleName
@@ -555,7 +558,8 @@ export default {
     },
     getAvailabilityColor(availability) {
       // Keep the indicator green while varying lightness from 40% to 60%.
-      const lightness = 40 + Math.min(Math.max(availability, 0), 100) * 0.2
+      const normalized = Math.min(Math.max(availability, 0), 100)
+      const lightness = Math.min(60, Math.max(40, 40 + normalized * 0.2))
       return `hsl(142, 70%, ${lightness}%)`
     },
     getRotation(availability) {
@@ -565,7 +569,8 @@ export default {
     formatHall(hall, cinema) {
       const hallText = (hall || '').toString().trim()
       const cinemaText = (cinema || '').toString().trim()
-      const hallNumber = hallText.match(/\d+/)?.[0]
+      const hallNumberMatch = hallText.match(/\d+/g)
+      const hallNumber = hallNumberMatch ? hallNumberMatch.join(', ') : null
       const suffixCheck = HALL_SUFFIX.toLowerCase()
       const withSuffix = (value) =>
         value.toLowerCase().includes(suffixCheck) ? value : `${value} ${HALL_SUFFIX}`
