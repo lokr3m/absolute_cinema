@@ -449,7 +449,7 @@ export default {
                 || show.EventMediumImagePortrait 
                 || show.Images?.EventSmallImagePortrait
                 || show.EventSmallImagePortrait
-                || 'https://via.placeholder.com/200x300/ffffff/f97316?text=' + encodeURIComponent(show.Title || 'No Image');
+                || 'https://via.placeholder.com/200x300/f97316/1f2937?text=' + encodeURIComponent(show.Title || 'No Image');
 
               const originalTitle = show.OriginalTitle
                 || show.OriginalTitleName
@@ -550,17 +550,20 @@ export default {
       const hallText = (hall || '').toString().trim()
       const cinemaText = (cinema || '').toString().trim()
       const hallNumber = hallText.match(/\d+/)?.[0]
-      const base = hallNumber ? `${hallNumber}.` : hallText
+
+      if (hallNumber) {
+        return cinemaText ? `${hallNumber}. ${cinemaText} зал` : `${hallNumber}. зал`
+      }
+
+      if (hallText) {
+        return cinemaText ? `${hallText} ${cinemaText} зал` : hallText
+      }
 
       if (cinemaText) {
-        return `${base || '1.'} ${cinemaText} зал`
+        return `${cinemaText} зал`
       }
 
-      if (base && !base.toLowerCase().includes('зал')) {
-        return `${base} зал`
-      }
-
-      return hallText || '1. зал'
+      return 'Зал не указан'
     }
   }
 }
