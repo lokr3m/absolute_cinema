@@ -204,6 +204,7 @@
 import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
+const HALL_SUFFIX = 'зал'
 
 export default {
   name: 'Schedule',
@@ -555,19 +556,17 @@ export default {
       const hallText = (hall || '').toString().trim()
       const cinemaText = (cinema || '').toString().trim()
       const hallNumber = hallText.match(/\d+/)?.[0]
-      const hallSuffix = ' зал'
-
       if (hallNumber) {
-        return cinemaText ? `${hallNumber}. ${cinemaText}${hallSuffix}` : `${hallNumber}.${hallSuffix}`
+        return cinemaText ? `${hallNumber}. ${cinemaText} ${HALL_SUFFIX}` : `${hallNumber}. ${HALL_SUFFIX}`
       }
 
       if (hallText) {
         const hasHallWord = hallText.toLowerCase().includes('зал')
-        return hasHallWord ? hallText : `${hallText}${hallSuffix}`
+        return hasHallWord ? hallText : `${hallText} ${HALL_SUFFIX}`
       }
 
       if (cinemaText) {
-        return `${cinemaText}${hallSuffix}`
+        return `${cinemaText} ${HALL_SUFFIX}`
       }
 
       return 'Зал не указан'

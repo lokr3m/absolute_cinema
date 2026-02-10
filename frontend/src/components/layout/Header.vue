@@ -45,7 +45,7 @@ export default {
 
 .logo {
   text-decoration: none;
-  color: var(--color-on-dark);
+  color: var(--color-text-on-dark);
 }
 
 .logo h1 {
@@ -61,7 +61,7 @@ export default {
 }
 
 .nav-link {
-  color: var(--color-on-dark);
+  color: var(--color-text-on-dark);
   text-decoration: none;
   font-size: 1rem;
   transition: color 0.3s ease;

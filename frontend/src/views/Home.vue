@@ -145,7 +145,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-on-dark);
+  color: var(--color-text-on-dark);
   text-align: center;
 }
 
