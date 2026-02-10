@@ -1024,22 +1024,22 @@ h1 {
 
 .btn-schedule:hover {
   background-color: var(--color-primary);
-  color: var(--color-surface);
+  color: var(--color-text);
 }
 
 .btn-buy {
   padding: 0.75rem 1.5rem;
-  background-color: var(--color-primary-dark);
+  background-color: var(--color-primary);
   border: none;
   border-radius: 4px;
-  color: var(--color-surface);
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .btn-buy:hover {
-  background-color: var(--color-primary);
+  background-color: var(--color-primary-light);
 }
 
 /* Responsive Design */
