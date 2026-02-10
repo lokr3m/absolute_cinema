@@ -1016,7 +1016,7 @@ h1 {
   background-color: var(--color-primary-strong);
   border: none;
   border-radius: 4px;
-  color: var(--color-surface);
+  color: var(--color-on-primary);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -1031,7 +1031,7 @@ h1 {
   background-color: var(--color-primary-strong-hover);
   border: none;
   border-radius: 4px;
-  color: var(--color-surface);
+  color: var(--color-on-primary);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
