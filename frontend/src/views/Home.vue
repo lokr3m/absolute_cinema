@@ -28,7 +28,7 @@
         <div v-else class="movie-grid">
           <div class="movie-card" v-for="movie in featuredMovies" :key="movie._id || movie.title">
             <div class="movie-poster">
-              <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
+              <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/ffffff/f97316?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
               <div class="poster-overlay">
                 <div class="rating-badge" v-if="movie.rating">
                   <span class="star">★</span>
@@ -135,24 +135,25 @@ export default {
 
 <style scoped>
 .home {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #ffffff;
+  color: var(--color-text);
 }
 
 .hero {
-  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
+  background: linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.88)),
     url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600') center/cover;
   height: 500px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--color-text);
   text-align: center;
 }
 
 .hero-content h1 {
   font-size: 3.5rem;
   margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
 }
 
 .hero-content p {
@@ -178,12 +179,12 @@ export default {
 
 .section-header h2 {
   font-size: 2.2rem;
-  color: #fff;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 
 .section-subtitle {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   font-size: 1.1rem;
 }
 
@@ -194,18 +195,18 @@ export default {
 }
 
 .movie-card {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
 }
 
 .movie-card:hover {
   transform: translateY(-12px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
-  border-color: rgba(233, 69, 96, 0.3);
+  box-shadow: 0 20px 60px rgba(249, 115, 22, 0.2);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .movie-poster {
@@ -261,12 +262,12 @@ export default {
 }
 
 .rating-badge .star {
-  color: #1a1a2e;
+  color: #1f2937;
   font-size: 0.9rem;
 }
 
 .rating-badge .score {
-  color: #1a1a2e;
+  color: #1f2937;
   font-weight: 700;
   font-size: 0.9rem;
 }
@@ -277,7 +278,7 @@ export default {
 }
 
 .btn-view {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
   padding: 0.9rem 2rem;
   border-radius: 30px;
@@ -285,13 +286,13 @@ export default {
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
 }
 
 .btn-view:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
-  background: linear-gradient(135deg, #ff5a75 0%, #e94560 100%);
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
 }
 
 .movie-info {
@@ -299,7 +300,7 @@ export default {
 }
 
 .movie-info h3 {
-  color: #fff;
+  color: var(--color-text);
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
@@ -318,13 +319,13 @@ export default {
 }
 
 .genre-tag {
-  background: rgba(233, 69, 96, 0.2);
-  color: #e94560;
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--color-primary);
   padding: 0.3rem 0.7rem;
   border-radius: 15px;
   font-size: 0.75rem;
   font-weight: 500;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .meta {
@@ -335,7 +336,7 @@ export default {
 }
 
 .duration {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
 }
 
 .age-badge {
@@ -361,8 +362,8 @@ export default {
 }
 
 .rating-nr {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: var(--color-border);
+  color: var(--color-text);
 }
 
 .view-all-container {
@@ -373,9 +374,9 @@ export default {
 .btn-view-all {
   display: inline-block;
   background: transparent;
-  color: #e94560;
+  color: var(--color-primary);
   padding: 1rem 2.5rem;
-  border: 2px solid #e94560;
+  border: 2px solid var(--color-primary);
   border-radius: 30px;
   text-decoration: none;
   font-weight: 600;
@@ -384,10 +385,10 @@ export default {
 }
 
 .btn-view-all:hover {
-  background: #e94560;
+  background: var(--color-primary);
   color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+  box-shadow: 0 10px 30px rgba(249, 115, 22, 0.3);
 }
 
 .loading {
@@ -396,14 +397,14 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: #fff;
+  color: var(--color-text-muted);
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(233, 69, 96, 0.2);
-  border-top-color: #e94560;
+  border: 4px solid rgba(249, 115, 22, 0.2);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -445,14 +446,14 @@ export default {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
 }
 
 @media (max-width: 768px) {

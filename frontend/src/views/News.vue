@@ -190,12 +190,13 @@ export default {
 <style scoped>
 .news-page {
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #ffffff;
+  color: var(--color-text);
 }
 
 .page-header {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)),
+    linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   padding: 3rem 0;
   text-align: center;
   margin-bottom: 2rem;
@@ -203,13 +204,13 @@ export default {
 
 .page-header h1 {
   font-size: 2.5rem;
-  color: #fff;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
 }
 
 .page-header .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
   font-size: 1.1rem;
 }
 
@@ -231,9 +232,9 @@ export default {
 }
 
 .category-tab {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
   padding: 0.75rem 1.5rem;
   border-radius: 25px;
   cursor: pointer;
@@ -243,17 +244,17 @@ export default {
 }
 
 .category-tab:hover {
-  background: linear-gradient(145deg, #252e50 0%, #1e2746 100%);
-  border-color: rgba(233, 69, 96, 0.3);
-  color: #fff;
+  background: var(--color-surface-muted);
+  border-color: rgba(249, 115, 22, 0.3);
+  color: var(--color-text);
   transform: translateY(-2px);
 }
 
 .category-tab.active {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
-  border-color: rgba(233, 69, 96, 0.5);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-color: rgba(249, 115, 22, 0.5);
   color: #fff;
-  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.35);
 }
 
 .news-grid {
@@ -263,18 +264,18 @@ export default {
 }
 
 .news-card {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
 }
 
 .news-card:hover {
   transform: translateY(-12px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
-  border-color: rgba(233, 69, 96, 0.3);
+  box-shadow: 0 20px 60px rgba(249, 115, 22, 0.2);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .news-image {
@@ -326,7 +327,7 @@ export default {
 }
 
 .btn-view {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
   padding: 0.9rem 2rem;
   border-radius: 30px;
@@ -334,7 +335,7 @@ export default {
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -342,8 +343,8 @@ export default {
 
 .btn-view:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
-  background: linear-gradient(135deg, #ff5a75 0%, #e94560 100%);
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
 }
 
 .news-info {
@@ -351,7 +352,7 @@ export default {
 }
 
 .news-date {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   font-size: 0.85rem;
   margin-bottom: 0.75rem;
   display: flex;
@@ -364,7 +365,7 @@ export default {
 }
 
 .news-title {
-  color: #fff;
+  color: var(--color-text);
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
@@ -383,13 +384,13 @@ export default {
 }
 
 .category-tag {
-  background: rgba(233, 69, 96, 0.2);
-  color: #e94560;
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--color-primary);
   padding: 0.3rem 0.7rem;
   border-radius: 15px;
   font-size: 0.75rem;
   font-weight: 500;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .loading {
@@ -398,14 +399,14 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: #fff;
+  color: var(--color-text-muted);
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(233, 69, 96, 0.2);
-  border-top-color: #e94560;
+  border: 4px solid rgba(249, 115, 22, 0.2);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;

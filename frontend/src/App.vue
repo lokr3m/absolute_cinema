@@ -34,7 +34,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
+  background-color: var(--color-surface);
+  color: var(--color-text);
 }
 
 #app {

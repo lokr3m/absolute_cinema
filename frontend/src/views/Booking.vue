@@ -546,31 +546,32 @@ export default {
 <style scoped>
 .booking-page {
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #ffffff;
+  color: var(--color-text);
 }
 
 .page-header {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)),
+    linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   padding: 3rem 0;
   text-align: center;
 }
 
 .page-header h1 {
   font-size: 2.5rem;
-  color: #fff;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
 }
 
 .page-header .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
   font-size: 1.1rem;
 }
 
 .booking {
   padding: 2.5rem 0 3rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .container {
@@ -589,17 +590,17 @@ export default {
 }
 
 .loading-message {
-  background: rgba(233, 69, 96, 0.12);
-  color: #fff;
+  background: rgba(249, 115, 22, 0.12);
+  color: var(--color-text);
   padding: 1rem;
   border-radius: 12px;
   margin-bottom: 1rem;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   text-align: center;
 }
 
 .info-text {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
   font-style: italic;
   margin-top: 0.5rem;
 }
@@ -609,11 +610,11 @@ export default {
   justify-content: center;
   gap: 2rem;
   margin-bottom: 3rem;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   padding: 1.5rem 2rem;
   border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
 
@@ -621,27 +622,27 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 .step.active {
-  color: #e94560;
+  color: var(--color-primary);
 }
 
 .step-number {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .step.active .step-number {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
 }
 
@@ -652,17 +653,17 @@ export default {
 }
 
 .main-content {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
 }
 
 .step-content h2 {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .form-group {
@@ -673,30 +674,30 @@ export default {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   font-size: 1rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #e94560;
-  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 
 .form-group input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 .form-row {
@@ -706,14 +707,14 @@ export default {
 }
 
 .screen {
-  background: rgba(15, 52, 96, 0.6);
-  color: #fff;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
   text-align: center;
   padding: 1rem;
   margin-bottom: 2rem;
   border-radius: 10px;
   font-weight: bold;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
 }
 
 .seating-chart {
@@ -733,45 +734,45 @@ export default {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
 }
 
 .seat {
   width: 40px;
   height: 40px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.8rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .seat:hover:not(:disabled) {
-  background: #e94560;
+  background: var(--color-primary);
   color: #fff;
-  border-color: #e94560;
+  border-color: var(--color-primary);
 }
 
 .seat.selected {
-  background: #e94560;
+  background: var(--color-primary);
   color: #fff;
-  border-color: #e94560;
+  border-color: var(--color-primary);
 }
 
 .seat.occupied {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--color-border);
+  border-color: var(--color-border);
   cursor: not-allowed;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 .legend {
   display: flex;
   gap: 2rem;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
 }
 
 .legend-item {
@@ -783,22 +784,22 @@ export default {
 .seat-example {
   width: 30px;
   height: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
 }
 
 .seat-example.available {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
 }
 
 .seat-example.selected {
-  background: #e94560;
-  border-color: #e94560;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .seat-example.occupied {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: var(--color-border);
+  border-color: var(--color-border);
 }
 
 .navigation-buttons {
@@ -818,57 +819,57 @@ export default {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-surface);
 }
 
 .booking-summary {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   padding: 2rem;
   border-radius: 16px;
   height: fit-content;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
 }
 
 .booking-summary h3 {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .summary-item {
   display: flex;
   justify-content: space-between;
   margin-bottom: 1rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-muted);
 }
 
 .summary-divider {
-  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid var(--color-border);
   margin: 1rem 0;
 }
 
 .summary-item.total {
   font-size: 1.3rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--color-text);
 }
 
 @media (max-width: 968px) {

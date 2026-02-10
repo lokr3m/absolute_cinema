@@ -653,31 +653,32 @@ export default {
 <style scoped>
 .admin-page {
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #ffffff;
+  color: var(--color-text);
 }
 
 .page-header {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  background: linear-gradient(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.92)),
+    linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
   padding: 3rem 0;
   text-align: center;
 }
 
 .page-header h1 {
   font-size: 2.5rem;
-  color: #fff;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
 }
 
 .page-header .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
   font-size: 1.1rem;
 }
 
 .admin {
   padding: 2.5rem 0 3rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .container {
@@ -691,10 +692,10 @@ export default {
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 0.75rem;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
 
@@ -705,27 +706,27 @@ export default {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
   border-radius: 999px;
   transition: all 0.3s ease;
 }
 
 .tab-btn:hover {
-  color: #fff;
+  color: var(--color-text);
 }
 
 .tab-btn.active {
   color: #fff;
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
 }
 
 .admin-content {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
 }
 
 .section-header {
@@ -738,11 +739,11 @@ export default {
 
 .section-header h2 {
   font-size: 1.8rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
   padding: 0.75rem 1.5rem;
   border: none;
@@ -750,25 +751,25 @@ export default {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.35);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.5);
 }
 
 .btn-primary:disabled {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border);
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
   padding: 0.75rem 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border);
   border-radius: 30px;
   font-weight: 600;
   cursor: pointer;
@@ -776,7 +777,7 @@ export default {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-surface);
 }
 
 .data-table {
@@ -785,24 +786,24 @@ export default {
 }
 
 .data-table thead {
-  background: rgba(15, 52, 96, 0.6);
+  background: var(--color-surface-muted);
 }
 
 .data-table th,
 .data-table td {
   padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .data-table th {
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .data-table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-muted);
 }
 
 .actions {
@@ -817,7 +818,7 @@ export default {
   cursor: pointer;
   padding: 0.25rem;
   transition: transform 0.2s ease;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .btn-icon:hover {
@@ -860,7 +861,7 @@ export default {
 .loading {
   text-align: center;
   padding: 2rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
   font-size: 1.1rem;
 }
 
@@ -940,15 +941,15 @@ export default {
 }
 
 .modal {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   border-radius: 16px;
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.2);
 }
 
 .modal-header {
@@ -956,21 +957,21 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .close-btn {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-muted);
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  color: #fff;
+  color: var(--color-text);
   padding: 0;
   width: 32px;
   height: 32px;
@@ -982,7 +983,7 @@ export default {
 }
 
 .close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-surface);
 }
 
 .modal-body {
@@ -997,7 +998,7 @@ export default {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
 }
 
 .form-group input[type="text"],
@@ -1006,19 +1007,19 @@ export default {
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #e94560;
-  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 
 .form-group input[type="checkbox"] {

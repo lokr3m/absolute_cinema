@@ -127,7 +127,7 @@ export default {
 }
 
 .genre-tag {
-  background: #e50914;
+  background: var(--color-primary);
   color: #fff;
   padding: 0.5rem 1rem;
   border-radius: 20px;
@@ -159,7 +159,7 @@ export default {
 
 .btn-primary {
   display: inline-block;
-  background-color: #e50914;
+  background-color: var(--color-primary);
   color: #fff;
   padding: 1rem 2rem;
   border-radius: 4px;
@@ -171,14 +171,15 @@ export default {
 }
 
 .btn-primary:hover {
-  background-color: #c00812;
+  background-color: var(--color-primary-dark);
 }
 
 .showtimes {
-  background: #f5f5f5;
+  background: var(--color-surface);
   padding: 2rem;
   border-radius: 8px;
   margin-bottom: 3rem;
+  border: 1px solid var(--color-border);
 }
 
 .showtimes h2 {
@@ -204,9 +205,9 @@ export default {
 
 .date-btn.active,
 .date-btn:hover {
-  background-color: #e50914;
+  background-color: var(--color-primary);
   color: #fff;
-  border-color: #e50914;
+  border-color: var(--color-primary);
 }
 
 .cinema {
@@ -236,9 +237,9 @@ export default {
 }
 
 .time-btn:hover {
-  background-color: #333;
+  background-color: var(--color-primary);
   color: #fff;
-  border-color: #333;
+  border-color: var(--color-primary);
 }
 
 .trailer h2 {

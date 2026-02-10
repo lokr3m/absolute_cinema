@@ -35,10 +35,11 @@ export default {
 
 <style scoped>
 .footer {
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: #ffffff;
+  color: var(--color-text);
   padding: 2rem 0 1rem;
   margin-top: auto;
+  border-top: 1px solid var(--color-border);
 }
 
 .container {
@@ -57,7 +58,7 @@ export default {
 .footer-section h3,
 .footer-section h4 {
   margin-bottom: 1rem;
-  color: #e50914;
+  color: var(--color-primary);
 }
 
 .footer-section ul {
@@ -70,24 +71,24 @@ export default {
 }
 
 .footer-section a {
-  color: #ccc;
+  color: var(--color-text-muted);
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .footer-section a:hover {
-  color: #e50914;
+  color: var(--color-primary);
 }
 
 .footer-section p {
-  color: #ccc;
+  color: var(--color-text-muted);
   margin: 0.5rem 0;
 }
 
 .footer-bottom {
-  border-top: 1px solid #333;
+  border-top: 1px solid var(--color-border);
   padding-top: 1rem;
   text-align: center;
-  color: #888;
+  color: var(--color-text-muted);
 }
 </style>

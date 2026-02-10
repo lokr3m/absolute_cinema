@@ -543,7 +543,8 @@ export default {
 .schedule {
   padding: 2rem 0;
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #ffffff;
+  color: var(--color-text);
 }
 
 .container {
@@ -555,13 +556,13 @@ export default {
 h1 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
-  color: #fff;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  color: var(--color-text);
+  text-shadow: none;
 }
 
 /* Filters Container */
 .filters-container {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   padding: 1.5rem 2rem;
   border-radius: 16px;
   margin-bottom: 2rem;
@@ -572,8 +573,8 @@ h1 {
   gap: 1.5rem;
   flex-wrap: nowrap;
   overflow: visible;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--color-border);
   position: relative;
   z-index: 100;
 }
@@ -591,7 +592,7 @@ h1 {
 }
 
 .filter-section label {
-  color: #fff;
+  color: var(--color-text);
   font-weight: bold;
   font-size: 0.9rem;
   white-space: nowrap;
@@ -608,23 +609,23 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   border-radius: 12px;
-  background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
+  background: linear-gradient(145deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
   color: #fff;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
   min-width: 120px;
   justify-content: center;
 }
 
 .dropdown-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.5);
-  background: linear-gradient(145deg, #ff5a75 0%, #e94560 100%);
+  box-shadow: 0 6px 25px rgba(249, 115, 22, 0.4);
+  background: linear-gradient(145deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
 }
 
 .dropdown-btn-compact {
@@ -653,10 +654,10 @@ h1 {
   left: 50%;
   transform: translateX(-50%);
   min-width: 100%;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  background: var(--color-surface);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
   z-index: 9999;
   overflow: visible;
   animation: dropdownFadeInDown 0.2s ease;
@@ -675,20 +676,20 @@ h1 {
 
 .dropdown-item {
   padding: 0.75rem 1.25rem;
-  color: #fff;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .dropdown-item:hover {
-  background: rgba(233, 69, 96, 0.2);
-  color: #e94560;
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--color-primary);
 }
 
 .dropdown-item.active {
-  background: rgba(233, 69, 96, 0.3);
-  color: #e94560;
+  background: rgba(249, 115, 22, 0.2);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -701,9 +702,9 @@ h1 {
 }
 
 .date-nav-btn {
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-  color: #fff;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.5rem 1rem;
   cursor: pointer;
   border-radius: 4px;
@@ -712,7 +713,7 @@ h1 {
 }
 
 .date-nav-btn:hover:not(:disabled) {
-  background-color: #3a3a3a;
+  background-color: var(--color-surface-muted);
 }
 
 .date-nav-btn:disabled {
@@ -727,9 +728,9 @@ h1 {
 }
 
 .date-btn {
-  background-color: #2a2a2a;
-  border: 1px solid #444;
-  color: #fff;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
   padding: 0.75rem 1rem;
   cursor: pointer;
   border-radius: 4px;
@@ -739,12 +740,12 @@ h1 {
 }
 
 .date-btn:hover {
-  background-color: #3a3a3a;
+  background-color: var(--color-surface-muted);
 }
 
 .date-btn.active {
-  background-color: #e67e22;
-  border-color: #e67e22;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .date-btn.no-schedule {
@@ -753,7 +754,7 @@ h1 {
 }
 
 .date-btn.no-schedule:hover {
-  background-color: #2a2a2a;
+  background-color: var(--color-surface);
   transform: none;
 }
 
@@ -781,10 +782,10 @@ h1 {
   text-align: center;
   padding: 3rem;
   font-size: 1.2rem;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface-muted);
   border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  color: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  color: var(--color-text);
 }
 
 .error {
@@ -792,24 +793,24 @@ h1 {
 }
 
 .no-sessions {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
 }
 
 .schedule-card {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   display: flex;
   gap: 1.5rem;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
 }
 
 .schedule-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
-  border-color: rgba(233, 69, 96, 0.3);
+  box-shadow: 0 20px 60px rgba(249, 115, 22, 0.2);
+  border-color: rgba(249, 115, 22, 0.3);
 }
 
 .schedule-card-left {
@@ -838,37 +839,37 @@ h1 {
 .session-time {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--color-text);
 }
 
 .cinema-name {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-muted);
   font-weight: bold;
 }
 
 .hall-name {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   font-weight: bold;
 }
 
 .btn-trailer {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(233, 69, 96, 0.2);
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: bold;
-  color: #e94560;
+  color: var(--color-primary);
   transition: all 0.3s;
 }
 
 .btn-trailer:hover {
-  background: rgba(233, 69, 96, 0.3);
-  border-color: #e94560;
+  background: rgba(249, 115, 22, 0.25);
+  border-color: var(--color-primary);
 }
 
 /* Right Side */
@@ -889,13 +890,13 @@ h1 {
 .movie-title {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #fff;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 
 .movie-genre {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
   margin-bottom: 1rem;
   font-weight: bold;
 }
@@ -965,13 +966,13 @@ h1 {
   left: 10px;
   width: 40px;
   height: 40px;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: var(--color-surface-muted);
   border-radius: 50%;
 }
 
 .availability-text {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
   white-space: nowrap;
   font-weight: bold;
 }
@@ -994,11 +995,11 @@ h1 {
 
 .meta-label {
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-muted);
 }
 
 .meta-value {
-  color: #fff;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -1012,10 +1013,10 @@ h1 {
 
 .btn-schedule {
   padding: 0.75rem 1.5rem;
-  background-color: #f0ad4e;
+  background-color: var(--color-primary-light);
   border: none;
   border-radius: 4px;
-  color: #fff;
+  color: var(--color-text);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -1023,12 +1024,13 @@ h1 {
 }
 
 .btn-schedule:hover {
-  background-color: #ec971f;
+  background-color: var(--color-primary);
+  color: #fff;
 }
 
 .btn-buy {
   padding: 0.75rem 1.5rem;
-  background-color: #e67e22;
+  background-color: var(--color-primary);
   border: none;
   border-radius: 4px;
   color: #fff;
@@ -1038,7 +1040,7 @@ h1 {
 }
 
 .btn-buy:hover {
-  background-color: #d35400;
+  background-color: var(--color-primary-dark);
 }
 
 /* Responsive Design */
