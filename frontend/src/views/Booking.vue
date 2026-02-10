@@ -746,7 +746,6 @@ export default {
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.8rem;
-  color: var(--color-text);
 }
 
 .seat:hover:not(:disabled) {
