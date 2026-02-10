@@ -1020,12 +1020,11 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
-  opacity: 0.7;
 }
 
 .btn-schedule:hover {
   background-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .btn-buy {
@@ -1033,7 +1032,7 @@ h1 {
   background-color: var(--color-primary);
   border: none;
   border-radius: 4px;
-  color: #fff;
+  color: var(--color-surface);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.3s;
