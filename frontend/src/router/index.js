@@ -26,7 +26,24 @@ const routes = [
   {
     path: '/booking',
     name: 'Booking',
-    component: Booking
+    component: Booking,
+    beforeEnter: (to, from, next) => {
+      const requiredQuery = ['film', 'cinema', 'date', 'time']
+      const hasRequiredQuery = requiredQuery.every(key => {
+        const value = to.query[key]
+        if (Array.isArray(value)) {
+          return value[0]
+        }
+        return value
+      })
+
+      if (!hasRequiredQuery) {
+        next({ name: 'Schedule' })
+        return
+      }
+
+      next()
+    }
   },
   {
     path: '/schedule',
