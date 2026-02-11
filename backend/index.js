@@ -21,6 +21,8 @@ if (!MONGODB_URI) {
 
 const apolloKinoService = new ApolloKinoService();
 
+const normalizeApolloId = value => (value == null ? '' : String(value));
+
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
 
 const extractShowsFromSchedule = schedulePayload => {
@@ -150,7 +152,7 @@ async function refreshDatabaseFromApollo() {
       try {
         const filmData = apolloKinoService.transformEventToFilm(event);
         const film = await Film.create(filmData);
-        filmMap.set(event.ID, film);
+        filmMap.set(normalizeApolloId(event.ID), film);
       } catch (err) {
         console.error(`  ⚠️ Error creating film for event ${event.ID}:`, err.message);
       }
@@ -182,7 +184,7 @@ async function refreshDatabaseFromApollo() {
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          let film = filmMap.get(show.EventID);
+          let film = filmMap.get(normalizeApolloId(show.EventID));
           
           // If film not found in events, create it from show data
           if (!film && show.Title) {
@@ -220,7 +222,7 @@ async function refreshDatabaseFromApollo() {
               };
               
               film = await Film.create(filmData);
-              filmMap.set(show.EventID, film);
+              filmMap.set(normalizeApolloId(show.EventID), film);
             } catch (filmErr) {
               // Skip if film creation fails
               continue;
