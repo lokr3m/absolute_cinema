@@ -8,6 +8,21 @@ import Admin from '../views/Admin.vue'
 import News from '../views/News.vue'
 
 const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
+const INVALID_QUERY_CHARS = /[<>]/
+
+const isValidBookingQueryValue = value => {
+  if (typeof value !== 'string') return false
+  const trimmedValue = value.trim()
+  if (!trimmedValue || trimmedValue !== value) return false
+  return !INVALID_QUERY_CHARS.test(value)
+}
+
+const hasValidBookingQuery = to =>
+  REQUIRED_BOOKING_QUERY.every(key => {
+    const value = to.query[key]
+    if (Array.isArray(value)) return false
+    return isValidBookingQueryValue(value)
+  })
 
 const routes = [
   {
@@ -30,15 +45,7 @@ const routes = [
     name: 'Booking',
     component: Booking,
     beforeEnter: (to, from, next) => {
-      const hasRequiredQuery = REQUIRED_BOOKING_QUERY.every(key => {
-        const value = to.query[key]
-        if (Array.isArray(value)) return false
-        if (typeof value !== 'string') return false
-        const trimmedValue = value.trim()
-        return trimmedValue.length > 0 && trimmedValue === value
-      })
-
-      if (!hasRequiredQuery) {
+      if (!hasValidBookingQuery(to)) {
         next({ name: 'Schedule' })
       } else {
         next()
