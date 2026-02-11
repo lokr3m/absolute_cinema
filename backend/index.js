@@ -146,18 +146,29 @@ async function refreshDatabaseFromApollo() {
     let sessionsCreated = 0;
     
     // Process schedule shows if available
-    if (scheduleData.schedule && scheduleData.schedule.Shows) {
-      const shows = Array.isArray(scheduleData.schedule.Shows) 
-        ? scheduleData.schedule.Shows 
-        : (scheduleData.schedule.Shows.Show ? 
-            (Array.isArray(scheduleData.schedule.Shows.Show) ? scheduleData.schedule.Shows.Show : [scheduleData.schedule.Shows.Show])
-            : [scheduleData.schedule.Shows]);
-      
+    let shows = [];
+    if (scheduleData.schedule) {
+      if (scheduleData.schedule.Schedule?.Shows?.Show) {
+        shows = Array.isArray(scheduleData.schedule.Schedule.Shows.Show)
+          ? scheduleData.schedule.Schedule.Shows.Show
+          : [scheduleData.schedule.Schedule.Shows.Show];
+      } else if (scheduleData.schedule.Shows?.Show) {
+        shows = Array.isArray(scheduleData.schedule.Shows.Show)
+          ? scheduleData.schedule.Shows.Show
+          : [scheduleData.schedule.Shows.Show];
+      } else if (Array.isArray(scheduleData.schedule.Shows)) {
+        shows = scheduleData.schedule.Shows;
+      } else if (Array.isArray(scheduleData.schedule)) {
+        shows = scheduleData.schedule;
+      }
+    }
+
+    if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
-      
+
       // Get all halls as array for random assignment
       const allHalls = Array.from(hallMap.values());
-      
+
       for (const show of shows) {
         try {
           // Find or create the film by event ID
