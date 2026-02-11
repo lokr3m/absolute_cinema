@@ -547,7 +547,7 @@ export default {
 .schedule {
   padding: 2rem 0;
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #f5f5f5;
 }
 
 .container {
@@ -563,24 +563,23 @@ export default {
 h1 {
   font-size: 2.5rem;
   margin-bottom: 0;
-  color: #fff;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  color: #2c3e50;
   font-weight: 700;
 }
 
 /* Filters Container */
 .filters-container {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: #fff;
   padding: 1.5rem 2rem;
-  border-radius: 16px;
+  border-radius: 12px;
   margin-bottom: 1.5rem;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
   position: relative;
   z-index: 100;
 }
@@ -599,12 +598,12 @@ h1 {
 
 /* Date Selection Wrapper */
 .date-selection-wrapper {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: #fff;
   padding: 1.5rem;
-  border-radius: 16px;
+  border-radius: 12px;
   margin-bottom: 2rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
 }
 
 /* Date Selection */
@@ -626,23 +625,24 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  border: 1px solid rgba(233, 69, 96, 0.3);
-  border-radius: 12px;
-  background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
-  color: #fff;
+  border: 2px solid #e74c3c;
+  border-radius: 8px;
+  background: #fff;
+  color: #e74c3c;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 600;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   min-width: 160px;
   justify-content: center;
 }
 
 .dropdown-btn:hover {
+  background: #e74c3c;
+  color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.5);
-  background: linear-gradient(145deg, #ff5a75 0%, #e94560 100%);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
 .dropdown-btn-compact {
@@ -671,10 +671,10 @@ h1 {
   left: 50%;
   transform: translateX(-50%);
   min-width: 100%;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border: 1px solid rgba(233, 69, 96, 0.3);
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   z-index: 9999;
   overflow: hidden;
   animation: dropdownFadeInDown 0.2s ease;
@@ -695,27 +695,27 @@ h1 {
 
 .dropdown-item {
   padding: 0.75rem 1.25rem;
-  color: #fff;
+  color: #333;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .dropdown-item:hover {
-  background: rgba(233, 69, 96, 0.2);
-  color: #e94560;
+  background: #f8f8f8;
+  color: #e74c3c;
 }
 
 .dropdown-item.active {
-  background: rgba(233, 69, 96, 0.3);
-  color: #e94560;
+  background: #fef5f3;
+  color: #e74c3c;
   font-weight: 600;
 }
 
 .date-nav-btn {
-  background: rgba(233, 69, 96, 0.2);
-  border: 1px solid rgba(233, 69, 96, 0.3);
-  color: #fff;
+  background: #fff;
+  border: 2px solid #e74c3c;
+  color: #e74c3c;
   padding: 0.75rem 1rem;
   cursor: pointer;
   border-radius: 8px;
@@ -725,8 +725,8 @@ h1 {
 }
 
 .date-nav-btn:hover:not(:disabled) {
-  background: rgba(233, 69, 96, 0.3);
-  border-color: #e94560;
+  background: #e74c3c;
+  color: #fff;
   transform: translateY(-2px);
 }
 
@@ -742,9 +742,9 @@ h1 {
 }
 
 .date-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: #fff;
+  border: 2px solid #ddd;
+  color: #2c3e50;
   padding: 0.75rem 1rem;
   cursor: pointer;
   border-radius: 8px;
@@ -754,15 +754,16 @@ h1 {
 }
 
 .date-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(233, 69, 96, 0.3);
+  border-color: #e74c3c;
   transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .date-btn.active {
-  background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
-  border-color: #e94560;
-  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+  background: #e74c3c;
+  border-color: #e74c3c;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
 .date-btn.no-schedule {
@@ -771,9 +772,10 @@ h1 {
 }
 
 .date-btn.no-schedule:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: #fff;
+  border-color: #ddd;
   transform: none;
+  box-shadow: none;
 }
 
 .date-day {
@@ -800,35 +802,36 @@ h1 {
   text-align: center;
   padding: 3rem;
   font-size: 1.2rem;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  color: #fff;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  color: #2c3e50;
 }
 
 .error {
-  color: #ff6b6b;
+  color: #c0392b;
+  background: #fee;
+  border: 1px solid #fcc;
 }
 
 .no-sessions {
-  color: rgba(255, 255, 255, 0.7);
+  color: #7f8c8d;
 }
 
 .schedule-card {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border-radius: 16px;
+  background: #fff;
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   display: flex;
   gap: 1.5rem;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
 }
 
 .schedule-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
-  border-color: rgba(233, 69, 96, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .schedule-card-left {
@@ -845,7 +848,7 @@ h1 {
   width: 100%;
   height: 180px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 .session-info {
@@ -857,37 +860,38 @@ h1 {
 .session-time {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .cinema-name {
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #555;
   font-weight: bold;
 }
 
 .hall-name {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #7f8c8d;
   font-weight: bold;
 }
 
 .btn-trailer {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
-  background: rgba(233, 69, 96, 0.2);
-  border: 1px solid rgba(233, 69, 96, 0.3);
-  border-radius: 4px;
+  background: #fef5f3;
+  border: 1px solid #fdd;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: bold;
-  color: #e94560;
+  color: #e74c3c;
   transition: all 0.3s;
 }
 
 .btn-trailer:hover {
-  background: rgba(233, 69, 96, 0.3);
-  border-color: #e94560;
+  background: #e74c3c;
+  color: #fff;
+  border-color: #e74c3c;
 }
 
 /* Right Side */
@@ -908,13 +912,13 @@ h1 {
 .movie-title {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #fff;
+  color: #2c3e50;
   margin-bottom: 0.5rem;
 }
 
 .movie-genre {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #7f8c8d;
   margin-bottom: 1rem;
   font-weight: bold;
 }
@@ -984,13 +988,13 @@ h1 {
   left: 10px;
   width: 40px;
   height: 40px;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: #fff;
   border-radius: 50%;
 }
 
 .availability-text {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #555;
   white-space: nowrap;
   font-weight: bold;
 }
@@ -1013,11 +1017,11 @@ h1 {
 
 .meta-label {
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: #7f8c8d;
 }
 
 .meta-value {
-  color: #fff;
+  color: #2c3e50;
   font-weight: 600;
 }
 
@@ -1031,33 +1035,36 @@ h1 {
 
 .btn-schedule {
   padding: 0.75rem 1.5rem;
-  background-color: #f0ad4e;
+  background-color: #f39c12;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
-  opacity: 0.7;
+  transition: all 0.3s;
 }
 
 .btn-schedule:hover {
-  background-color: #ec971f;
+  background-color: #e67e22;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
 }
 
 .btn-buy {
   padding: 0.75rem 1.5rem;
-  background-color: #e67e22;
+  background-color: #e74c3c;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   color: #fff;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
 }
 
 .btn-buy:hover {
-  background-color: #d35400;
+  background-color: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
 /* Responsive Design */

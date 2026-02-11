@@ -26,9 +26,10 @@ export default {
 
 <style scoped>
 .header {
-  background-color: #1a1a1a;
+  background-color: #fff;
   padding: 1rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #e8e8e8;
 }
 
 .container {
@@ -45,14 +46,14 @@ export default {
 
 .logo {
   text-decoration: none;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .logo h1 {
   margin: 0;
   font-size: 1.8rem;
   font-weight: bold;
-  color: #e50914;
+  color: #e74c3c;
 }
 
 .nav {
@@ -61,15 +62,16 @@ export default {
 }
 
 .nav-link {
-  color: #fff;
+  color: #2c3e50;
   text-decoration: none;
   font-size: 1rem;
   transition: color 0.3s ease;
   padding: 0.5rem 0;
+  font-weight: 500;
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  color: #e50914;
+  color: #e74c3c;
 }
 </style>
