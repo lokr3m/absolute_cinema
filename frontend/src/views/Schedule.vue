@@ -1,10 +1,19 @@
 <template>
   <div class="schedule">
-    <div class="container">
-      <div class="page-header">
-        <h1>Schedule</h1>
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <div class="hero-overlay">
+        <div class="container">
+          <div class="hero-content">
+            <h1 class="hero-title">🎞️ Movie Schedule</h1>
+            <p class="hero-subtitle">Find Your Perfect Showtime</p>
+            <p class="hero-description">Browse available sessions and book your tickets for the best cinema experience</p>
+          </div>
+        </div>
       </div>
-      
+    </section>
+
+    <div class="container">
       <!-- Filters Section -->
       <div class="filters-container">
         <!-- Cinema Selection -->
@@ -545,19 +554,70 @@ export default {
 
 <style scoped>
 .schedule {
-  padding: 2rem 0;
   min-height: calc(100vh - 200px);
   background: #f5f5f5;
+}
+
+/* Hero Banner */
+.hero-banner {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, rgba(255, 102, 0, 0.1) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.hero-overlay {
+  position: relative;
+  z-index: 1;
+  padding: 3.5rem 0;
+}
+
+.hero-content {
+  text-align: center;
+  color: #fff;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.8rem;
+  background: linear-gradient(135deg, #fff 0%, #ff6600 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+  color: #ff6600;
+}
+
+.hero-description {
+  font-size: 1rem;
+  color: #d0d0d0;
+  max-width: 550px;
+  margin: 0 auto;
 }
 
 .container {
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 1.5rem;
-}
-
-.page-header {
-  margin-bottom: 2rem;
+  padding-top: 2rem;
 }
 
 h1 {

@@ -1,5 +1,18 @@
 <template>
   <div class="home">
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <div class="hero-overlay">
+        <div class="container">
+          <div class="hero-content">
+            <h1 class="hero-title">🎬 Welcome to Cinema</h1>
+            <p class="hero-subtitle">Experience the Magic of Movies</p>
+            <p class="hero-description">Discover the latest blockbusters, timeless classics, and everything in between</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="featured">
       <div class="container">
         <!-- Cinema Selector -->
@@ -230,6 +243,63 @@ export default {
 .home {
   background: #f5f5f5;
   min-height: calc(100vh - 200px);
+}
+
+/* Hero Banner */
+.hero-banner {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, rgba(255, 102, 0, 0.1) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.hero-overlay {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 0;
+}
+
+.hero-content {
+  text-align: center;
+  color: #fff;
+}
+
+.hero-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #fff 0%, #ff6600 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 10px rgba(255, 102, 0, 0.3);
+}
+
+.hero-subtitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #ff6600;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
 }
 
 .featured {
