@@ -7,16 +7,16 @@
           <div class="custom-dropdown" :class="{ open: cinemaDropdownOpen }">
             <button class="dropdown-btn" @click="toggleCinemaDropdown">
               <span class="dropdown-icon">🎬</span>
-              <span>{{ selectedCinemaName || 'Kõik kinod' }}</span>
+              <span>{{ selectedCinemaName || 'All Cinemas' }}</span>
               <span class="arrow">▼</span>
             </button>
             <div class="dropdown-menu" v-if="cinemaDropdownOpen">
               <div 
                 class="dropdown-item" 
                 :class="{ active: selectedCinema === '' }"
-                @click="selectCinema('', 'Kõik kinod')"
+                @click="selectCinema('', 'All Cinemas')"
               >
-                Kõik kinod
+                All Cinemas
               </div>
               <div 
                 v-for="cinema in cinemas" 
@@ -32,7 +32,7 @@
         </div>
 
         <div class="section-header">
-          <h2>Top films</h2>
+          <h2>Top Films</h2>
         </div>
         
         <div v-if="loading" class="loading">
@@ -111,7 +111,7 @@ export default {
   name: 'Home',
   data() {
     return {
-      featuredMovies: [],
+      topMovies: [],
       cinemas: [],
       selectedCinema: '',
       selectedCinemaName: '',
@@ -129,9 +129,11 @@ export default {
   computed: {
     filteredMovies() {
       if (!this.selectedCinema) {
-        return this.featuredMovies;
+        return this.topMovies;
       }
-      return this.featuredMovies.filter(movie => 
+      // Note: Apollo Kino API movies may not have cinemaId by default
+      // This filter will only work if cinemaId is added to movie objects
+      return this.topMovies.filter(movie => 
         movie.cinemaId === this.selectedCinema
       );
     }
@@ -197,7 +199,7 @@ export default {
         const response = await axios.get(`${apiUrl}/api/apollo-kino/events`);
         
         if (response.data.success) {
-          this.featuredMovies = (response.data.movies || []).slice(0, 12);
+          this.topMovies = (response.data.movies || []).slice(0, 12);
         } else {
           this.error = 'Failed to load featured movies';
         }

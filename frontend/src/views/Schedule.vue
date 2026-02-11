@@ -21,7 +21,7 @@
                 :class="{ active: selectedCinema === '' }"
                 @click="selectCinema('')"
               >
-                Kõik kinod
+                All Cinemas
               </div>
               <div 
                 v-for="cinema in cinemas" 
@@ -51,7 +51,7 @@
                   :class="{ active: selectedGenre === '' }"
                   @click="selectGenre('')"
                 >
-                  Kõik žanrid
+                  All Genres
                 </div>
                 <div class="dropdown-item" :class="{ active: selectedGenre === 'action' }" @click="selectGenre('action')">Action</div>
                 <div class="dropdown-item" :class="{ active: selectedGenre === 'comedy' }" @click="selectGenre('comedy')">Comedy</div>
@@ -75,7 +75,7 @@
                   :class="{ active: selectedFormat === '' }"
                   @click="selectFormat('')"
                 >
-                  Kõik formaadid
+                  All Formats
                 </div>
                 <div class="dropdown-item" :class="{ active: selectedFormat === '2D' }" @click="selectFormat('2D')">2D</div>
                 <div class="dropdown-item" :class="{ active: selectedFormat === '3D' }" @click="selectFormat('3D')">3D</div>
