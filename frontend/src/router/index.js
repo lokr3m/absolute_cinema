@@ -33,15 +33,16 @@ const routes = [
       const hasRequiredQuery = REQUIRED_BOOKING_QUERY.every(key => {
         const value = to.query[key]
         if (Array.isArray(value)) return false
-        return typeof value === 'string' && value.trim().length > 0
+        if (typeof value !== 'string') return false
+        const trimmedValue = value.trim()
+        return trimmedValue.length > 0 && trimmedValue === value
       })
 
       if (!hasRequiredQuery) {
         next({ name: 'Schedule' })
-        return
+      } else {
+        next()
       }
-
-      next()
     }
   },
   {
