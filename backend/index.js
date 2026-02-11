@@ -144,15 +144,16 @@ async function refreshDatabaseFromApollo() {
     const scheduleData = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
     let sessionsCreated = 0;
-    const normalizeShows = value => (Array.isArray(value) ? value : [value]);
+    const ensureArray = value => (Array.isArray(value) ? value : [value]);
     
     // Process schedule shows if available
     let shows = [];
     if (scheduleData.schedule) {
       if (scheduleData.schedule.Schedule?.Shows?.Show) {
-        shows = normalizeShows(scheduleData.schedule.Schedule.Shows.Show);
+        // Apollo API sometimes nests Schedule inside the schedule payload.
+        shows = ensureArray(scheduleData.schedule.Schedule.Shows.Show);
       } else if (scheduleData.schedule.Shows?.Show) {
-        shows = normalizeShows(scheduleData.schedule.Shows.Show);
+        shows = ensureArray(scheduleData.schedule.Shows.Show);
       } else if (Array.isArray(scheduleData.schedule.Shows)) {
         shows = scheduleData.schedule.Shows;
       } else if (Array.isArray(scheduleData.schedule)) {
