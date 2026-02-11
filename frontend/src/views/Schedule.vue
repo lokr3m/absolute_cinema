@@ -1,7 +1,9 @@
 <template>
   <div class="schedule">
     <div class="container">
-      <h1>KAVA</h1>
+      <div class="page-header">
+        <h1>Schedule</h1>
+      </div>
       
       <!-- Filters Section -->
       <div class="filters-container">
@@ -10,7 +12,7 @@
           <div class="custom-dropdown" :class="{ open: cinemaDropdownOpen }">
             <button class="dropdown-btn" @click="toggleCinemaDropdown">
               <span class="dropdown-icon">🎬</span>
-              <span>Kino</span>
+              <span>Cinema</span>
               <span class="arrow">▼</span>
             </button>
             <div class="dropdown-menu" v-if="cinemaDropdownOpen">
@@ -34,35 +36,13 @@
           </div>
         </div>
 
-        <!-- Date Selection -->
-        <div class="date-selection">
-          <button @click="previousWeek" class="date-nav-btn" :disabled="currentWeekIndex === 0">
-            <span>‹</span>
-          </button>
-          <div class="dates-container">
-            <button
-              v-for="(date, index) in displayedDates"
-              :key="index"
-              @click="selectedDate = date.value"
-              :class="['date-btn', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
-              :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
-            >
-              <div class="date-day">{{ date.day }}</div>
-              <div class="date-number">{{ date.number }}</div>
-            </button>
-          </div>
-          <button @click="nextWeek" class="date-nav-btn">
-            <span>›</span>
-          </button>
-        </div>
-
         <!-- Genre and Format Filters -->
         <div class="filter-group">
           <div class="filter-section">
             <div class="custom-dropdown" :class="{ open: genreDropdownOpen }">
               <button class="dropdown-btn dropdown-btn-compact" @click="toggleGenreDropdown">
                 <span class="dropdown-icon">🎭</span>
-                <span>Žanr</span>
+                <span>Genre</span>
                 <span class="arrow">▼</span>
               </button>
               <div class="dropdown-menu" v-if="genreDropdownOpen">
@@ -86,7 +66,7 @@
             <div class="custom-dropdown" :class="{ open: formatDropdownOpen }">
               <button class="dropdown-btn dropdown-btn-compact" @click="toggleFormatDropdown">
                 <span class="dropdown-icon">📽️</span>
-                <span>Formaat</span>
+                <span>Format</span>
                 <span class="arrow">▼</span>
               </button>
               <div class="dropdown-menu" v-if="formatDropdownOpen">
@@ -102,6 +82,30 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Date Selection (moved after filters) -->
+      <div class="date-selection-wrapper">
+        <div class="date-selection">
+          <button @click="previousWeek" class="date-nav-btn" :disabled="currentWeekIndex === 0">
+            <span>‹</span>
+          </button>
+          <div class="dates-container">
+            <button
+              v-for="(date, index) in displayedDates"
+              :key="index"
+              @click="selectedDate = date.value"
+              :class="['date-btn', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
+              :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
+            >
+              <div class="date-day">{{ date.day }}</div>
+              <div class="date-number">{{ date.number }}</div>
+            </button>
+          </div>
+          <button @click="nextWeek" class="date-nav-btn">
+            <span>›</span>
+          </button>
         </div>
       </div>
 
@@ -547,16 +551,21 @@ export default {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 1.5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
 }
 
 h1 {
   font-size: 2.5rem;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   color: #fff;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  font-weight: 700;
 }
 
 /* Filters Container */
@@ -564,14 +573,12 @@ h1 {
   background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
   padding: 1.5rem 2rem;
   border-radius: 16px;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 1.5rem;
-  flex-wrap: nowrap;
-  overflow: visible;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.05);
   position: relative;
@@ -587,14 +594,25 @@ h1 {
 .filter-group {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
-.filter-section label {
-  color: #fff;
-  font-weight: bold;
-  font-size: 0.9rem;
-  white-space: nowrap;
+/* Date Selection Wrapper */
+.date-selection-wrapper {
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  padding: 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Date Selection */
+.date-selection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
 }
 
 /* Custom Dropdown Styles */
@@ -607,7 +625,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.75rem 1.5rem;
   border: 1px solid rgba(233, 69, 96, 0.3);
   border-radius: 12px;
   background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
@@ -617,7 +635,7 @@ h1 {
   font-weight: 600;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
-  min-width: 120px;
+  min-width: 160px;
   justify-content: center;
 }
 
@@ -628,9 +646,9 @@ h1 {
 }
 
 .dropdown-btn-compact {
-  min-width: 110px;
-  padding: 0.6rem 1rem;
-  font-size: 0.9rem;
+  min-width: 140px;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.95rem;
 }
 
 .dropdown-icon {
@@ -658,8 +676,10 @@ h1 {
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   z-index: 9999;
-  overflow: visible;
+  overflow: hidden;
   animation: dropdownFadeInDown 0.2s ease;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 @keyframes dropdownFadeInDown {
@@ -692,59 +712,57 @@ h1 {
   font-weight: 600;
 }
 
-/* Date Selection */
-.date-selection {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
 .date-nav-btn {
-  background-color: #2a2a2a;
-  border: 1px solid #444;
+  background: rgba(233, 69, 96, 0.2);
+  border: 1px solid rgba(233, 69, 96, 0.3);
   color: #fff;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   cursor: pointer;
-  border-radius: 4px;
-  font-size: 1.5rem;
-  transition: background-color 0.3s;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  transition: all 0.3s ease;
+  font-weight: bold;
 }
 
 .date-nav-btn:hover:not(:disabled) {
-  background-color: #3a3a3a;
+  background: rgba(233, 69, 96, 0.3);
+  border-color: #e94560;
+  transform: translateY(-2px);
 }
 
 .date-nav-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .dates-container {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   overflow-x: auto;
 }
 
 .date-btn {
-  background-color: #2a2a2a;
-  border: 1px solid #444;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   padding: 0.75rem 1rem;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-  min-width: 60px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  min-width: 65px;
   text-align: center;
 }
 
 .date-btn:hover {
-  background-color: #3a3a3a;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(233, 69, 96, 0.3);
+  transform: translateY(-2px);
 }
 
 .date-btn.active {
-  background-color: #e67e22;
-  border-color: #e67e22;
+  background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
+  border-color: #e94560;
+  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
 }
 
 .date-btn.no-schedule {
@@ -753,7 +771,8 @@ h1 {
 }
 
 .date-btn.no-schedule:hover {
-  background-color: #2a2a2a;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
   transform: none;
 }
 
@@ -1046,17 +1065,32 @@ h1 {
   .filters-container {
     flex-direction: column;
     gap: 1rem;
-    flex-wrap: wrap;
+    padding: 1.25rem;
   }
 
   .filter-group {
-    flex-direction: column;
+    flex-direction: row;
     width: 100%;
-    gap: 1rem;
+    gap: 0.75rem;
+    justify-content: center;
   }
 
   .filter-section {
+    flex: 1;
+  }
+
+  .custom-dropdown {
     width: 100%;
+  }
+
+  .dropdown-btn,
+  .dropdown-btn-compact {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .date-selection-wrapper {
+    padding: 1rem;
   }
 
   .schedule-card {
