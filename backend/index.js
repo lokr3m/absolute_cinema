@@ -25,6 +25,9 @@ const normalizeApolloId = value => {
   if (value === null || value === undefined) {
     return null;
   }
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
   const normalized = String(value).trim();
   return normalized.length > 0 ? normalized : null;
 };
