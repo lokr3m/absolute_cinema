@@ -12,11 +12,10 @@ const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
 const TIME_FORMAT = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
 const isFutureOrToday = (year, month, day) => {
-  const localDate = new Date(year, month - 1, day)
-  localDate.setHours(0, 0, 0, 0)
+  const targetDate = Date.UTC(year, month - 1, day)
   const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return localDate >= today
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  return targetDate >= todayUtc
 }
 
 const isValidDateValue = value => {
