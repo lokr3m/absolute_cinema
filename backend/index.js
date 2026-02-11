@@ -21,7 +21,13 @@ if (!MONGODB_URI) {
 
 const apolloKinoService = new ApolloKinoService();
 
-const normalizeApolloId = value => (value === null || value === undefined ? '' : String(value));
+const normalizeApolloId = value => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+};
 
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
 
@@ -152,7 +158,10 @@ async function refreshDatabaseFromApollo() {
       try {
         const filmData = apolloKinoService.transformEventToFilm(event);
         const film = await Film.create(filmData);
-        filmMap.set(normalizeApolloId(event.ID), film);
+        const apolloId = normalizeApolloId(event.ID);
+        if (apolloId) {
+          filmMap.set(apolloId, film);
+        }
       } catch (err) {
         console.error(`  ⚠️ Error creating film for event ${event.ID}:`, err.message);
       }
@@ -184,7 +193,8 @@ async function refreshDatabaseFromApollo() {
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          let film = filmMap.get(normalizeApolloId(show.EventID));
+          const apolloId = normalizeApolloId(show.EventID);
+          let film = apolloId ? filmMap.get(apolloId) : null;
           
           // If film not found in events, create it from show data
           if (!film && show.Title) {
@@ -222,7 +232,9 @@ async function refreshDatabaseFromApollo() {
               };
               
               film = await Film.create(filmData);
-              filmMap.set(normalizeApolloId(show.EventID), film);
+              if (apolloId) {
+                filmMap.set(apolloId, film);
+              }
             } catch (filmErr) {
               // Skip if film creation fails
               continue;
