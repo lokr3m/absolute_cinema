@@ -150,7 +150,7 @@ async function refreshDatabaseFromApollo() {
     let shows = [];
     if (scheduleData.schedule) {
       if (scheduleData.schedule.Schedule?.Shows?.Show) {
-        // Apollo API sometimes nests Schedule inside the schedule payload.
+        // Apollo API sometimes nests schedule data under the Schedule key.
         shows = ensureArray(scheduleData.schedule.Schedule.Shows.Show);
       } else if (scheduleData.schedule.Shows?.Show) {
         shows = ensureArray(scheduleData.schedule.Shows.Show);
