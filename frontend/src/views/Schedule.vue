@@ -534,6 +534,8 @@ export default {
           film: session.movieTitle,
           cinema: session.cinema,
           cinemaId: session.cinemaId,
+          hall: session.hall,
+          posterUrl: session.posterUrl,
           date: session.date,
           time: session.time
         }

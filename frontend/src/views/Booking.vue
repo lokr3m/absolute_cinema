@@ -12,73 +12,47 @@
       <div v-if="error" class="error-message">{{ error }}</div>
       <div v-if="loading" class="loading-message">Loading...</div>
       
-      <div class="booking-steps">
-        <div class="step" :class="{ active: currentStep === 1 }">
-          <span class="step-number">1</span>
-          <span class="step-label">Select Movie & Session</span>
+        <div class="booking-steps">
+          <div class="step" :class="{ active: currentStep === 1 }">
+            <span class="step-number">1</span>
+            <span class="step-label">Select Tickets</span>
+          </div>
+          <div class="step" :class="{ active: currentStep === 2 }">
+            <span class="step-number">2</span>
+            <span class="step-label">Select Seats</span>
+          </div>
+          <div class="step" :class="{ active: currentStep === 3 }">
+            <span class="step-number">3</span>
+            <span class="step-label">Email</span>
+          </div>
         </div>
-        <div class="step" :class="{ active: currentStep === 2 }">
-          <span class="step-number">2</span>
-          <span class="step-label">Select Seats</span>
-        </div>
-        <div class="step" :class="{ active: currentStep === 3 }">
-          <span class="step-number">3</span>
-          <span class="step-label">Payment</span>
-        </div>
-      </div>
 
       <div class="booking-content">
         <div class="main-content">
           <div v-if="currentStep === 1" class="step-content">
-            <h2>Select Movie & Session</h2>
-            <div class="movie-selection">
-              <div class="form-group">
-                <label>Film:</label>
-                <select v-model="selectedFilm" @change="onFilmChange" :disabled="loading">
-                  <option :value="null">Choose a film</option>
-                  <option v-for="film in films" :key="film._id" :value="film._id">
-                    {{ film.title }}
-                  </option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label>Cinema:</label>
-                <select v-model="selectedCinema" @change="onCinemaChange" :disabled="loading">
-                  <option :value="null">Choose a cinema</option>
-                  <option v-for="cinema in cinemas" :key="cinema._id" :value="cinema._id">
-                    {{ cinema.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="form-group" v-if="selectedCinema">
-                <label>Hall:</label>
-                <select v-model="selectedHall" @change="onHallChange" :disabled="loading || !halls.length">
-                  <option :value="null">Choose a hall</option>
-                  <option v-for="hall in halls" :key="hall._id" :value="hall._id">
-                    {{ hall.name }} ({{ hall.screenType }})
-                  </option>
-                </select>
-              </div>
-              
-              <div class="form-group">
-                <label>Date:</label>
-                <input type="date" v-model="selectedDate" @change="onDateChange" :disabled="loading" :min="getTodayDate()">
-              </div>
-
-              <div class="form-group" v-if="selectedFilm && selectedDate">
-                <label>Session:</label>
-                <select v-model="selectedSession" @change="onSessionChange" :disabled="loading || !filteredSessions.length">
-                  <option :value="null">Choose a session</option>
-                  <option v-for="session in filteredSessions" :key="session._id" :value="session._id">
-                    {{ formatSessionTime(session) }} - 
-                    {{ session.hall ? session.hall.name : 'N/A' }} - 
-                    €{{ session.price?.standard || 'N/A' }}
-                  </option>
-                </select>
-                <p v-if="!filteredSessions.length && selectedFilm" class="info-text">
-                  No sessions available for the selected criteria
+            <h2>Select Tickets</h2>
+            <div class="ticket-selection">
+              <p v-if="!selectedSession" class="info-text">
+                Please choose a session from the schedule page to start booking tickets.
+              </p>
+              <div v-else>
+                <div class="ticket-row" v-for="type in ticketTypes" :key="type.key">
+                  <div class="ticket-info">
+                    <span class="ticket-name">{{ type.label }}</span>
+                    <span class="ticket-price">€{{ ticketPrice.toFixed(2) }}</span>
+                  </div>
+                  <input
+                    type="number"
+                    class="ticket-quantity"
+                    min="0"
+                    :max="maxAvailableTickets"
+                    v-model.number="ticketSelections[type.key]"
+                    @change="onTicketCountChange"
+                    :disabled="loading || !selectedSession"
+                  >
+                </div>
+                <p class="info-text">
+                  Choose how many tickets you want before selecting your seats.
                 </p>
               </div>
             </div>
@@ -86,7 +60,16 @@
 
           <div v-if="currentStep === 2" class="step-content">
             <h2>Select Your Seats</h2>
-            <div v-if="seatLayout" class="seat-selection">
+            <p v-if="seatHoldRemaining !== null" class="seat-timer">
+              Time left: {{ formattedSeatHoldRemaining }}
+            </p>
+            <p v-if="totalTickets" class="info-text">
+              Select exactly {{ totalTickets }} {{ totalTickets === 1 ? 'seat' : 'seats' }}.
+            </p>
+            <p v-else class="info-text">
+              Please choose ticket quantities before selecting seats.
+            </p>
+            <div v-if="totalTickets && seatLayout" class="seat-selection">
               <div class="screen">SCREEN</div>
               <div class="seating-chart">
                 <div class="row" v-for="row in seatLayout.rows" :key="row">
@@ -100,7 +83,7 @@
                       occupied: isOccupied(row, seat)
                     }"
                     @click="toggleSeat(row, seat)"
-                    :disabled="isOccupied(row, seat)"
+                    :disabled="isOccupied(row, seat) || isSeatSelectionDisabled(row, seat)"
                   >
                     {{ seat }}
                   </button>
@@ -121,37 +104,15 @@
                 </div>
               </div>
             </div>
-            <div v-else class="loading-message">Loading seat layout...</div>
+            <div v-else-if="totalTickets" class="loading-message">Loading seat layout...</div>
           </div>
 
           <div v-if="currentStep === 3" class="step-content">
-            <h2>Payment Details</h2>
+            <h2>Confirm Your Email</h2>
             <form class="payment-form" @submit.prevent="confirmBooking">
-              <div class="form-group">
-                <label>Full Name: *</label>
-                <input type="text" v-model="paymentInfo.name" placeholder="John Doe" required>
-              </div>
               <div class="form-group">
                 <label>Email: *</label>
                 <input type="email" v-model="paymentInfo.email" placeholder="john@example.com" required>
-              </div>
-              <div class="form-group">
-                <label>Phone:</label>
-                <input type="tel" v-model="paymentInfo.phone" placeholder="+372 1234 5678">
-              </div>
-              <div class="form-group">
-                <label>Card Number:</label>
-                <input type="text" v-model="paymentInfo.cardNumber" placeholder="1234 5678 9012 3456">
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Expiry Date:</label>
-                  <input type="text" v-model="paymentInfo.expiry" placeholder="MM/YY">
-                </div>
-                <div class="form-group">
-                  <label>CVV:</label>
-                  <input type="text" v-model="paymentInfo.cvv" placeholder="123">
-                </div>
               </div>
             </form>
           </div>
@@ -160,28 +121,31 @@
             <button v-if="currentStep > 1" @click="previousStep" class="btn btn-secondary" :disabled="loading">
               Previous
             </button>
-            <button v-if="currentStep < 3" @click="nextStep" class="btn btn-primary" :disabled="loading">
+            <button v-if="currentStep < 3" @click="nextStep" class="btn btn-primary" :disabled="loading || (currentStep === 1 && !canProceedToStep2)">
               Next
             </button>
             <button v-if="currentStep === 3" @click="confirmBooking" class="btn btn-primary" :disabled="loading">
-              {{ loading ? 'Processing...' : 'Confirm Booking' }}
+              {{ loading ? 'Processing...' : 'Ok' }}
             </button>
           </div>
         </div>
 
         <div class="booking-summary">
+          <div v-if="summaryPosterUrl" class="summary-poster">
+            <img :src="summaryPosterUrl" :alt="summaryFilmTitle">
+          </div>
           <h3>Booking Summary</h3>
-          <div class="summary-item" v-if="selectedFilm">
+          <div class="summary-item" v-if="summaryFilmTitle">
             <span>Film:</span>
-            <span>{{ getFilmTitle(selectedFilm) }}</span>
+            <span>{{ summaryFilmTitle }}</span>
           </div>
-          <div class="summary-item" v-if="selectedCinema">
+          <div class="summary-item" v-if="summaryCinemaName">
             <span>Cinema:</span>
-            <span>{{ getCinemaName(selectedCinema) }}</span>
+            <span>{{ summaryCinemaName }}</span>
           </div>
-          <div class="summary-item" v-if="selectedHall">
+          <div class="summary-item" v-if="summaryHallName">
             <span>Hall:</span>
-            <span>{{ getHallName(selectedHall) }}</span>
+            <span>{{ summaryHallName }}</span>
           </div>
           <div class="summary-item" v-if="selectedDate">
             <span>Date:</span>
@@ -191,9 +155,13 @@
             <span>Time:</span>
             <span>{{ formatSessionTime(getSelectedSessionDetails()) }}</span>
           </div>
+          <div class="summary-item" v-if="totalTickets">
+            <span>Tickets:</span>
+            <span>{{ ticketSummary }}</span>
+          </div>
           <div class="summary-item" v-if="selectedSeats.length > 0">
             <span>Seats:</span>
-            <span>{{ selectedSeats.length }} selected</span>
+            <span>{{ selectedSeats.length }} / {{ totalTickets }}</span>
           </div>
           <div class="summary-divider"></div>
           <div class="summary-item total">
@@ -229,13 +197,25 @@ export default {
       seatLayout: null,
       occupiedSeats: [],
       selectedSeats: [],
+      ticketTypes: [
+        { key: 'adult', label: 'Adult' },
+        { key: 'child', label: 'Child' },
+        { key: 'vip', label: 'VIP' }
+      ],
+      ticketSelections: {
+        adult: 0,
+        child: 0,
+        vip: 0
+      },
+      prefillFilmTitle: '',
+      prefillCinemaName: '',
+      prefillHallName: '',
+      prefillPosterUrl: '',
+      seatHoldExpiresAt: null,
+      seatHoldRemaining: null,
+      seatHoldIntervalId: null,
       paymentInfo: {
-        name: '',
-        email: '',
-        phone: '',
-        cardNumber: '',
-        expiry: '',
-        cvv: ''
+        email: ''
       },
       loading: false,
       error: null
@@ -243,16 +223,58 @@ export default {
   },
   computed: {
     ticketPrice() {
-      if (this.selectedSession && this.selectedSession.price) {
-        return this.selectedSession.price.standard || 0
-      }
-      return 9.50
+      const session = this.getSelectedSessionDetails()
+      const price = session?.price?.standard
+      return Number(price) || 9.50
+    },
+    totalTickets() {
+      return Object.values(this.ticketSelections).reduce((total, count) => total + count, 0)
     },
     total() {
-      return (this.selectedSeats.length * this.ticketPrice).toFixed(2)
+      return (this.totalTickets * this.ticketPrice).toFixed(2)
     },
     canProceedToStep2() {
-      return this.selectedFilm && this.selectedCinema && this.selectedHall && this.selectedSession && this.selectedDate
+      return this.selectedSession && this.totalTickets > 0
+    },
+    ticketSummary() {
+      const parts = this.ticketTypes
+        .map(type => ({ label: type.label, count: this.ticketSelections[type.key] }))
+        .filter(item => item.count > 0)
+        .map(item => `${item.count} ${item.label}`)
+      return parts.join(', ')
+    },
+    summaryFilmTitle() {
+      const film = this.films.find(item => item._id === this.selectedFilm)
+      return film?.title || this.prefillFilmTitle
+    },
+    summaryPosterUrl() {
+      const film = this.films.find(item => item._id === this.selectedFilm)
+      if (film?.posterUrl) {
+        return film.posterUrl
+      }
+      if (this.prefillPosterUrl) {
+        return this.prefillPosterUrl
+      }
+      if (this.summaryFilmTitle) {
+        return `https://via.placeholder.com/300x450/1a1a2e/e94560?text=${encodeURIComponent(this.summaryFilmTitle)}`
+      }
+      return ''
+    },
+    summaryCinemaName() {
+      return this.getCinemaName(this.selectedCinema) || this.prefillCinemaName
+    },
+    summaryHallName() {
+      return this.getHallName(this.selectedHall) || this.prefillHallName
+    },
+    formattedSeatHoldRemaining() {
+      if (this.seatHoldRemaining === null) return ''
+      const minutes = Math.floor(this.seatHoldRemaining / 60)
+      const seconds = this.seatHoldRemaining % 60
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`
+    },
+    maxAvailableTickets() {
+      const session = this.getSelectedSessionDetails()
+      return session?.availableSeats ?? undefined
     },
     filteredSessions() {
       if (!this.sessions.length) return []
@@ -268,10 +290,24 @@ export default {
       })
     }
   },
+  watch: {
+    totalTickets(newValue) {
+      if (newValue === 0) {
+        this.selectedSeats = []
+        return
+      }
+      if (this.selectedSeats.length > newValue) {
+        this.selectedSeats = this.selectedSeats.slice(0, newValue)
+      }
+    }
+  },
   async mounted() {
     await this.loadFilms()
     await this.loadCinemas()
     await this.applyPrefillFromQuery()
+  },
+  beforeUnmount() {
+    this.clearSeatHoldTimer()
   },
   methods: {
     normalizeTime(value) {
@@ -311,12 +347,19 @@ export default {
       }
     },
     async applyPrefillFromQuery() {
-      const { film, cinema, cinemaId, date, time } = this.$route.query
+      const { film, cinema, cinemaId, date, time, hall, posterUrl } = this.$route.query
       const filmName = Array.isArray(film) ? film[0] : film
       const cinemaName = Array.isArray(cinema) ? cinema[0] : cinema
       const cinemaKey = Array.isArray(cinemaId) ? cinemaId[0] : cinemaId
       const dateValue = Array.isArray(date) ? date[0] : date
       const timeValue = Array.isArray(time) ? time[0] : time
+      const hallName = Array.isArray(hall) ? hall[0] : hall
+      const posterValue = Array.isArray(posterUrl) ? posterUrl[0] : posterUrl
+
+      this.prefillFilmTitle = filmName || ''
+      this.prefillCinemaName = cinemaName || ''
+      this.prefillHallName = hallName || ''
+      this.prefillPosterUrl = posterValue || ''
 
       if (dateValue) {
         this.selectedDate = dateValue
@@ -355,7 +398,11 @@ export default {
       if (normalizedTime) {
         const sessionsToSearch = this.filteredSessions.length ? this.filteredSessions : this.sessions
         const sessionMatch = sessionsToSearch.find(
-          session => this.formatSessionTime(session) === normalizedTime
+          session => {
+            const matchesTime = this.formatSessionTime(session) === normalizedTime
+            const matchesHall = !hallName || session.hall?.name?.toLowerCase() === hallName.toLowerCase()
+            return matchesTime && matchesHall
+          }
         )
 
         if (sessionMatch) {
@@ -420,12 +467,55 @@ export default {
         const response = await axios.get(`${API_BASE_URL}/sessions/${this.selectedSession}/seats`)
         this.seatLayout = response.data.data.layout
         this.occupiedSeats = response.data.data.occupied.map(s => [s.row, s.number])
+        this.selectedSeats = []
       } catch (error) {
         console.error('Error loading seat layout:', error)
         this.error = 'Failed to load seat layout'
       } finally {
         this.loading = false
       }
+    },
+    onTicketCountChange() {
+      const maxTickets = this.maxAvailableTickets
+      Object.keys(this.ticketSelections).forEach(key => {
+        const value = Number(this.ticketSelections[key])
+        if (!Number.isFinite(value) || value <= 0) {
+          this.ticketSelections[key] = 0
+          return
+        }
+        if (maxTickets !== undefined && value > maxTickets) {
+          this.ticketSelections[key] = maxTickets
+          return
+        }
+        this.ticketSelections[key] = value
+      })
+    },
+    startSeatHoldTimer() {
+      this.clearSeatHoldTimer()
+      this.seatHoldExpiresAt = Date.now() + 15 * 60 * 1000
+      this.seatHoldRemaining = 15 * 60
+      this.seatHoldIntervalId = setInterval(() => {
+        const remaining = Math.max(0, Math.floor((this.seatHoldExpiresAt - Date.now()) / 1000))
+        this.seatHoldRemaining = remaining
+        if (remaining <= 0) {
+          this.handleSeatHoldExpired()
+        }
+      }, 1000)
+    },
+    clearSeatHoldTimer() {
+      if (this.seatHoldIntervalId) {
+        clearInterval(this.seatHoldIntervalId)
+      }
+      this.seatHoldIntervalId = null
+      this.seatHoldExpiresAt = null
+      this.seatHoldRemaining = null
+    },
+    handleSeatHoldExpired() {
+      this.clearSeatHoldTimer()
+      this.selectedSeats = []
+      this.ticketSelections = { adult: 0, child: 0, vip: 0 }
+      this.currentStep = 1
+      alert('Your booking time has expired. Please start again.')
     },
     async onFilmChange() {
       this.selectedSession = null
@@ -453,16 +543,22 @@ export default {
     },
     async nextStep() {
       if (this.currentStep === 1) {
-        if (!this.canProceedToStep2) {
-          alert('Please select a film, cinema, hall, and session to continue')
+        if (!this.selectedSession) {
+          alert('Please choose a session from the schedule page to continue')
+          return
+        }
+        if (this.totalTickets === 0) {
+          alert('Please select at least one ticket to continue')
           return
         }
         await this.loadSeatLayout()
+        this.startSeatHoldTimer()
       } else if (this.currentStep === 2) {
-        if (this.selectedSeats.length === 0) {
-          alert('Please select at least one seat')
+        if (this.selectedSeats.length !== this.totalTickets) {
+          alert(`Please select exactly ${this.totalTickets} seat${this.totalTickets === 1 ? '' : 's'}`)
           return
         }
+        this.clearSeatHoldTimer()
       }
       
       if (this.currentStep < 3) {
@@ -471,6 +567,9 @@ export default {
     },
     previousStep() {
       if (this.currentStep > 1) {
+        if (this.currentStep === 2) {
+          this.clearSeatHoldTimer()
+        }
         this.currentStep--
       }
     },
@@ -480,17 +579,33 @@ export default {
     isOccupied(row, seat) {
       return this.occupiedSeats.some(s => s[0] === row && s[1] === seat)
     },
+    isSeatSelectionDisabled(row, seat) {
+      if (!this.totalTickets) {
+        return true
+      }
+      if (this.isSelected(row, seat)) {
+        return false
+      }
+      return this.selectedSeats.length >= this.totalTickets
+    },
     toggleSeat(row, seat) {
       const index = this.selectedSeats.findIndex(s => s.row === row && s.number === seat)
       if (index > -1) {
         this.selectedSeats.splice(index, 1)
       } else {
+        if (!this.totalTickets) {
+          return
+        }
+        if (this.totalTickets && this.selectedSeats.length >= this.totalTickets) {
+          alert(`You can only select ${this.totalTickets} seat${this.totalTickets === 1 ? '' : 's'}`)
+          return
+        }
         this.selectedSeats.push({ row, number: seat })
       }
     },
     async confirmBooking() {
-      if (!this.paymentInfo.email || !this.paymentInfo.name) {
-        alert('Please fill in your contact information')
+      if (!this.paymentInfo.email) {
+        alert('Please enter your email')
         return
       }
       
@@ -499,9 +614,7 @@ export default {
         const bookingData = {
           sessionId: this.selectedSession,
           seats: this.selectedSeats,
-          contactEmail: this.paymentInfo.email,
-          contactPhone: this.paymentInfo.phone,
-          paymentMethod: 'card'
+          contactEmail: this.paymentInfo.email
         }
         
         const response = await axios.post(`${API_BASE_URL}/bookings`, bookingData)
@@ -623,6 +736,62 @@ export default {
   color: #7f8c8d;
   font-style: italic;
   margin-top: 0.5rem;
+}
+
+.ticket-selection {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid #e8e8e8;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ticket-row:last-of-type {
+  border-bottom: none;
+}
+
+.ticket-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ticket-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.ticket-price {
+  color: #ff6600;
+  font-weight: 700;
+}
+
+.ticket-quantity {
+  width: 90px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.seat-timer {
+  background: #fff5eb;
+  color: #d35400;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border: 1px solid #ffd7b5;
+  width: fit-content;
 }
 
 .booking-steps {
@@ -867,6 +1036,18 @@ export default {
   height: fit-content;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #e8e8e8;
+}
+
+.summary-poster {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.summary-poster img {
+  width: 100%;
+  display: block;
 }
 
 .booking-summary h3 {
