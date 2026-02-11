@@ -35,8 +35,8 @@ export default {
 
 <style scoped>
 .footer {
-  background-color: #1a1a1a;
-  color: #fff;
+  background-color: #000;
+  color: #ecf0f1;
   padding: 2rem 0 1rem;
   margin-top: auto;
 }
@@ -57,7 +57,7 @@ export default {
 .footer-section h3,
 .footer-section h4 {
   margin-bottom: 1rem;
-  color: #e50914;
+  color: #ff6600;
 }
 
 .footer-section ul {
@@ -70,24 +70,24 @@ export default {
 }
 
 .footer-section a {
-  color: #ccc;
+  color: #bdc3c7;
   text-decoration: none;
   transition: color 0.3s ease;
 }
 
 .footer-section a:hover {
-  color: #e50914;
+  color: #ff6600;
 }
 
 .footer-section p {
-  color: #ccc;
+  color: #bdc3c7;
   margin: 0.5rem 0;
 }
 
 .footer-bottom {
-  border-top: 1px solid #333;
+  border-top: 1px solid #222;
   padding-top: 1rem;
   text-align: center;
-  color: #888;
+  color: #95a5a6;
 }
 </style>

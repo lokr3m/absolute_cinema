@@ -26,9 +26,10 @@ export default {
 
 <style scoped>
 .header {
-  background-color: #1a1a1a;
+  background-color: #000;
   padding: 1rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid #222;
 }
 
 .container {
@@ -52,7 +53,7 @@ export default {
   margin: 0;
   font-size: 1.8rem;
   font-weight: bold;
-  color: #e50914;
+  color: #ff6600;
 }
 
 .nav {
@@ -66,10 +67,11 @@ export default {
   font-size: 1rem;
   transition: color 0.3s ease;
   padding: 0.5rem 0;
+  font-weight: 500;
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  color: #e50914;
+  color: #ff6600;
 }
 </style>

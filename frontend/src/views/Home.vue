@@ -1,18 +1,51 @@
 <template>
   <div class="home">
-    <section class="hero">
-      <div class="hero-content">
-        <h1>Welcome to Cinema</h1>
-        <p>Experience the magic of movies</p>
-        <router-link to="/movies" class="btn btn-primary">Browse Movies</router-link>
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <div class="hero-overlay">
+        <div class="container">
+          <div class="hero-content">
+            <h1 class="hero-title">🎬 Welcome to Cinema</h1>
+            <p class="hero-subtitle">Experience the Magic of Movies</p>
+            <p class="hero-description">Discover the latest blockbusters, timeless classics, and everything in between</p>
+          </div>
+        </div>
       </div>
     </section>
 
     <section class="featured">
       <div class="container">
+        <!-- Cinema Selector -->
+        <div class="cinema-selector-wrapper">
+          <div class="custom-dropdown" :class="{ open: cinemaDropdownOpen }">
+            <button class="dropdown-btn" @click="toggleCinemaDropdown">
+              <span class="dropdown-icon">🎬</span>
+              <span>{{ selectedCinemaName || 'All Cinemas' }}</span>
+              <span class="arrow">▼</span>
+            </button>
+            <div class="dropdown-menu" v-if="cinemaDropdownOpen">
+              <div 
+                class="dropdown-item" 
+                :class="{ active: selectedCinema === '' }"
+                @click="selectCinema('', 'All Cinemas')"
+              >
+                All Cinemas
+              </div>
+              <div 
+                v-for="cinema in cinemas" 
+                :key="cinema._id" 
+                class="dropdown-item"
+                :class="{ active: selectedCinema === cinema._id }"
+                @click="selectCinema(cinema._id, cinema.name)"
+              >
+                {{ cinema.name }}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="section-header">
-          <h2>🔥 Featured Films</h2>
-          <p class="section-subtitle">Handpicked movies you'll love</p>
+          <h2>Top Films</h2>
         </div>
         
         <div v-if="loading" class="loading">
@@ -26,7 +59,7 @@
         </div>
 
         <div v-else class="movie-grid">
-          <div class="movie-card" v-for="movie in featuredMovies" :key="movie._id || movie.title">
+          <div class="movie-card" v-for="movie in filteredMovies" :key="movie._id || movie.title">
             <div class="movie-poster">
               <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
               <div class="poster-overlay">
@@ -91,12 +124,85 @@ export default {
   name: 'Home',
   data() {
     return {
-      featuredMovies: [],
+      topMovies: [],
+      cinemas: [],
+      selectedCinema: '',
+      selectedCinemaName: '',
+      cinemaDropdownOpen: false,
       loading: false,
       error: null
     }
   },
+  created() {
+    document.addEventListener('click', this.closeDropdown)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeDropdown)
+  },
+  computed: {
+    filteredMovies() {
+      if (!this.selectedCinema) {
+        return this.topMovies;
+      }
+      // Note: Apollo Kino API movies may not have cinemaId by default
+      // This filter will only work if cinemaId is added to movie objects
+      return this.topMovies.filter(movie => 
+        movie.cinemaId === this.selectedCinema
+      );
+    }
+  },
   methods: {
+    closeDropdown(event) {
+      if (!event.target.closest('.custom-dropdown')) {
+        this.cinemaDropdownOpen = false
+      }
+    },
+    toggleCinemaDropdown(event) {
+      event.stopPropagation()
+      this.cinemaDropdownOpen = !this.cinemaDropdownOpen
+    },
+    selectCinema(cinemaId, cinemaName) {
+      this.selectedCinema = cinemaId
+      this.selectedCinemaName = cinemaName
+      this.cinemaDropdownOpen = false
+    },
+    async fetchCinemas() {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        
+        const [localCinemasResponse, theatreAreasResponse] = await Promise.all([
+          fetch(`${apiUrl}/api/cinemas`).catch(() => null),
+          fetch(`${apiUrl}/api/apollo-kino/TheatreAreas`).catch(() => null)
+        ]);
+        
+        let allCinemas = [];
+        
+        if (localCinemasResponse && localCinemasResponse.ok) {
+          const data = await localCinemasResponse.json();
+          if (data.success && data.data) {
+            allCinemas = data.data.map(cinema => ({
+              _id: cinema._id,
+              name: cinema.name
+            }));
+          }
+        }
+        
+        if (theatreAreasResponse && theatreAreasResponse.ok) {
+          const data = await theatreAreasResponse.json();
+          if (data.success && data.data) {
+            const theatreAreas = data.data.map(area => ({
+              _id: area.ID,
+              name: area.Name
+            }));
+            allCinemas = [...allCinemas, ...theatreAreas];
+          }
+        }
+        
+        this.cinemas = allCinemas;
+      } catch (err) {
+        console.error('Error fetching cinemas:', err);
+      }
+    },
     async fetchFeaturedMovies() {
       this.loading = true;
       this.error = null;
@@ -106,8 +212,7 @@ export default {
         const response = await axios.get(`${apiUrl}/api/apollo-kino/events`);
         
         if (response.data.success) {
-          // Get first 6 movies as featured
-          this.featuredMovies = (response.data.movies || []).slice(0, 6);
+          this.topMovies = (response.data.movies || []).slice(0, 12);
         } else {
           this.error = 'Failed to load featured movies';
         }
@@ -128,6 +233,7 @@ export default {
     }
   },
   mounted() {
+    this.fetchCinemas();
     this.fetchFeaturedMovies();
   }
 }
@@ -135,34 +241,69 @@ export default {
 
 <style scoped>
 .home {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #f5f5f5;
+  min-height: calc(100vh - 200px);
 }
 
-.hero {
-  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-    url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600') center/cover;
-  height: 500px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
+/* Hero Banner */
+.hero-banner {
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(45deg, rgba(255, 102, 0, 0.1) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.hero-overlay {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 0;
+}
+
+.hero-content {
   text-align: center;
+  color: #fff;
 }
 
-.hero-content h1 {
+.hero-title {
   font-size: 3.5rem;
+  font-weight: 800;
   margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, #fff 0%, #ff6600 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 10px rgba(255, 102, 0, 0.3);
 }
 
-.hero-content p {
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  opacity: 0.9;
+.hero-subtitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #ff6600;
+}
+
+.hero-description {
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
 }
 
 .featured {
-  padding: 4rem 0;
+  padding: 3rem 0;
 }
 
 .container {
@@ -171,41 +312,134 @@ export default {
   padding: 0 1.5rem;
 }
 
+/* Cinema Selector */
+.cinema-selector-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 2rem;
+}
+
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  z-index: 100;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid #ff6600;
+  border-radius: 8px;
+  background: #fff;
+  color: #ff6600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  justify-content: center;
+}
+
+.dropdown-btn:hover {
+  background: #ff6600;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.dropdown-icon {
+  font-size: 1rem;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+  margin-left: 0.25rem;
+}
+
+.custom-dropdown.open .arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 100%;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  overflow: hidden;
+  animation: dropdownFadeInDown 0.2s ease;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+@keyframes dropdownFadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 0.75rem 1.25rem;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: #f8f8f8;
+  color: #ff6600;
+}
+
+.dropdown-item.active {
+  background: #fef5f3;
+  color: #ff6600;
+  font-weight: 600;
+}
+
 .section-header {
   text-align: center;
   margin-bottom: 3rem;
 }
 
 .section-header h2 {
-  font-size: 2.2rem;
-  color: #fff;
+  font-size: 2.5rem;
+  color: #2c3e50;
   margin-bottom: 0.5rem;
-}
-
-.section-subtitle {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .movie-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 2rem;
 }
 
 .movie-card {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border-radius: 16px;
+  background: #fff;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
 }
 
 .movie-card:hover {
-  transform: translateY(-12px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
-  border-color: rgba(233, 69, 96, 0.3);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .movie-poster {
@@ -222,7 +456,7 @@ export default {
 }
 
 .movie-card:hover .movie-poster img {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .poster-overlay {
@@ -233,7 +467,7 @@ export default {
   bottom: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.8) 0%,
     rgba(0, 0, 0, 0.3) 50%,
     rgba(0, 0, 0, 0.1) 100%
   );
@@ -251,22 +485,22 @@ export default {
 
 .rating-badge {
   align-self: flex-end;
-  background: linear-gradient(135deg, #f5c518 0%, #e6a800 100%);
+  background: #f39c12;
   padding: 0.4rem 0.8rem;
   border-radius: 20px;
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  box-shadow: 0 4px 15px rgba(245, 197, 24, 0.4);
+  box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
 }
 
 .rating-badge .star {
-  color: #1a1a2e;
+  color: #fff;
   font-size: 0.9rem;
 }
 
 .rating-badge .score {
-  color: #1a1a2e;
+  color: #fff;
   font-weight: 700;
   font-size: 0.9rem;
 }
@@ -277,21 +511,21 @@ export default {
 }
 
 .btn-view {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: #ff6600;
   color: #fff;
   padding: 0.9rem 2rem;
-  border-radius: 30px;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
 }
 
 .btn-view:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
-  background: linear-gradient(135deg, #ff5a75 0%, #e94560 100%);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
+  background: #e65c00;
 }
 
 .movie-info {
@@ -299,7 +533,7 @@ export default {
 }
 
 .movie-info h3 {
-  color: #fff;
+  color: #2c3e50;
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
@@ -318,13 +552,13 @@ export default {
 }
 
 .genre-tag {
-  background: rgba(233, 69, 96, 0.2);
-  color: #e94560;
+  background: #fef5f3;
+  color: #ff6600;
   padding: 0.3rem 0.7rem;
   border-radius: 15px;
   font-size: 0.75rem;
   font-weight: 500;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid #fdd;
 }
 
 .meta {
@@ -335,7 +569,7 @@ export default {
 }
 
 .duration {
-  color: rgba(255, 255, 255, 0.7);
+  color: #7f8c8d;
 }
 
 .age-badge {
@@ -346,22 +580,22 @@ export default {
 }
 
 .rating-g {
-  background: #4caf50;
+  background: #2ecc71;
   color: #fff;
 }
 
 .rating-pg13 {
-  background: #ff9800;
+  background: #f39c12;
   color: #fff;
 }
 
 .rating-r {
-  background: #f44336;
+  background: #ff6600;
   color: #fff;
 }
 
 .rating-nr {
-  background: rgba(255, 255, 255, 0.2);
+  background: #95a5a6;
   color: #fff;
 }
 
@@ -372,11 +606,11 @@ export default {
 
 .btn-view-all {
   display: inline-block;
-  background: transparent;
-  color: #e94560;
+  background: #fff;
+  color: #ff6600;
   padding: 1rem 2.5rem;
-  border: 2px solid #e94560;
-  border-radius: 30px;
+  border: 2px solid #ff6600;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   font-size: 1.1rem;
@@ -384,10 +618,10 @@ export default {
 }
 
 .btn-view-all:hover {
-  background: #e94560;
+  background: #ff6600;
   color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(233, 69, 96, 0.3);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
 .loading {
@@ -396,14 +630,14 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(233, 69, 96, 0.2);
-  border-top-color: #e94560;
+  border: 4px solid #f5f5f5;
+  border-top-color: #ff6600;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -421,10 +655,10 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  background: rgba(244, 67, 54, 0.1);
+  background: #fee;
   border-radius: 12px;
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  color: #ff6b6b;
+  border: 1px solid #fcc;
+  color: #e65c00;
   text-align: center;
 }
 
@@ -436,7 +670,7 @@ export default {
 .btn {
   display: inline-block;
   padding: 0.75rem 1.5rem;
-  border-radius: 30px;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   transition: all 0.3s ease;
@@ -444,26 +678,7 @@ export default {
   cursor: pointer;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
-}
-
 @media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 2rem;
-  }
-  
-  .hero-content p {
-    font-size: 1.1rem;
-  }
-  
   .section-header h2 {
     font-size: 1.6rem;
   }
