@@ -31,8 +31,13 @@ const routes = [
       const requiredQuery = ['film', 'cinema', 'date', 'time']
       const hasRequiredQuery = requiredQuery.every(key => {
         const value = to.query[key]
-        const normalizedValue = Array.isArray(value) ? value[0] : value
-        return typeof normalizedValue === 'string' ? normalizedValue.trim().length > 0 : Boolean(normalizedValue)
+        if (Array.isArray(value)) {
+          if (value.length !== 1) {
+            return false
+          }
+          return typeof value[0] === 'string' && value[0].trim().length > 0
+        }
+        return typeof value === 'string' && value.trim().length > 0
       })
 
       if (!hasRequiredQuery) {
