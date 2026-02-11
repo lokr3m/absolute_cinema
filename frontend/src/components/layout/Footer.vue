@@ -35,7 +35,7 @@ export default {
 
 <style scoped>
 .footer {
-  background-color: #2c3e50;
+  background-color: #000;
   color: #ecf0f1;
   padding: 2rem 0 1rem;
   margin-top: auto;
@@ -85,7 +85,7 @@ export default {
 }
 
 .footer-bottom {
-  border-top: 1px solid #34495e;
+  border-top: 1px solid #222;
   padding-top: 1rem;
   text-align: center;
   color: #95a5a6;

@@ -26,10 +26,10 @@ export default {
 
 <style scoped>
 .header {
-  background-color: #fff;
+  background-color: #000;
   padding: 1rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-bottom: 1px solid #e8e8e8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid #222;
 }
 
 .container {
@@ -46,7 +46,7 @@ export default {
 
 .logo {
   text-decoration: none;
-  color: #2c3e50;
+  color: #fff;
 }
 
 .logo h1 {
@@ -62,7 +62,7 @@ export default {
 }
 
 .nav-link {
-  color: #2c3e50;
+  color: #fff;
   text-decoration: none;
   font-size: 1rem;
   transition: color 0.3s ease;
