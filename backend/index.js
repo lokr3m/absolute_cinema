@@ -21,6 +21,29 @@ if (!MONGODB_URI) {
 
 const apolloKinoService = new ApolloKinoService();
 
+const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
+
+const extractShowsFromSchedule = schedulePayload => {
+  if (!schedulePayload) return [];
+  // Apollo schedule responses may include { Schedule: { Shows: ... } }.
+  if (schedulePayload.Schedule?.Shows?.Show) {
+    return normalizeToArray(schedulePayload.Schedule.Shows.Show);
+  }
+  // Apollo schedule responses may include { Shows: { Show: ... } }.
+  if (schedulePayload.Shows?.Show) {
+    return normalizeToArray(schedulePayload.Shows.Show);
+  }
+  // Apollo schedule responses may include { Shows: [...] }.
+  if (Array.isArray(schedulePayload.Shows)) {
+    return schedulePayload.Shows;
+  }
+  // Apollo schedule responses may return an array of shows directly.
+  if (Array.isArray(schedulePayload)) {
+    return schedulePayload;
+  }
+  return [];
+};
+
 /**
  * Refresh database with fresh data from Apollo Kino API
  * Clears all existing data and populates from API
@@ -144,22 +167,9 @@ async function refreshDatabaseFromApollo() {
     const scheduleData = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
     let sessionsCreated = 0;
-    const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
     
     // Process schedule shows if available
-    let shows = [];
-    if (scheduleData.schedule) {
-      if (scheduleData.schedule.Schedule?.Shows?.Show) {
-        // Apollo schedule responses may include { Schedule: { Shows: ... } } inside the schedule payload.
-        shows = normalizeToArray(scheduleData.schedule.Schedule.Shows.Show);
-      } else if (scheduleData.schedule.Shows?.Show) {
-        shows = normalizeToArray(scheduleData.schedule.Shows.Show);
-      } else if (Array.isArray(scheduleData.schedule.Shows)) {
-        shows = scheduleData.schedule.Shows;
-      } else if (Array.isArray(scheduleData.schedule)) {
-        shows = scheduleData.schedule;
-      }
-    }
+    const shows = extractShowsFromSchedule(scheduleData.schedule);
 
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
