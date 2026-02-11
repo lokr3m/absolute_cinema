@@ -7,6 +7,8 @@ import Schedule from '../views/Schedule.vue'
 import Admin from '../views/Admin.vue'
 import News from '../views/News.vue'
 
+const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
+
 const routes = [
   {
     path: '/',
@@ -28,15 +30,9 @@ const routes = [
     name: 'Booking',
     component: Booking,
     beforeEnter: (to, from, next) => {
-      const requiredQuery = ['film', 'cinema', 'date', 'time']
-      const hasRequiredQuery = requiredQuery.every(key => {
+      const hasRequiredQuery = REQUIRED_BOOKING_QUERY.every(key => {
         const value = to.query[key]
-        if (Array.isArray(value)) {
-          if (value.length !== 1) {
-            return false
-          }
-          return typeof value[0] === 'string' && value[0].trim().length > 0
-        }
+        if (Array.isArray(value)) return false
         return typeof value === 'string' && value.trim().length > 0
       })
 
