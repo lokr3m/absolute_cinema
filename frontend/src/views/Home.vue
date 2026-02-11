@@ -1,18 +1,38 @@
 <template>
   <div class="home">
-    <section class="hero">
-      <div class="hero-content">
-        <h1>Welcome to Cinema</h1>
-        <p>Experience the magic of movies</p>
-        <router-link to="/movies" class="btn btn-primary">Browse Movies</router-link>
-      </div>
-    </section>
-
     <section class="featured">
       <div class="container">
+        <!-- Cinema Selector -->
+        <div class="cinema-selector-wrapper">
+          <div class="custom-dropdown" :class="{ open: cinemaDropdownOpen }">
+            <button class="dropdown-btn" @click="toggleCinemaDropdown">
+              <span class="dropdown-icon">🎬</span>
+              <span>{{ selectedCinemaName || 'Kõik kinod' }}</span>
+              <span class="arrow">▼</span>
+            </button>
+            <div class="dropdown-menu" v-if="cinemaDropdownOpen">
+              <div 
+                class="dropdown-item" 
+                :class="{ active: selectedCinema === '' }"
+                @click="selectCinema('', 'Kõik kinod')"
+              >
+                Kõik kinod
+              </div>
+              <div 
+                v-for="cinema in cinemas" 
+                :key="cinema._id" 
+                class="dropdown-item"
+                :class="{ active: selectedCinema === cinema._id }"
+                @click="selectCinema(cinema._id, cinema.name)"
+              >
+                {{ cinema.name }}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="section-header">
-          <h2>🔥 Featured Films</h2>
-          <p class="section-subtitle">Handpicked movies you'll love</p>
+          <h2>Top films</h2>
         </div>
         
         <div v-if="loading" class="loading">
@@ -26,7 +46,7 @@
         </div>
 
         <div v-else class="movie-grid">
-          <div class="movie-card" v-for="movie in featuredMovies" :key="movie._id || movie.title">
+          <div class="movie-card" v-for="movie in filteredMovies" :key="movie._id || movie.title">
             <div class="movie-poster">
               <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
               <div class="poster-overlay">
@@ -92,11 +112,82 @@ export default {
   data() {
     return {
       featuredMovies: [],
+      cinemas: [],
+      selectedCinema: '',
+      selectedCinemaName: '',
+      cinemaDropdownOpen: false,
       loading: false,
       error: null
     }
   },
+  created() {
+    document.addEventListener('click', this.closeDropdown)
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.closeDropdown)
+  },
+  computed: {
+    filteredMovies() {
+      if (!this.selectedCinema) {
+        return this.featuredMovies;
+      }
+      return this.featuredMovies.filter(movie => 
+        movie.cinemaId === this.selectedCinema
+      );
+    }
+  },
   methods: {
+    closeDropdown(event) {
+      if (!event.target.closest('.custom-dropdown')) {
+        this.cinemaDropdownOpen = false
+      }
+    },
+    toggleCinemaDropdown(event) {
+      event.stopPropagation()
+      this.cinemaDropdownOpen = !this.cinemaDropdownOpen
+    },
+    selectCinema(cinemaId, cinemaName) {
+      this.selectedCinema = cinemaId
+      this.selectedCinemaName = cinemaName
+      this.cinemaDropdownOpen = false
+    },
+    async fetchCinemas() {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        
+        const [localCinemasResponse, theatreAreasResponse] = await Promise.all([
+          fetch(`${apiUrl}/api/cinemas`).catch(() => null),
+          fetch(`${apiUrl}/api/apollo-kino/TheatreAreas`).catch(() => null)
+        ]);
+        
+        let allCinemas = [];
+        
+        if (localCinemasResponse && localCinemasResponse.ok) {
+          const data = await localCinemasResponse.json();
+          if (data.success && data.data) {
+            allCinemas = data.data.map(cinema => ({
+              _id: cinema._id,
+              name: cinema.name
+            }));
+          }
+        }
+        
+        if (theatreAreasResponse && theatreAreasResponse.ok) {
+          const data = await theatreAreasResponse.json();
+          if (data.success && data.data) {
+            const theatreAreas = data.data.map(area => ({
+              _id: area.ID,
+              name: area.Name
+            }));
+            allCinemas = [...allCinemas, ...theatreAreas];
+          }
+        }
+        
+        this.cinemas = allCinemas;
+      } catch (err) {
+        console.error('Error fetching cinemas:', err);
+      }
+    },
     async fetchFeaturedMovies() {
       this.loading = true;
       this.error = null;
@@ -106,8 +197,7 @@ export default {
         const response = await axios.get(`${apiUrl}/api/apollo-kino/events`);
         
         if (response.data.success) {
-          // Get first 6 movies as featured
-          this.featuredMovies = (response.data.movies || []).slice(0, 6);
+          this.featuredMovies = (response.data.movies || []).slice(0, 12);
         } else {
           this.error = 'Failed to load featured movies';
         }
@@ -128,6 +218,7 @@ export default {
     }
   },
   mounted() {
+    this.fetchCinemas();
     this.fetchFeaturedMovies();
   }
 }
@@ -136,33 +227,11 @@ export default {
 <style scoped>
 .home {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-}
-
-.hero {
-  background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),
-    url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1600') center/cover;
-  height: 500px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  text-align: center;
-}
-
-.hero-content h1 {
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.hero-content p {
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  opacity: 0.9;
+  min-height: calc(100vh - 200px);
 }
 
 .featured {
-  padding: 4rem 0;
+  padding: 3rem 0;
 }
 
 .container {
@@ -171,25 +240,118 @@ export default {
   padding: 0 1.5rem;
 }
 
+/* Cinema Selector */
+.cinema-selector-wrapper {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 2rem;
+}
+
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  z-index: 100;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(145deg, #e94560 0%, #c73e54 100%);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+  min-width: 200px;
+  justify-content: center;
+}
+
+.dropdown-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.5);
+  background: linear-gradient(145deg, #ff5a75 0%, #e94560 100%);
+}
+
+.dropdown-icon {
+  font-size: 1rem;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+  margin-left: 0.25rem;
+}
+
+.custom-dropdown.open .arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 100%;
+  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  border: 1px solid rgba(233, 69, 96, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  overflow: hidden;
+  animation: dropdownFadeInDown 0.2s ease;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+@keyframes dropdownFadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: rgba(233, 69, 96, 0.2);
+  color: #e94560;
+}
+
+.dropdown-item.active {
+  background: rgba(233, 69, 96, 0.3);
+  color: #e94560;
+  font-weight: 600;
+}
+
 .section-header {
   text-align: center;
   margin-bottom: 3rem;
 }
 
 .section-header h2 {
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   color: #fff;
   margin-bottom: 0.5rem;
-}
-
-.section-subtitle {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .movie-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 2rem;
 }
 
@@ -444,26 +606,7 @@ export default {
   cursor: pointer;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
-  color: #fff;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
-}
-
 @media (max-width: 768px) {
-  .hero-content h1 {
-    font-size: 2rem;
-  }
-  
-  .hero-content p {
-    font-size: 1.1rem;
-  }
-  
   .section-header h2 {
     font-size: 1.6rem;
   }
