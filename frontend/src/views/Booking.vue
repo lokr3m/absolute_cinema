@@ -513,7 +513,9 @@ export default {
     handleSeatHoldExpired() {
       this.clearSeatHoldTimer()
       this.selectedSeats = []
-      this.ticketSelections = { adult: 0, child: 0, vip: 0 }
+      Object.keys(this.ticketSelections).forEach(key => {
+        this.ticketSelections[key] = 0
+      })
       this.currentStep = 1
       alert('Your booking time has expired. Please start again.')
     },
@@ -596,7 +598,7 @@ export default {
         if (!this.totalTickets) {
           return
         }
-        if (this.totalTickets && this.selectedSeats.length >= this.totalTickets) {
+        if (this.selectedSeats.length >= this.totalTickets) {
           alert(`You can only select ${this.totalTickets} seat${this.totalTickets === 1 ? '' : 's'}`)
           return
         }
