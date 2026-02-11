@@ -11,22 +11,26 @@ const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
 const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
 const TIME_FORMAT = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
-const isFutureOrToday = (year, month, day) => {
-  const targetDate = Date.UTC(year, month - 1, day)
+const getTodayUtc = () => {
   const today = new Date()
-  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  return Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+}
+
+const isFutureOrToday = (year, month, day, todayUtc) => {
+  const targetDate = Date.UTC(year, month - 1, day)
   return targetDate >= todayUtc
 }
 
 const isValidDateValue = value => {
   if (!DATE_FORMAT.test(value)) return false
   const [year, month, day] = value.split('-').map(Number)
+  const todayUtc = getTodayUtc()
   const date = new Date(Date.UTC(year, month - 1, day))
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() + 1 === month &&
     date.getUTCDate() === day &&
-    isFutureOrToday(year, month, day)
+    isFutureOrToday(year, month, day, todayUtc)
   )
 }
 
@@ -48,6 +52,7 @@ const isValidBookingQueryValue = (key, value) => {
 const hasValidBookingQuery = to =>
   REQUIRED_BOOKING_QUERY.every(key => {
     const value = to.query[key]
+    if (value === undefined || value === null) return false
     if (Array.isArray(value)) return false
     return isValidBookingQueryValue(key, value)
   })
