@@ -33,7 +33,7 @@
             <h2>Select Tickets</h2>
             <div class="ticket-selection">
               <p v-if="!selectedSession" class="info-text">
-                Please choose a session from the schedule page to start booking tickets.
+                Please choose a session from the Schedule page in the main navigation to start booking tickets.
               </p>
               <div v-else>
                 <div class="ticket-row" v-for="type in ticketTypes" :key="type.key">
@@ -64,7 +64,7 @@
               Time left: {{ formattedSeatHoldRemaining }}
             </p>
             <p v-if="totalTickets" class="info-text">
-              Select exactly {{ totalTickets }} {{ totalTickets === 1 ? 'seat' : 'seats' }}.
+              Select exactly {{ totalTickets }} {{ seatLabel(totalTickets) }}.
             </p>
             <p v-else class="info-text">
               Please choose ticket quantities before selecting seats.
@@ -179,6 +179,9 @@
 import axios from 'axios'
 
 const API_BASE_URL = 'http://localhost:3000/api'
+const SEAT_HOLD_DURATION_MINUTES = 15
+const SEAT_HOLD_DURATION_SECONDS = SEAT_HOLD_DURATION_MINUTES * 60
+const SEAT_HOLD_DURATION_MS = SEAT_HOLD_DURATION_SECONDS * 1000
 
 export default {
   name: 'Booking',
@@ -492,8 +495,8 @@ export default {
     },
     startSeatHoldTimer() {
       this.clearSeatHoldTimer()
-      this.seatHoldExpiresAt = Date.now() + 15 * 60 * 1000
-      this.seatHoldRemaining = 15 * 60
+      this.seatHoldExpiresAt = Date.now() + SEAT_HOLD_DURATION_MS
+      this.seatHoldRemaining = SEAT_HOLD_DURATION_SECONDS
       this.seatHoldIntervalId = setInterval(() => {
         const remaining = Math.max(0, Math.floor((this.seatHoldExpiresAt - Date.now()) / 1000))
         this.seatHoldRemaining = remaining
@@ -517,7 +520,7 @@ export default {
         this.ticketSelections[key] = 0
       })
       this.currentStep = 1
-      alert('Your booking time has expired. Please start again.')
+      alert('Your 15-minute booking time has expired and your selections were cleared. Please choose your tickets again.')
     },
     async onFilmChange() {
       this.selectedSession = null
@@ -546,7 +549,7 @@ export default {
     async nextStep() {
       if (this.currentStep === 1) {
         if (!this.selectedSession) {
-          alert('Please choose a session from the schedule page to continue')
+          alert('Please choose a session from the Schedule page in the main navigation to continue')
           return
         }
         if (this.totalTickets === 0) {
@@ -557,7 +560,7 @@ export default {
         this.startSeatHoldTimer()
       } else if (this.currentStep === 2) {
         if (this.selectedSeats.length !== this.totalTickets) {
-          alert(`Please select exactly ${this.totalTickets} seat${this.totalTickets === 1 ? '' : 's'}`)
+          alert(`Please select exactly ${this.totalTickets} ${this.seatLabel(this.totalTickets)}`)
           return
         }
         this.clearSeatHoldTimer()
@@ -599,7 +602,7 @@ export default {
           return
         }
         if (this.selectedSeats.length >= this.totalTickets) {
-          alert(`You can only select ${this.totalTickets} seat${this.totalTickets === 1 ? '' : 's'}`)
+          alert(`You can only select ${this.totalTickets} ${this.seatLabel(this.totalTickets)}`)
           return
         }
         this.selectedSeats.push({ row, number: seat })
@@ -649,6 +652,9 @@ export default {
       if (!session || !session.startTime) return ''
       const date = new Date(session.startTime)
       return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+    },
+    seatLabel(count) {
+      return count === 1 ? 'seat' : 'seats'
     },
     getSelectedSessionDetails() {
       const session = this.sessions.find(s => s._id === this.selectedSession)
