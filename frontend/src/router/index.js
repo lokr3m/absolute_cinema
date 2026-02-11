@@ -18,7 +18,14 @@ const isValidDateValue = value => {
   return (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() + 1 === month &&
-    date.getUTCDate() === day
+    date.getUTCDate() === day &&
+    (() => {
+      const localDate = new Date(year, month - 1, day)
+      localDate.setHours(0, 0, 0, 0)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return localDate >= today
+    })()
   )
 }
 
@@ -66,7 +73,6 @@ const routes = [
     component: Booking,
     beforeEnter: (to, from, next) => {
       if (!hasValidBookingQuery(to)) {
-        alert('Please choose a session from the Schedule page to start booking.')
         next({ name: 'Schedule' })
         return
       }
