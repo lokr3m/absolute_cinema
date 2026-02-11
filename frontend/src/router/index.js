@@ -10,6 +10,7 @@ import News from '../views/News.vue'
 const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
 const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
 const TIME_FORMAT = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+const isNonEmptyString = value => value.length > 0
 
 const isValidDateValue = value => {
   if (!DATE_FORMAT.test(value)) return false
@@ -23,14 +24,15 @@ const isValidDateValue = value => {
   ) {
     return false
   }
-  const today = new Date()
+  const now = Date.now()
+  const today = new Date(now)
   const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
   return targetDate >= todayUtc
 }
 
 const BOOKING_QUERY_VALIDATORS = {
-  film: value => value.length > 0,
-  cinema: value => value.length > 0,
+  film: isNonEmptyString,
+  cinema: isNonEmptyString,
   date: isValidDateValue,
   time: value => TIME_FORMAT.test(value)
 }
