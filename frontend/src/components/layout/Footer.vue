@@ -57,7 +57,7 @@ export default {
 .footer-section h3,
 .footer-section h4 {
   margin-bottom: 1rem;
-  color: #e74c3c;
+  color: #ff6600;
 }
 
 .footer-section ul {
@@ -76,7 +76,7 @@ export default {
 }
 
 .footer-section a:hover {
-  color: #e74c3c;
+  color: #ff6600;
 }
 
 .footer-section p {

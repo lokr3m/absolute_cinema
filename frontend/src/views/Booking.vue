@@ -550,7 +550,7 @@ export default {
 }
 
 .page-header {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  background: linear-gradient(135deg, #ff6600 0%, #e65c00 100%);
   padding: 3rem 0;
   text-align: center;
 }
@@ -580,7 +580,7 @@ export default {
 
 .error-message {
   background: #fee;
-  color: #c0392b;
+  color: #e65c00;
   padding: 1rem;
   border-radius: 12px;
   margin-bottom: 1rem;
@@ -624,7 +624,7 @@ export default {
 }
 
 .step.active {
-  color: #e74c3c;
+  color: #ff6600;
 }
 
 .step-number {
@@ -640,7 +640,7 @@ export default {
 }
 
 .step.active .step-number {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
 }
 
@@ -690,7 +690,7 @@ export default {
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #e74c3c;
+  border-color: #ff6600;
   box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
 }
 
@@ -705,7 +705,7 @@ export default {
 }
 
 .screen {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   text-align: center;
   padding: 1rem;
@@ -747,15 +747,15 @@ export default {
 }
 
 .seat:hover:not(:disabled) {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
-  border-color: #e74c3c;
+  border-color: #ff6600;
 }
 
 .seat.selected {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
-  border-color: #e74c3c;
+  border-color: #ff6600;
 }
 
 .seat.occupied {
@@ -790,8 +790,8 @@ export default {
 }
 
 .seat-example.selected {
-  background: #e74c3c;
-  border-color: #e74c3c;
+  background: #ff6600;
+  border-color: #ff6600;
 }
 
 .seat-example.occupied {
@@ -816,13 +816,13 @@ export default {
 }
 
 .btn-primary {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #c0392b;
+  background: #e65c00;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
 }

@@ -36,8 +36,9 @@
           </div>
         </div>
 
-        <!-- Genre and Format Filters -->
-        <div class="filter-group">
+        <!-- Genre, Format, and Date Selection in one group -->
+        <div class="filter-group-extended">
+          <!-- Genre Filter -->
           <div class="filter-section">
             <div class="custom-dropdown" :class="{ open: genreDropdownOpen }">
               <button class="dropdown-btn dropdown-btn-compact" @click="toggleGenreDropdown">
@@ -62,6 +63,7 @@
             </div>
           </div>
 
+          <!-- Format Filter -->
           <div class="filter-section">
             <div class="custom-dropdown" :class="{ open: formatDropdownOpen }">
               <button class="dropdown-btn dropdown-btn-compact" @click="toggleFormatDropdown">
@@ -82,30 +84,28 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Date Selection (moved after filters) -->
-      <div class="date-selection-wrapper">
-        <div class="date-selection">
-          <button @click="previousWeek" class="date-nav-btn" :disabled="currentWeekIndex === 0">
-            <span>‹</span>
-          </button>
-          <div class="dates-container">
-            <button
-              v-for="(date, index) in displayedDates"
-              :key="index"
-              @click="selectedDate = date.value"
-              :class="['date-btn', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
-              :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
-            >
-              <div class="date-day">{{ date.day }}</div>
-              <div class="date-number">{{ date.number }}</div>
+          <!-- Date Selection -->
+          <div class="date-selection-inline">
+            <button @click="previousWeek" class="date-nav-btn-inline" :disabled="currentWeekIndex === 0">
+              <span>‹</span>
+            </button>
+            <div class="dates-container-inline">
+              <button
+                v-for="(date, index) in displayedDates"
+                :key="index"
+                @click="selectedDate = date.value"
+                :class="['date-btn-inline', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
+                :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
+              >
+                <div class="date-day">{{ date.day }}</div>
+                <div class="date-number">{{ date.number }}</div>
+              </button>
+            </div>
+            <button @click="nextWeek" class="date-nav-btn-inline">
+              <span>›</span>
             </button>
           </div>
-          <button @click="nextWeek" class="date-nav-btn">
-            <span>›</span>
-          </button>
         </div>
       </div>
 
@@ -572,7 +572,7 @@ h1 {
   background: #fff;
   padding: 1.5rem 2rem;
   border-radius: 12px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -596,22 +596,88 @@ h1 {
   gap: 1rem;
 }
 
-/* Date Selection Wrapper */
-.date-selection-wrapper {
-  background: #fff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e8e8e8;
-}
-
-/* Date Selection */
-.date-selection {
+.filter-group-extended {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  justify-content: center;
+  gap: 1rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+/* Date Selection Inline (in filters) */
+.date-selection-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+
+.date-nav-btn-inline {
+  background: #fff;
+  border: 2px solid #ff6600;
+  color: #ff6600;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  min-width: 35px;
+}
+
+.date-nav-btn-inline:hover:not(:disabled) {
+  background: #ff6600;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.date-nav-btn-inline:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.dates-container-inline {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  max-width: 400px;
+}
+
+.date-btn-inline {
+  background: #fff;
+  border: 2px solid #ddd;
+  color: #2c3e50;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  min-width: 55px;
+  text-align: center;
+}
+
+.date-btn-inline:hover {
+  border-color: #ff6600;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.date-btn-inline.active {
+  background: #ff6600;
+  border-color: #ff6600;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+}
+
+.date-btn-inline.no-schedule {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.date-btn-inline.no-schedule:hover {
+  background: #fff;
+  border-color: #ddd;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Custom Dropdown Styles */
@@ -625,10 +691,10 @@ h1 {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  border: 2px solid #e74c3c;
+  border: 2px solid #ff6600;
   border-radius: 8px;
   background: #fff;
-  color: #e74c3c;
+  color: #ff6600;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 600;
@@ -639,7 +705,7 @@ h1 {
 }
 
 .dropdown-btn:hover {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
@@ -703,19 +769,19 @@ h1 {
 
 .dropdown-item:hover {
   background: #f8f8f8;
-  color: #e74c3c;
+  color: #ff6600;
 }
 
 .dropdown-item.active {
   background: #fef5f3;
-  color: #e74c3c;
+  color: #ff6600;
   font-weight: 600;
 }
 
 .date-nav-btn {
   background: #fff;
-  border: 2px solid #e74c3c;
-  color: #e74c3c;
+  border: 2px solid #ff6600;
+  color: #ff6600;
   padding: 0.75rem 1rem;
   cursor: pointer;
   border-radius: 8px;
@@ -725,7 +791,7 @@ h1 {
 }
 
 .date-nav-btn:hover:not(:disabled) {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   transform: translateY(-2px);
 }
@@ -754,14 +820,14 @@ h1 {
 }
 
 .date-btn:hover {
-  border-color: #e74c3c;
+  border-color: #ff6600;
   transform: translateY(-2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .date-btn.active {
-  background: #e74c3c;
-  border-color: #e74c3c;
+  background: #ff6600;
+  border-color: #ff6600;
   color: #fff;
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
@@ -809,7 +875,7 @@ h1 {
 }
 
 .error {
-  color: #c0392b;
+  color: #e65c00;
   background: #fee;
   border: 1px solid #fcc;
 }
@@ -884,14 +950,14 @@ h1 {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: bold;
-  color: #e74c3c;
+  color: #ff6600;
   transition: all 0.3s;
 }
 
 .btn-trailer:hover {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
-  border-color: #e74c3c;
+  border-color: #ff6600;
 }
 
 /* Right Side */
@@ -1052,7 +1118,7 @@ h1 {
 
 .btn-buy {
   padding: 0.75rem 1.5rem;
-  background-color: #e74c3c;
+  background-color: #ff6600;
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -1062,7 +1128,7 @@ h1 {
 }
 
 .btn-buy:hover {
-  background-color: #c0392b;
+  background-color: #e65c00;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
@@ -1075,15 +1141,16 @@ h1 {
     padding: 1.25rem;
   }
 
-  .filter-group {
-    flex-direction: row;
+  .filter-group,
+  .filter-group-extended {
+    flex-direction: column;
     width: 100%;
     gap: 0.75rem;
     justify-content: center;
   }
 
   .filter-section {
-    flex: 1;
+    width: 100%;
   }
 
   .custom-dropdown {
@@ -1096,8 +1163,16 @@ h1 {
     min-width: 100%;
   }
 
-  .date-selection-wrapper {
-    padding: 1rem;
+  .date-selection-inline {
+    flex-direction: column;
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dates-container-inline {
+    max-width: 100%;
+    width: 100%;
+    overflow-x: auto;
   }
 
   .schedule-card {

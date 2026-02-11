@@ -131,7 +131,7 @@ export default {
 }
 
 .page-header {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  background: linear-gradient(135deg, #ff6600 0%, #e65c00 100%);
   padding: 3rem 0;
   text-align: center;
   margin-bottom: 2rem;
@@ -245,7 +245,7 @@ export default {
 }
 
 .btn-view {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   color: #fff;
   padding: 0.9rem 2rem;
@@ -263,7 +263,7 @@ export default {
 .btn-view:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
-  background: #c0392b;
+  background: #e65c00;
 }
 
 .movie-info {
@@ -291,7 +291,7 @@ export default {
 
 .genre-tag {
   background: #fef5f3;
-  color: #e74c3c;
+  color: #ff6600;
   padding: 0.3rem 0.7rem;
   border-radius: 15px;
   font-size: 0.75rem;
@@ -335,7 +335,7 @@ export default {
 }
 
 .rating-r {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
 }
 
@@ -357,7 +357,7 @@ export default {
   width: 50px;
   height: 50px;
   border: 4px solid #f5f5f5;
-  border-top-color: #e74c3c;
+  border-top-color: #ff6600;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -378,7 +378,7 @@ export default {
   background: #fee;
   border-radius: 12px;
   border: 1px solid #fcc;
-  color: #c0392b;
+  color: #e65c00;
   text-align: center;
 }
 

@@ -53,7 +53,7 @@ export default {
   margin: 0;
   font-size: 1.8rem;
   font-weight: bold;
-  color: #e74c3c;
+  color: #ff6600;
 }
 
 .nav {
@@ -72,6 +72,6 @@ export default {
 
 .nav-link:hover,
 .nav-link.router-link-active {
-  color: #e74c3c;
+  color: #ff6600;
 }
 </style>

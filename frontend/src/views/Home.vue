@@ -260,10 +260,10 @@ export default {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  border: 2px solid #e74c3c;
+  border: 2px solid #ff6600;
   border-radius: 8px;
   background: #fff;
-  color: #e74c3c;
+  color: #ff6600;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 600;
@@ -274,7 +274,7 @@ export default {
 }
 
 .dropdown-btn:hover {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
@@ -331,12 +331,12 @@ export default {
 
 .dropdown-item:hover {
   background: #f8f8f8;
-  color: #e74c3c;
+  color: #ff6600;
 }
 
 .dropdown-item.active {
   background: #fef5f3;
-  color: #e74c3c;
+  color: #ff6600;
   font-weight: 600;
 }
 
@@ -441,7 +441,7 @@ export default {
 }
 
 .btn-view {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   padding: 0.9rem 2rem;
   border-radius: 8px;
@@ -455,7 +455,7 @@ export default {
 .btn-view:hover {
   transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
-  background: #c0392b;
+  background: #e65c00;
 }
 
 .movie-info {
@@ -483,7 +483,7 @@ export default {
 
 .genre-tag {
   background: #fef5f3;
-  color: #e74c3c;
+  color: #ff6600;
   padding: 0.3rem 0.7rem;
   border-radius: 15px;
   font-size: 0.75rem;
@@ -520,7 +520,7 @@ export default {
 }
 
 .rating-r {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
 }
 
@@ -537,9 +537,9 @@ export default {
 .btn-view-all {
   display: inline-block;
   background: #fff;
-  color: #e74c3c;
+  color: #ff6600;
   padding: 1rem 2.5rem;
-  border: 2px solid #e74c3c;
+  border: 2px solid #ff6600;
   border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
@@ -548,7 +548,7 @@ export default {
 }
 
 .btn-view-all:hover {
-  background: #e74c3c;
+  background: #ff6600;
   color: #fff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
@@ -567,7 +567,7 @@ export default {
   width: 50px;
   height: 50px;
   border: 4px solid #f5f5f5;
-  border-top-color: #e74c3c;
+  border-top-color: #ff6600;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -588,7 +588,7 @@ export default {
   background: #fee;
   border-radius: 12px;
   border: 1px solid #fcc;
-  color: #c0392b;
+  color: #e65c00;
   text-align: center;
 }
 
