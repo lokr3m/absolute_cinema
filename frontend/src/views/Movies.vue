@@ -8,24 +8,26 @@
     </div>
 
     <div class="container">
-      <!-- Search and Filters Section -->
+      <!-- Search and Filters Section - All in One Block -->
       <div v-if="!loading && !error" class="filters-section">
-        <div class="search-wrapper">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="🔍 Search movies by title..."
-            class="search-input"
-          />
-        </div>
-        
-        <div class="filters-row">
+        <div class="filters-row-unified">
+          <!-- Search Input -->
+          <div class="filter-group filter-group-search">
+            <label class="filter-label">Search</label>
+            <input 
+              v-model="searchQuery" 
+              type="text" 
+              placeholder="🔍 Search by title..."
+              class="search-input-inline"
+            />
+          </div>
+
           <!-- Genre Filter -->
           <div class="filter-group">
             <label class="filter-label">Genre</label>
             <div class="custom-dropdown" :class="{ open: genreDropdownOpen }">
               <button class="dropdown-btn" @click="toggleGenreDropdown">
-                <span>{{ selectedGenre || 'All Genres' }}</span>
+                <span>{{ selectedGenre || 'All' }}</span>
                 <span class="arrow">▼</span>
               </button>
               <div class="dropdown-menu" v-if="genreDropdownOpen">
@@ -44,6 +46,35 @@
                   @click="selectGenre(genre)"
                 >
                   {{ genre }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Age Rating Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Age Rating</label>
+            <div class="custom-dropdown" :class="{ open: ageRatingDropdownOpen }">
+              <button class="dropdown-btn" @click="toggleAgeRatingDropdown">
+                <span>{{ selectedAgeRating || 'All' }}</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" v-if="ageRatingDropdownOpen">
+                <div 
+                  class="dropdown-item" 
+                  :class="{ active: selectedAgeRating === '' }"
+                  @click="selectAgeRating('')"
+                >
+                  All Ratings
+                </div>
+                <div 
+                  v-for="rating in availableAgeRatings" 
+                  :key="rating" 
+                  class="dropdown-item"
+                  :class="{ active: selectedAgeRating === rating }"
+                  @click="selectAgeRating(rating)"
+                >
+                  {{ rating }}
                 </div>
               </div>
             </div>
@@ -71,9 +102,18 @@
             </div>
           </div>
 
+          <!-- Clear Filters Button -->
+          <div class="filter-group filter-group-action">
+            <label class="filter-label">&nbsp;</label>
+            <button class="clear-filters-btn" @click="clearAllFilters" :disabled="!hasActiveFilters">
+              <span class="clear-icon">✕</span>
+              Clear Filters
+            </button>
+          </div>
+
           <!-- Results count -->
           <div class="results-info">
-            <span class="results-count">{{ filteredMovies.length }} movie{{ filteredMovies.length !== 1 ? 's' : '' }} found</span>
+            <span class="results-count">{{ filteredMovies.length }} movie{{ filteredMovies.length !== 1 ? 's' : '' }}</span>
           </div>
         </div>
       </div>
@@ -166,8 +206,10 @@ export default {
       error: null,
       searchQuery: '',
       selectedGenre: '',
+      selectedAgeRating: '',
       sortBy: 'title',
       genreDropdownOpen: false,
+      ageRatingDropdownOpen: false,
       sortDropdownOpen: false,
       sortOptions: [
         { value: 'title', label: 'Title (A-Z)' },
@@ -189,6 +231,21 @@ export default {
       });
       return Array.from(genres).sort();
     },
+    availableAgeRatings() {
+      const ratings = new Set();
+      this.movies.forEach(movie => {
+        if (movie.ageRating) {
+          ratings.add(movie.ageRating);
+        }
+      });
+      return Array.from(ratings).sort();
+    },
+    hasActiveFilters() {
+      return this.searchQuery !== '' || 
+             this.selectedGenre !== '' || 
+             this.selectedAgeRating !== '' ||
+             this.sortBy !== 'title';
+    },
     filteredMovies() {
       let filtered = [...this.movies];
       
@@ -208,6 +265,13 @@ export default {
           }
           return movie.genre === this.selectedGenre;
         });
+      }
+      
+      // Apply age rating filter
+      if (this.selectedAgeRating) {
+        filtered = filtered.filter(movie => 
+          movie.ageRating === this.selectedAgeRating
+        );
       }
       
       // Apply sorting
@@ -335,24 +399,42 @@ export default {
     },
     toggleGenreDropdown() {
       this.genreDropdownOpen = !this.genreDropdownOpen;
+      this.ageRatingDropdownOpen = false;
+      this.sortDropdownOpen = false;
+    },
+    toggleAgeRatingDropdown() {
+      this.ageRatingDropdownOpen = !this.ageRatingDropdownOpen;
+      this.genreDropdownOpen = false;
       this.sortDropdownOpen = false;
     },
     toggleSortDropdown() {
       this.sortDropdownOpen = !this.sortDropdownOpen;
       this.genreDropdownOpen = false;
+      this.ageRatingDropdownOpen = false;
     },
     selectGenre(genre) {
       this.selectedGenre = genre;
       this.genreDropdownOpen = false;
     },
+    selectAgeRating(rating) {
+      this.selectedAgeRating = rating;
+      this.ageRatingDropdownOpen = false;
+    },
     selectSort(sortValue) {
       this.sortBy = sortValue;
       this.sortDropdownOpen = false;
+    },
+    clearAllFilters() {
+      this.searchQuery = '';
+      this.selectedGenre = '';
+      this.selectedAgeRating = '';
+      this.sortBy = 'title';
     },
     handleClickOutside(event) {
       const target = event.target;
       if (!target.closest('.custom-dropdown')) {
         this.genreDropdownOpen = false;
+        this.ageRatingDropdownOpen = false;
         this.sortDropdownOpen = false;
       }
     },
@@ -431,32 +513,7 @@ export default {
   border: 1px solid #e8e8e8;
 }
 
-.search-wrapper {
-  margin-bottom: 1.5rem;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.875rem 1.25rem;
-  border: 2px solid #e8e8e8;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: #fafafa;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #ff6600;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
-}
-
-.search-input::placeholder {
-  color: #95a5a6;
-}
-
-.filters-row {
+.filters-row-unified {
   display: flex;
   gap: 1rem;
   align-items: flex-end;
@@ -467,7 +524,38 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-width: 180px;
+  min-width: 150px;
+}
+
+.filter-group-search {
+  flex: 1;
+  min-width: 250px;
+}
+
+.filter-group-action {
+  min-width: 160px;
+}
+
+.search-input-inline {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: #fafafa;
+  font-weight: 500;
+}
+
+.search-input-inline:focus {
+  outline: none;
+  border-color: #ff6600;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
+}
+
+.search-input-inline::placeholder {
+  color: #95a5a6;
 }
 
 .filter-label {
@@ -476,6 +564,58 @@ export default {
   color: #555;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.clear-filters-btn {
+  background: linear-gradient(135deg, #ff6600 0%, #e65c00 100%);
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(255, 102, 0, 0.25);
+}
+
+.clear-filters-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.35);
+}
+
+.clear-filters-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.clear-filters-btn:disabled {
+  background: #ddd;
+  color: #999;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.clear-filters-btn .clear-icon {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.results-info {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0.75rem 0;
+}
+
+.results-count {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .custom-dropdown {
@@ -834,12 +974,14 @@ export default {
     font-size: 1.8rem;
   }
   
-  .filters-row {
+  .filters-row-unified {
     flex-direction: column;
     align-items: stretch;
   }
   
-  .filter-group {
+  .filter-group,
+  .filter-group-search,
+  .filter-group-action {
     min-width: 100%;
   }
   
