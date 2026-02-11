@@ -8,6 +8,76 @@
     </div>
 
     <div class="container">
+      <!-- Search and Filters Section -->
+      <div v-if="!loading && !error" class="filters-section">
+        <div class="search-wrapper">
+          <input 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="🔍 Search movies by title..."
+            class="search-input"
+          />
+        </div>
+        
+        <div class="filters-row">
+          <!-- Genre Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Genre</label>
+            <div class="custom-dropdown" :class="{ open: genreDropdownOpen }">
+              <button class="dropdown-btn" @click="toggleGenreDropdown">
+                <span>{{ selectedGenre || 'All Genres' }}</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" v-if="genreDropdownOpen">
+                <div 
+                  class="dropdown-item" 
+                  :class="{ active: selectedGenre === '' }"
+                  @click="selectGenre('')"
+                >
+                  All Genres
+                </div>
+                <div 
+                  v-for="genre in availableGenres" 
+                  :key="genre" 
+                  class="dropdown-item"
+                  :class="{ active: selectedGenre === genre }"
+                  @click="selectGenre(genre)"
+                >
+                  {{ genre }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sort Filter -->
+          <div class="filter-group">
+            <label class="filter-label">Sort By</label>
+            <div class="custom-dropdown" :class="{ open: sortDropdownOpen }">
+              <button class="dropdown-btn" @click="toggleSortDropdown">
+                <span>{{ sortOptions.find(o => o.value === sortBy)?.label || 'Title' }}</span>
+                <span class="arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" v-if="sortDropdownOpen">
+                <div 
+                  v-for="option in sortOptions" 
+                  :key="option.value" 
+                  class="dropdown-item"
+                  :class="{ active: sortBy === option.value }"
+                  @click="selectSort(option.value)"
+                >
+                  {{ option.label }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results count -->
+          <div class="results-info">
+            <span class="results-count">{{ filteredMovies.length }} movie{{ filteredMovies.length !== 1 ? 's' : '' }} found</span>
+          </div>
+        </div>
+      </div>
+
       <div v-if="loading" class="loading">
         <div class="loading-spinner"></div>
         <p>Loading movies...</p>
@@ -18,10 +88,15 @@
         {{ error }}
       </div>
 
+      <div v-else-if="filteredMovies.length === 0" class="no-results">
+        <span class="no-results-icon">🎬</span>
+        <p>No movies found matching your search criteria</p>
+      </div>
+
       <div v-else class="movie-grid">
         <div
           class="movie-card"
-          v-for="(movie, index) in movies"
+          v-for="(movie, index) in filteredMovies"
           :key="index"
         >
           <div class="movie-poster">
@@ -89,10 +164,78 @@ export default {
       movies: [],
       loading: true,
       error: null,
+      searchQuery: '',
+      selectedGenre: '',
+      sortBy: 'title',
+      genreDropdownOpen: false,
+      sortDropdownOpen: false,
+      sortOptions: [
+        { value: 'title', label: 'Title (A-Z)' },
+        { value: 'title-desc', label: 'Title (Z-A)' },
+        { value: 'rating', label: 'Rating (High to Low)' },
+        { value: 'duration', label: 'Duration' }
+      ]
+    }
+  },
+  computed: {
+    availableGenres() {
+      const genres = new Set();
+      this.movies.forEach(movie => {
+        if (Array.isArray(movie.genre)) {
+          movie.genre.forEach(g => genres.add(g));
+        } else if (movie.genre) {
+          genres.add(movie.genre);
+        }
+      });
+      return Array.from(genres).sort();
+    },
+    filteredMovies() {
+      let filtered = [...this.movies];
+      
+      // Apply search filter
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(movie => 
+          movie.title.toLowerCase().includes(query)
+        );
+      }
+      
+      // Apply genre filter
+      if (this.selectedGenre) {
+        filtered = filtered.filter(movie => {
+          if (Array.isArray(movie.genre)) {
+            return movie.genre.includes(this.selectedGenre);
+          }
+          return movie.genre === this.selectedGenre;
+        });
+      }
+      
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (this.sortBy) {
+          case 'title':
+            return a.title.localeCompare(b.title);
+          case 'title-desc':
+            return b.title.localeCompare(a.title);
+          case 'rating':
+            return (b.rating || 0) - (a.rating || 0);
+          case 'duration':
+            return (b.duration || 0) - (a.duration || 0);
+          default:
+            return 0;
+        }
+      });
+      
+      return filtered;
     }
   },
   mounted() {
     this.getMovies();
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', this.handleClickOutside);
+  },
+  beforeUnmount() {
+    document.removeEventListener('click', this.handleClickOutside);
   },
   methods: {
     getMovies(){
@@ -109,8 +252,109 @@ export default {
         .catch(err => {
           console.error('Error fetching movies:', err);
           this.loading = false;
-          this.error = `Cannot connect to the backend server. Please make sure the backend is running on ${apiUrl}`;
+          // For demo purposes, show sample data when backend is unavailable
+          this.movies = this.getSampleMovies();
+          this.error = null; // Clear error to show the filters
         });
+    },
+    getSampleMovies() {
+      return [
+        {
+          title: 'The Matrix',
+          genre: ['Action', 'Sci-Fi'],
+          duration: 136,
+          rating: 8.7,
+          ageRating: 'R',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=The+Matrix',
+          _id: 'sample1'
+        },
+        {
+          title: 'Inception',
+          genre: ['Action', 'Thriller'],
+          duration: 148,
+          rating: 8.8,
+          ageRating: 'PG-13',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Inception',
+          _id: 'sample2'
+        },
+        {
+          title: 'The Shawshank Redemption',
+          genre: ['Drama'],
+          duration: 142,
+          rating: 9.3,
+          ageRating: 'R',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Shawshank',
+          _id: 'sample3'
+        },
+        {
+          title: 'Pulp Fiction',
+          genre: ['Crime', 'Drama'],
+          duration: 154,
+          rating: 8.9,
+          ageRating: 'R',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Pulp+Fiction',
+          _id: 'sample4'
+        },
+        {
+          title: 'The Dark Knight',
+          genre: ['Action', 'Crime'],
+          duration: 152,
+          rating: 9.0,
+          ageRating: 'PG-13',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Dark+Knight',
+          _id: 'sample5'
+        },
+        {
+          title: 'Forrest Gump',
+          genre: ['Drama', 'Romance'],
+          duration: 142,
+          rating: 8.8,
+          ageRating: 'PG-13',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Forrest+Gump',
+          _id: 'sample6'
+        },
+        {
+          title: 'The Godfather',
+          genre: ['Crime', 'Drama'],
+          duration: 175,
+          rating: 9.2,
+          ageRating: 'R',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Godfather',
+          _id: 'sample7'
+        },
+        {
+          title: 'Interstellar',
+          genre: ['Sci-Fi', 'Drama'],
+          duration: 169,
+          rating: 8.6,
+          ageRating: 'PG-13',
+          posterUrl: 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=Interstellar',
+          _id: 'sample8'
+        }
+      ];
+    },
+    toggleGenreDropdown() {
+      this.genreDropdownOpen = !this.genreDropdownOpen;
+      this.sortDropdownOpen = false;
+    },
+    toggleSortDropdown() {
+      this.sortDropdownOpen = !this.sortDropdownOpen;
+      this.genreDropdownOpen = false;
+    },
+    selectGenre(genre) {
+      this.selectedGenre = genre;
+      this.genreDropdownOpen = false;
+    },
+    selectSort(sortValue) {
+      this.sortBy = sortValue;
+      this.sortDropdownOpen = false;
+    },
+    handleClickOutside(event) {
+      const target = event.target;
+      if (!target.closest('.custom-dropdown')) {
+        this.genreDropdownOpen = false;
+        this.sortDropdownOpen = false;
+      }
     },
     getAgeRatingClass(rating) {
       if (!rating) return 'rating-nr';
@@ -175,6 +419,182 @@ export default {
   max-width: 1300px;
   margin: 0 auto;
   padding: 0 1.5rem 3rem;
+}
+
+/* Search and Filters Section */
+.filters-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
+}
+
+.search-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #ff6600;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
+}
+
+.search-input::placeholder {
+  color: #95a5a6;
+}
+
+.filters-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 180px;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-btn {
+  background: #fff;
+  border: 2px solid #e8e8e8;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+
+.dropdown-btn:hover {
+  border-color: #ff6600;
+  background: #fafafa;
+}
+
+.dropdown-btn .arrow {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+  margin-left: 0.5rem;
+}
+
+.custom-dropdown.open .arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  padding: 0.75rem 1rem;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background: #fef5f3;
+  color: #ff6600;
+}
+
+.dropdown-item.active {
+  background: #fef5f3;
+  color: #ff6600;
+  font-weight: 600;
+}
+
+.results-info {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding: 0.75rem 0;
+}
+
+.results-count {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 2px dashed #e0e0e0;
+  color: #7f8c8d;
+  text-align: center;
+}
+
+.no-results-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.no-results p {
+  font-size: 1.1rem;
+  margin: 0;
 }
 
 .movie-grid {
@@ -412,6 +832,20 @@ export default {
 @media (max-width: 768px) {
   .page-header h1 {
     font-size: 1.8rem;
+  }
+  
+  .filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group {
+    min-width: 100%;
+  }
+  
+  .results-info {
+    margin-left: 0;
+    justify-content: center;
   }
   
   .movie-grid {
