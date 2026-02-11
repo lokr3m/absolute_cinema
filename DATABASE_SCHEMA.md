@@ -1,6 +1,6 @@
-# Cinema Booking System - Database Schema
+# Absolute Cinema - Database Schema
 
-This document describes the database schema for the Cinema Booking System, a clone of Apollo Kino website functionality.
+This document describes the database schema used by Absolute Cinema. The application stores cinema data locally and can sync film/schedule metadata from the Apollo Kino XML feed.
 
 ## Overview
 

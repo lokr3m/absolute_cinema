@@ -1,6 +1,6 @@
-# TA23B-B5 Project
+# Absolute Cinema
 
-A full-stack Cinema Project, built with Node.js, Express.js, MongoDB, and Vue.js.
+Absolute Cinema is a full-stack cinema booking project built with Node.js, Express, MongoDB, and Vue 3. It synchronizes films, schedules, and news from the Apollo Kino XML API and provides a booking flow plus an admin dashboard for sessions and bookings.
 
 ## Table of Contents
 - [Prerequisites](#prerequisites)
@@ -11,7 +11,9 @@ A full-stack Cinema Project, built with Node.js, Express.js, MongoDB, and Vue.js
 - [Database Schema](#database-schema)
 - [Project Structure](#project-structure)
 - [Available Scripts](#available-scripts)
+- [Database Management](#database-management)
 - [API Endpoints](#api-endpoints)
+- [Troubleshooting](#troubleshooting)
 - [Technologies Used](#technologies-used)
 
 ## Prerequisites
@@ -41,8 +43,8 @@ mongosh --eval "db.version()"
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Tallinna-Polütehnikum/TA23B-B5-projekt.git
-cd TA23B-B5-projekt
+git clone https://github.com/lokr3m/absolute_cinema.git
+cd absolute_cinema
 ```
 
 2. Install backend dependencies:
@@ -55,6 +57,9 @@ This will install all required packages listed in `package.json`:
 - `cors` - Cross-Origin Resource Sharing middleware
 - `mongoose` - MongoDB object modeling
 - `nodemon` - Auto-restart server during development
+- `dotenv` - Environment variable loader
+- `axios` - HTTP client for API requests
+- `xml2js` - XML parsing for Apollo Kino feed
 
 ### Frontend Installation
 
@@ -122,17 +127,26 @@ The frontend is a Vue 3 application with the following features:
 - **Movies Page** (`/movies`) - Browse all movies with filtering options
 - **Movie Detail Page** (`/movies/:id`) - Detailed movie information with showtimes
 - **Booking Page** (`/booking`) - Multi-step booking process
-- **Admin Dashboard** (`/admin`) - Manage movies, sessions, bookings, and cinemas
+- **Schedule Page** (`/schedule`) - Day-by-day schedule view
+- **News Page** (`/news`) - Apollo Kino news feed
+- **Admin Dashboard** (`/admin`) - Manage sessions, bookings, and synced cinemas (no authentication)
 
 For more details, see [frontend/README.md](frontend/README.md).
 
 ## Backend
 
+The backend is an Express API that stores data in MongoDB and optionally syncs cinema data from the Apollo Kino XML feeds. It provides:
+
+- Public endpoints for films, sessions, cinemas, and seat layouts
+- Booking endpoints for creating and retrieving bookings
+- Admin endpoints for session CRUD and booking management (no authentication)
+- Apollo Kino endpoints for syncing and debugging the upstream data feed
+
 ## Database Schema
 
 This project includes a comprehensive database schema for a cinema booking system. The schema includes 7 main models:
 
-- **User** - User authentication and profile management
+- **User** - Optional user profiles (authentication not implemented yet)
 - **Cinema** - Physical cinema locations
 - **Hall** - Screening rooms within cinemas
 - **Film** - Movie information and metadata
@@ -145,15 +159,18 @@ For detailed information about the database schema, including field descriptions
 ## Project Structure
 
 ```
-TA23B-B5-projekt/
+absolute_cinema/
 ├── frontend/               # Vue.js frontend application
 │   ├── src/
 │   │   ├── components/    # Reusable Vue components
 │   │   │   └── layout/    # Layout components (Header, Footer)
 │   │   ├── views/         # Page components
+│   │   │   ├── Home.vue
 │   │   │   ├── Movies.vue
 │   │   │   ├── MovieDetail.vue
 │   │   │   ├── Booking.vue
+│   │   │   ├── Schedule.vue
+│   │   │   ├── News.vue
 │   │   │   └── Admin.vue
 │   │   ├── router/        # Vue Router configuration
 │   │   ├── App.vue        # Root component
@@ -163,7 +180,7 @@ TA23B-B5-projekt/
 │   ├── vite.config.js     # Vite configuration
 │   └── package.json       # Frontend dependencies
 ├── backend/
-│   ├── models/            # Database models (Mongoose schemas)
+│   ├── Models/            # Database models (Mongoose schemas)
 │   │   ├── User.js        # User model
 │   │   ├── Cinema.js      # Cinema model
 │   │   ├── Hall.js        # Hall model
@@ -172,6 +189,7 @@ TA23B-B5-projekt/
 │   │   ├── Seat.js        # Seat model
 │   │   ├── Booking.js     # Booking model
 │   │   └── index.js       # Models export file
+│   ├── services/          # Apollo Kino API service
 │   └── index.js           # Main server file with Express configuration
 ├── node_modules/          # Backend dependencies (not tracked in git)
 ├── .gitignore             # Git ignore rules
@@ -226,19 +244,37 @@ This script will:
 
 ## API Endpoints
 
-### GET /
+### Public Data
+- `GET /api/films`
+- `GET /api/films/:id`
+- `GET /api/films/:id/sessions`
+- `GET /api/sessions` (supports `filmId`, `cinemaId`, `hallId`, `date`)
+- `GET /api/sessions/:id/seats`
+- `GET /api/cinemas`
+- `GET /api/cinemas/:id/halls`
 
-Returns a hardcoded string value.
+### Booking
+- `POST /api/bookings`
+- `GET /api/bookings/:bookingNumber`
 
-**Example:**
-```bash
-curl http://localhost:3000/
-```
+### Admin (no auth)
+- `GET /api/admin/sessions`
+- `GET /api/admin/sessions/:id`
+- `POST /api/admin/sessions`
+- `PUT /api/admin/sessions/:id`
+- `DELETE /api/admin/sessions/:id`
+- `GET /api/admin/halls`
+- `GET /api/admin/bookings`
+- `DELETE /api/admin/bookings/:id`
 
-**Response:**
-```json
-"abbik"
-```
+### Apollo Kino Integration
+- `GET /api/apollo-kino/sync`
+- `GET /api/apollo-kino/raw`
+- `GET /api/apollo-kino/events`
+- `GET /api/apollo-kino/schedule`
+- `GET /api/apollo-kino/TheatreAreas`
+- `GET /api/apollo-kino/NewsCategories`
+- `GET /api/apollo-kino/News`
 
 ## Troubleshooting
 
@@ -277,7 +313,6 @@ If you see connection errors, ensure:
    ```
 
 3. Check network connectivity and firewall settings
-```
 
 ## Technologies Used
 
@@ -294,6 +329,9 @@ If you see connection errors, ensure:
 - **CORS** (v2.8.5) - Middleware for enabling CORS
 - **Mongoose** (v8.19.2) - MongoDB ODM
 - **Nodemon** (v3.1.10) - Development tool for auto-restarting
+- **Axios** (v1.13.2) - HTTP client
+- **Dotenv** (v17.2.3) - Environment variable loader
+- **xml2js** (v0.6.2) - XML parsing for Apollo Kino feeds
 
 ## License
 
@@ -301,4 +339,4 @@ ISC
 
 ## Contributing
 
-This is a school project for Tallinna Polütehnikum. For issues and questions, please use the [GitHub Issues](https://github.com/Tallinna-Polütehnikum/TA23B-B5-projekt/issues) page.
+For issues and questions, please use the [GitHub Issues](https://github.com/lokr3m/absolute_cinema/issues) page.

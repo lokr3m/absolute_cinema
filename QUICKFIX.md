@@ -1,4 +1,4 @@
-# Quick Fix Guide
+# Absolute Cinema Quick Fix Guide
 
 ## TL;DR - Fix "No sessions available" Error
 
@@ -17,7 +17,7 @@ npm run dev
 
 ## What This Does
 
-- ✅ Removes sessions older than today (November 2025 sessions)
+- ✅ Removes sessions older than today
 - ✅ Creates fresh sessions for the next 7 days
 - ✅ Keeps all your bookings safe
 - ✅ Doesn't delete films, halls, or cinemas

@@ -1,6 +1,6 @@
-# Cinema Frontend
+# Absolute Cinema Frontend
 
-A Vue 3 frontend application for a cinema booking system, inspired by Apollo Kino website.
+A Vue 3 frontend for the Absolute Cinema booking experience. It integrates with the local backend and Apollo Kino data feeds for films, schedules, and news.
 
 ## Features
 
@@ -8,6 +8,8 @@ A Vue 3 frontend application for a cinema booking system, inspired by Apollo Kin
 - **Movies Page** - Browse all movies with filtering and sorting options
 - **Movie Detail Page** - Detailed movie information with showtimes
 - **Booking Page** - Multi-step booking process (movie selection, seat selection, payment)
+- **Schedule Page** - Day-by-day schedule view
+- **News Page** - Apollo Kino news feed
 - **Admin Dashboard** - Manage movies, sessions, bookings, and cinemas
 
 ## Tech Stack
@@ -72,6 +74,8 @@ frontend/
 │   │   ├── Movies.vue         # Movies listing page
 │   │   ├── MovieDetail.vue    # Movie detail page
 │   │   ├── Booking.vue        # Booking flow page
+│   │   ├── Schedule.vue       # Schedule page
+│   │   ├── News.vue           # News page
 │   │   └── Admin.vue          # Admin dashboard
 │   ├── router/
 │   │   └── index.js           # Router configuration
@@ -89,6 +93,8 @@ frontend/
 - `/movies` - All movies listing
 - `/movies/:id` - Movie detail page
 - `/booking` - Ticket booking
+- `/schedule` - Schedule view
+- `/news` - News feed
 - `/admin` - Admin dashboard
 
 ## Design
@@ -102,9 +108,7 @@ The frontend design is inspired by Apollo Kino (apollokino.ee) with:
 
 ## Future Enhancements
 
-- Connect to backend API
-- User authentication
-- Real movie data integration
+- User authentication and role-based admin access
 - Payment gateway integration
 - Responsive mobile design improvements
 - Movie search functionality

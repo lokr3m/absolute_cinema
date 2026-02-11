@@ -2,13 +2,13 @@
 
 ## Problem
 
-The booking page shows "No sessions available for the selected criteria" because the sessions in your MongoDB database are outdated (from November 2025).
+The booking page shows "No sessions available for the selected criteria" when the sessions in your MongoDB database are out of date.
 
 ## Root Cause
 
 - The `/api/sessions` endpoint filters sessions by date
-- Sessions in your database have `startTime` values from November 2025
-- When users select current dates (February 2026), no matching sessions are found
+- Sessions in your database have `startTime` values that are in the past
+- When users select current dates, no matching sessions are found
 - The booking system correctly shows "No sessions available"
 
 ## Solution

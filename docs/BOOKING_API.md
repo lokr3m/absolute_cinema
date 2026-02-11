@@ -1,54 +1,51 @@
-# Booking API Documentation
+# Absolute Cinema Booking API
 
-This document describes the booking API endpoints that allow users to book movie tickets.
+This document describes the booking-related API endpoints used by the Absolute Cinema frontend.
 
 ## Overview
 
-The booking system allows users to:
-- View available films and sessions
-- Select seats for a specific session
-- Create and manage bookings
-- Track payment status
+The booking flow relies on:
+- Browsing films and sessions
+- Fetching seat layout and occupied seats for a session
+- Creating a booking using seat row/number selections
+- Retrieving a booking by its booking number
 
 ## API Endpoints
 
-### 1. Get Available Seats for a Session
+### 1. Get Seat Layout for a Session
 
 **Endpoint:** `GET /api/sessions/:id/seats`
 
-**Description:** Retrieves all seats for a specific session, including their availability status.
-
-**Parameters:**
-- `id` (path parameter): The session ID
+**Description:** Returns the hall layout and currently occupied seats for a session.
 
 **Response:**
 ```json
 {
   "success": true,
-  "session": {
-    "id": "session_id",
-    "availableSeats": 100
-  },
-  "hall": {
-    "name": "Hall 1",
-    "rows": 10,
-    "seatsPerRow": 12
-  },
-  "count": 120,
-  "data": [
-    {
-      "_id": "seat_id",
-      "row": 1,
-      "number": 1,
-      "seatType": "standard",
-      "isAvailable": true
-    }
-  ]
+  "data": {
+    "session": {
+      "id": "session_id",
+      "film": "Film Title",
+      "startTime": "2026-02-12T16:30:00.000Z",
+      "hall": "Hall 1",
+      "cinema": "Apollo Kino Solaris"
+    },
+    "layout": {
+      "rows": 10,
+      "seatsPerRow": 12,
+      "capacity": 120,
+      "available": 110
+    },
+    "occupied": [
+      { "row": 3, "number": 5 },
+      { "row": 3, "number": 6 }
+    ]
+  }
 }
 ```
 
 **Status Codes:**
-- `200 OK`: Successfully retrieved seats
+- `200 OK`: Successfully returned seat layout
 - `400 Bad Request`: Invalid session ID
 - `404 Not Found`: Session not found
 - `500 Internal Server Error`: Server error
@@ -59,16 +56,20 @@ The booking system allows users to:
 
 **Endpoint:** `POST /api/bookings`
 
-**Description:** Creates a new booking for selected seats in a session.
+**Description:** Creates a new booking from selected seats. Seats are provided as row/number pairs.
 
 **Request Body:**
 ```json
 {
   "sessionId": "session_id",
-  "seatIds": ["seat_id_1", "seat_id_2"],
+  "seats": [
+    { "row": 4, "number": 7 },
+    { "row": 4, "number": 8 }
+  ],
   "contactEmail": "user@example.com",
   "contactPhone": "+372 5555 5555",
-  "userId": "user_id" // Optional
+  "paymentMethod": "card",
+  "userId": "optional_user_id"
 }
 ```
 
@@ -76,262 +77,88 @@ The booking system allows users to:
 ```json
 {
   "success": true,
-  "message": "Booking created successfully",
   "data": {
-    "_id": "booking_id",
-    "user": {
-      "_id": "user_id",
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "user@example.com"
-    },
-    "session": {
-      "_id": "session_id",
-      "startTime": "2024-01-20T19:00:00.000Z",
-      "film": { ... },
-      "hall": { ... }
-    },
-    "seats": [ ... ],
-    "totalPrice": 17.00,
-    "bookingNumber": "BK-1234567890-ABC123",
-    "status": "pending",
-    "paymentStatus": "pending",
-    "contactEmail": "user@example.com",
-    "contactPhone": "+372 5555 5555",
-    "createdAt": "2024-01-20T15:30:00.000Z"
+    "bookingId": "booking_id",
+    "bookingNumber": "BK-3f1b9c2e1a2b",
+    "totalPrice": 17,
+    "seats": [
+      { "row": 4, "number": 7 },
+      { "row": 4, "number": 8 }
+    ],
+    "session": "session_id",
+    "status": "pending"
   }
 }
 ```
 
 **Validation Rules:**
 - `sessionId` is required and must be a valid ObjectId
-- `seatIds` must be an array with at least one seat ID
-- `contactEmail` is required and must be a valid email
-- Selected seats must exist and be available
-- Session must be in the future
+- `seats` must be a non-empty array of `{ row, number }` pairs
+- Seats must fit within the hall layout
+- Duplicate seats in the request are rejected
+- `contactEmail` is required
 
 **Status Codes:**
 - `201 Created`: Booking created successfully
-- `400 Bad Request`: Missing or invalid fields
-- `404 Not Found`: Session or seats not found
+- `400 Bad Request`: Missing/invalid fields or invalid seat selection
+- `404 Not Found`: Session not found
 - `409 Conflict`: One or more seats are already booked
 - `500 Internal Server Error`: Server error
 
 ---
 
-### 3. Get Booking by ID
+### 3. Get Booking by Booking Number
 
-**Endpoint:** `GET /api/bookings/:id`
+**Endpoint:** `GET /api/bookings/:bookingNumber`
 
-**Description:** Retrieves detailed information about a specific booking.
-
-**Parameters:**
-- `id` (path parameter): The booking ID
+**Description:** Retrieves a booking by its booking number (e.g., `BK-3f1b9c2e1a2b`).
 
 **Response:**
 ```json
 {
   "success": true,
   "data": {
-    "_id": "booking_id",
-    "user": { ... },
-    "session": {
-      "film": { ... },
-      "hall": {
-        "cinema": { ... }
-      }
-    },
-    "seats": [ ... ],
-    "totalPrice": 17.00,
-    "bookingNumber": "BK-1234567890-ABC123",
-    "status": "confirmed",
-    "paymentStatus": "paid",
-    "paymentMethod": "card",
+    "bookingNumber": "BK-3f1b9c2e1a2b",
     "contactEmail": "user@example.com",
-    "contactPhone": "+372 5555 5555",
-    "createdAt": "2024-01-20T15:30:00.000Z",
-    "updatedAt": "2024-01-20T15:35:00.000Z"
+    "status": "pending",
+    "session": {
+      "startTime": "2026-02-12T16:30:00.000Z"
+    },
+    "seats": [
+      { "row": 4, "number": 7 },
+      { "row": 4, "number": 8 }
+    ]
   }
 }
 ```
 
 **Status Codes:**
 - `200 OK`: Successfully retrieved booking
-- `400 Bad Request`: Invalid booking ID
 - `404 Not Found`: Booking not found
 - `500 Internal Server Error`: Server error
 
 ---
 
-### 4. Update Booking
+## Supporting Endpoints
 
-**Endpoint:** `PUT /api/bookings/:id`
-
-**Description:** Updates booking status and payment information.
-
-**Parameters:**
-- `id` (path parameter): The booking ID
-
-**Request Body:**
-```json
-{
-  "status": "confirmed",
-  "paymentStatus": "paid",
-  "paymentMethod": "card"
-}
-```
-
-**Valid Values:**
-- `status`: "pending", "confirmed", "cancelled", "completed"
-- `paymentStatus`: "pending", "paid", "refunded"
-- `paymentMethod`: "card", "cash", "online"
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Booking updated successfully",
-  "data": { ... }
-}
-```
-
-**Special Behavior:**
-- When status is changed to "cancelled", the seats are automatically released and become available again
-
-**Status Codes:**
-- `200 OK`: Booking updated successfully
-- `400 Bad Request`: Invalid booking ID or invalid field values
-- `404 Not Found`: Booking not found
-- `500 Internal Server Error`: Server error
-
----
-
-## Frontend Integration
-
-### Booking Page
-
-The booking page (`/booking`) accepts the following query parameters:
-
-- `filmId`: Pre-selects a specific film
-- `sessionId`: Pre-selects a specific session and jumps to seat selection
-
-**Example URLs:**
-- `/booking?filmId=123456` - Opens booking page with film pre-selected
-- `/booking?filmId=123456&sessionId=789012` - Opens booking page with film and session pre-selected, shows seat selection
-
-### Movie Detail Page
-
-The movie detail page shows available showtimes for a film. Each showtime button redirects to the booking page with the film and session pre-selected.
-
-**Implementation:**
-```javascript
-bookSession(session) {
-  this.$router.push({
-    name: 'Booking',
-    query: {
-      filmId: this.film._id,
-      sessionId: session._id
-    }
-  })
-}
-```
-
----
-
-## Database Schema
-
-### Booking Model
-
-```javascript
-{
-  user: ObjectId (ref: 'User'),
-  session: ObjectId (ref: 'Session'),
-  seats: [ObjectId] (ref: 'Seat'),
-  totalPrice: Number,
-  bookingNumber: String (unique),
-  status: String (enum: ['pending', 'confirmed', 'cancelled', 'completed']),
-  paymentStatus: String (enum: ['pending', 'paid', 'refunded']),
-  paymentMethod: String (enum: ['card', 'cash', 'online']),
-  contactEmail: String,
-  contactPhone: String,
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
----
-
-## Testing
-
-### Manual Testing
-
-1. Start the backend server:
-   ```bash
-   npm run dev
-   ```
-
-2. Seed the database with test data:
-   ```bash
-   npm run seed
-   ```
-
-3. Start the frontend:
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-4. Navigate to a movie detail page and click on a showtime
-5. Select seats and complete the booking flow
-
-### API Testing
-
-Use the provided test script:
-```bash
-./test_booking_api.sh
-```
-
-This will test all booking API endpoints automatically.
-
----
+These endpoints are used to power the booking flow:
+- `GET /api/films`
+- `GET /api/films/:id/sessions`
+- `GET /api/sessions` (supports `filmId`, `cinemaId`, `hallId`, `date`)
+- `GET /api/cinemas`
+- `GET /api/cinemas/:id/halls`
 
 ## Error Handling
 
-All endpoints return errors in the following format:
+Errors follow this format:
 ```json
 {
   "success": false,
-  "error": "Error message",
-  "message": "Detailed error message (optional)"
+  "error": "Error message"
 }
 ```
 
-Common error scenarios:
-- Invalid ObjectId format → 400 Bad Request
-- Resource not found → 404 Not Found
-- Seats already booked → 409 Conflict
-- Database or server errors → 500 Internal Server Error
+## Notes
 
----
-
-## Security Considerations
-
-1. **Input Validation**: All inputs are validated before processing
-2. **Race Conditions**: Booking creation checks for seat availability atomically
-3. **Guest Users**: When no userId is provided, a guest user is created automatically
-4. **Email Validation**: Contact email is required for all bookings
-5. **Session Validation**: Can only book seats for future sessions
-
----
-
-## Future Improvements
-
-Potential enhancements:
-1. Add authentication and authorization
-2. Implement booking expiration (e.g., 15-minute hold time)
-3. Add payment gateway integration
-4. Send confirmation emails
-5. Add booking history for users
-6. Implement refund logic
-7. Add booking search by booking number
-8. Add admin endpoints for managing bookings
+- Payment card fields are collected in the UI for demo purposes and are not stored.
+- Booking status defaults to `pending`; updates are currently handled through the admin UI.
