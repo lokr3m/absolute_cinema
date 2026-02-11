@@ -8,17 +8,26 @@ import Admin from '../views/Admin.vue'
 import News from '../views/News.vue'
 
 const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
-const isValidBookingQueryValue = value => {
+const BOOKING_QUERY_VALIDATORS = {
+  film: value => value.length > 0,
+  cinema: value => value.length > 0,
+  date: value => /^\d{4}-\d{2}-\d{2}$/.test(value),
+  time: value => /^\d{2}:\d{2}$/.test(value)
+}
+
+const isValidBookingQueryValue = (key, value) => {
   if (typeof value !== 'string') return false
   const trimmedValue = value.trim()
-  return trimmedValue.length > 0
+  if (!trimmedValue) return false
+  const validator = BOOKING_QUERY_VALIDATORS[key]
+  return validator ? validator(trimmedValue) : true
 }
 
 const hasValidBookingQuery = to =>
   REQUIRED_BOOKING_QUERY.every(key => {
     const value = to.query[key]
     if (Array.isArray(value)) return false
-    return isValidBookingQueryValue(value)
+    return isValidBookingQueryValue(key, value)
   })
 
 const routes = [
@@ -43,10 +52,12 @@ const routes = [
     component: Booking,
     beforeEnter: (to, from, next) => {
       if (!hasValidBookingQuery(to)) {
+        alert('Please choose a session from the Schedule page to start booking.')
         next({ name: 'Schedule' })
-      } else {
-        next()
+        return
       }
+
+      next()
     }
   },
   {
