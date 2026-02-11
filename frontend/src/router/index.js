@@ -10,7 +10,7 @@ import News from '../views/News.vue'
 const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
 const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
 const TIME_FORMAT = /^(?:[01]\d|2[0-3]):[0-5]\d$/
-const isNonEmptyString = value => value.length > 0
+const hasContent = value => value.length > 0
 
 const isValidDateValue = value => {
   if (!DATE_FORMAT.test(value)) return false
@@ -31,8 +31,8 @@ const isValidDateValue = value => {
 }
 
 const BOOKING_QUERY_VALIDATORS = {
-  film: isNonEmptyString,
-  cinema: isNonEmptyString,
+  film: hasContent,
+  cinema: hasContent,
   date: isValidDateValue,
   time: value => TIME_FORMAT.test(value)
 }
@@ -40,9 +40,8 @@ const BOOKING_QUERY_VALIDATORS = {
 const isValidBookingQueryValue = (key, value) => {
   if (typeof value !== 'string') return false
   const trimmedValue = value.trim()
-  if (!trimmedValue) return false
   const validator = BOOKING_QUERY_VALIDATORS[key]
-  return validator ? validator(trimmedValue) : true
+  return validator ? validator(trimmedValue) : false
 }
 
 const hasValidBookingQuery = to =>
