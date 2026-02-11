@@ -21,7 +21,7 @@ if (!MONGODB_URI) {
 
 const apolloKinoService = new ApolloKinoService();
 
-const normalizeApolloId = value => (value == null ? '' : String(value));
+const normalizeApolloId = value => (value === null || value === undefined ? '' : String(value));
 
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
 
