@@ -8,13 +8,10 @@ import Admin from '../views/Admin.vue'
 import News from '../views/News.vue'
 
 const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
-const INVALID_QUERY_CHARS = /[<>]/
-
 const isValidBookingQueryValue = value => {
   if (typeof value !== 'string') return false
   const trimmedValue = value.trim()
-  if (!trimmedValue || trimmedValue !== value) return false
-  return !INVALID_QUERY_CHARS.test(value)
+  return trimmedValue.length > 0
 }
 
 const hasValidBookingQuery = to =>
