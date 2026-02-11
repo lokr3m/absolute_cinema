@@ -26,12 +26,14 @@ const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
 const extractShowsFromSchedule = schedulePayload => {
   if (!schedulePayload) return [];
   // Apollo schedule responses may include { Schedule: { Shows: ... } }.
-  if (schedulePayload.Schedule?.Shows?.Show) {
-    return normalizeToArray(schedulePayload.Schedule.Shows.Show);
+  const nestedScheduleShows = schedulePayload.Schedule?.Shows?.Show;
+  if (nestedScheduleShows != null) {
+    return normalizeToArray(nestedScheduleShows);
   }
   // Apollo schedule responses may include { Shows: { Show: ... } }.
-  if (schedulePayload.Shows?.Show) {
-    return normalizeToArray(schedulePayload.Shows.Show);
+  const directShows = schedulePayload.Shows?.Show;
+  if (directShows != null) {
+    return normalizeToArray(directShows);
   }
   // Apollo schedule responses may include { Shows: [...] }.
   if (Array.isArray(schedulePayload.Shows)) {
