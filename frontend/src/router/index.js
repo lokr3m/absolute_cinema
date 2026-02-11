@@ -11,6 +11,14 @@ const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
 const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
 const TIME_FORMAT = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
+const isFutureOrToday = (year, month, day) => {
+  const localDate = new Date(year, month - 1, day)
+  localDate.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return localDate >= today
+}
+
 const isValidDateValue = value => {
   if (!DATE_FORMAT.test(value)) return false
   const [year, month, day] = value.split('-').map(Number)
@@ -19,13 +27,7 @@ const isValidDateValue = value => {
     date.getUTCFullYear() === year &&
     date.getUTCMonth() + 1 === month &&
     date.getUTCDate() === day &&
-    (() => {
-      const localDate = new Date(year, month - 1, day)
-      localDate.setHours(0, 0, 0, 0)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      return localDate >= today
-    })()
+    isFutureOrToday(year, month, day)
   )
 }
 
