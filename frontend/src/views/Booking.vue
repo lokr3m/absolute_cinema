@@ -546,12 +546,11 @@ export default {
 <style scoped>
 .booking-page {
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #f5f5f5;
 }
 
 .page-header {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   padding: 3rem 0;
   text-align: center;
 }
@@ -560,17 +559,17 @@ export default {
   font-size: 2.5rem;
   color: #fff;
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .page-header .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.1rem;
 }
 
 .booking {
   padding: 2.5rem 0 3rem;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .container {
@@ -580,26 +579,26 @@ export default {
 }
 
 .error-message {
-  background: rgba(244, 67, 54, 0.12);
-  color: #ff6b6b;
+  background: #fee;
+  color: #c0392b;
   padding: 1rem;
   border-radius: 12px;
   margin-bottom: 1rem;
-  border: 1px solid rgba(244, 67, 54, 0.3);
+  border: 1px solid #fcc;
 }
 
 .loading-message {
-  background: rgba(233, 69, 96, 0.12);
-  color: #fff;
+  background: #fff;
+  color: #2c3e50;
   padding: 1rem;
   border-radius: 12px;
   margin-bottom: 1rem;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid #e8e8e8;
   text-align: center;
 }
 
 .info-text {
-  color: rgba(255, 255, 255, 0.7);
+  color: #7f8c8d;
   font-style: italic;
   margin-top: 0.5rem;
 }
@@ -609,11 +608,11 @@ export default {
   justify-content: center;
   gap: 2rem;
   margin-bottom: 3rem;
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: #fff;
   padding: 1.5rem 2rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
   flex-wrap: wrap;
 }
 
@@ -621,27 +620,27 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #7f8c8d;
 }
 
 .step.active {
-  color: #e94560;
+  color: #e74c3c;
 }
 
 .step-number {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  color: #fff;
+  color: #7f8c8d;
 }
 
 .step.active .step-number {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: #e74c3c;
   color: #fff;
 }
 
@@ -652,17 +651,17 @@ export default {
 }
 
 .main-content {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: #fff;
   padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
 }
 
 .step-content h2 {
   font-size: 1.8rem;
   margin-bottom: 1.5rem;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .form-group {
@@ -673,30 +672,30 @@ export default {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.9);
+  color: #2c3e50;
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
   font-size: 1rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: #fff;
+  color: #2c3e50;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #e94560;
-  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
 }
 
 .form-group input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: #95a5a6;
 }
 
 .form-row {
@@ -706,14 +705,13 @@ export default {
 }
 
 .screen {
-  background: rgba(15, 52, 96, 0.6);
+  background: #e74c3c;
   color: #fff;
   text-align: center;
   padding: 1rem;
   margin-bottom: 2rem;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: bold;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .seating-chart {
@@ -733,45 +731,45 @@ export default {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  color: rgba(255, 255, 255, 0.7);
+  color: #555;
 }
 
 .seat {
   width: 40px;
   height: 40px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid #ddd;
+  background: #fff;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.8rem;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .seat:hover:not(:disabled) {
-  background: #e94560;
+  background: #e74c3c;
   color: #fff;
-  border-color: #e94560;
+  border-color: #e74c3c;
 }
 
 .seat.selected {
-  background: #e94560;
+  background: #e74c3c;
   color: #fff;
-  border-color: #e94560;
+  border-color: #e74c3c;
 }
 
 .seat.occupied {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: #e8e8e8;
+  border-color: #ccc;
   cursor: not-allowed;
-  color: rgba(255, 255, 255, 0.6);
+  color: #999;
 }
 
 .legend {
   display: flex;
   gap: 2rem;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: #555;
 }
 
 .legend-item {
@@ -783,22 +781,22 @@ export default {
 .seat-example {
   width: 30px;
   height: 30px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid #ddd;
   border-radius: 8px;
 }
 
 .seat-example.available {
-  background: rgba(255, 255, 255, 0.08);
+  background: #fff;
 }
 
 .seat-example.selected {
-  background: #e94560;
-  border-color: #e94560;
+  background: #e74c3c;
+  border-color: #e74c3c;
 }
 
 .seat-example.occupied {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: #e8e8e8;
+  border-color: #ccc;
 }
 
 .navigation-buttons {
@@ -811,64 +809,66 @@ export default {
 .btn {
   padding: 0.75rem 2rem;
   border: none;
-  border-radius: 30px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: #e74c3c;
   color: #fff;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
+  background: #c0392b;
   transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
+  background: #fff;
+  border: 2px solid #ddd;
+  color: #555;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
+  background: #f5f5f5;
+  border-color: #bbb;
 }
 
 .booking-summary {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
+  background: #fff;
   padding: 2rem;
-  border-radius: 16px;
+  border-radius: 12px;
   height: fit-content;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e8e8;
 }
 
 .booking-summary h3 {
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .summary-item {
   display: flex;
   justify-content: space-between;
   margin-bottom: 1rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: #555;
 }
 
 .summary-divider {
-  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  border-top: 2px solid #e8e8e8;
   margin: 1rem 0;
 }
 
 .summary-item.total {
   font-size: 1.3rem;
   font-weight: bold;
-  color: #fff;
+  color: #2c3e50;
 }
 
 @media (max-width: 968px) {
