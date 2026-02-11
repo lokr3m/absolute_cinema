@@ -150,7 +150,7 @@ async function refreshDatabaseFromApollo() {
     let shows = [];
     if (scheduleData.schedule) {
       if (scheduleData.schedule.Schedule?.Shows?.Show) {
-        // Apollo XML responses may wrap data inside a Schedule element within the schedule payload.
+        // Apollo schedule responses may include { Schedule: { Shows: ... } } inside the schedule payload.
         shows = normalizeToArray(scheduleData.schedule.Schedule.Shows.Show);
       } else if (scheduleData.schedule.Shows?.Show) {
         shows = normalizeToArray(scheduleData.schedule.Shows.Show);
