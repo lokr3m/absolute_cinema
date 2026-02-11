@@ -190,12 +190,11 @@ export default {
 <style scoped>
 .news-page {
   min-height: calc(100vh - 200px);
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #f5f5f5;
 }
 
 .page-header {
-  background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5)),
-    linear-gradient(135deg, #e94560 0%, #0f3460 100%);
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   padding: 3rem 0;
   text-align: center;
   margin-bottom: 2rem;
@@ -205,11 +204,11 @@ export default {
   font-size: 2.5rem;
   color: #fff;
   margin-bottom: 0.5rem;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .page-header .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.1rem;
 }
 
@@ -231,9 +230,9 @@ export default {
 }
 
 .category-tab {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.8);
+  background: #fff;
+  border: 2px solid #ddd;
+  color: #555;
   padding: 0.75rem 1.5rem;
   border-radius: 25px;
   cursor: pointer;
@@ -243,17 +242,17 @@ export default {
 }
 
 .category-tab:hover {
-  background: linear-gradient(145deg, #252e50 0%, #1e2746 100%);
-  border-color: rgba(233, 69, 96, 0.3);
-  color: #fff;
+  border-color: #e74c3c;
+  color: #e74c3c;
   transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .category-tab.active {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
-  border-color: rgba(233, 69, 96, 0.5);
+  background: #e74c3c;
+  border-color: #e74c3c;
   color: #fff;
-  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
 }
 
 .news-grid {
@@ -263,18 +262,17 @@ export default {
 }
 
 .news-card {
-  background: linear-gradient(145deg, #1e2746 0%, #1a1f35 100%);
-  border-radius: 16px;
+  background: #fff;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
 }
 
 .news-card:hover {
-  transform: translateY(-12px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2);
-  border-color: rgba(233, 69, 96, 0.3);
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .news-image {
@@ -292,7 +290,7 @@ export default {
 }
 
 .news-card:hover .news-image img {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .image-overlay {
@@ -303,7 +301,7 @@ export default {
   bottom: 0;
   background: linear-gradient(
     to top,
-    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.8) 0%,
     rgba(0, 0, 0, 0.3) 50%,
     rgba(0, 0, 0, 0.1) 100%
   );
@@ -326,15 +324,15 @@ export default {
 }
 
 .btn-view {
-  background: linear-gradient(135deg, #e94560 0%, #c73e54 100%);
+  background: #e74c3c;
   color: #fff;
   padding: 0.9rem 2rem;
-  border-radius: 30px;
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -342,8 +340,8 @@ export default {
 
 .btn-view:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 25px rgba(233, 69, 96, 0.6);
-  background: linear-gradient(135deg, #ff5a75 0%, #e94560 100%);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.5);
+  background: #c0392b;
 }
 
 .news-info {
@@ -351,7 +349,7 @@ export default {
 }
 
 .news-date {
-  color: rgba(255, 255, 255, 0.6);
+  color: #7f8c8d;
   font-size: 0.85rem;
   margin-bottom: 0.75rem;
   display: flex;
@@ -364,7 +362,7 @@ export default {
 }
 
 .news-title {
-  color: #fff;
+  color: #2c3e50;
   font-size: 1.15rem;
   font-weight: 600;
   margin-bottom: 0.75rem;
@@ -383,13 +381,13 @@ export default {
 }
 
 .category-tag {
-  background: rgba(233, 69, 96, 0.2);
-  color: #e94560;
+  background: #fef5f3;
+  color: #e74c3c;
   padding: 0.3rem 0.7rem;
   border-radius: 15px;
   font-size: 0.75rem;
   font-weight: 500;
-  border: 1px solid rgba(233, 69, 96, 0.3);
+  border: 1px solid #fdd;
 }
 
 .loading {
@@ -398,14 +396,14 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(233, 69, 96, 0.2);
-  border-top-color: #e94560;
+  border: 4px solid #f5f5f5;
+  border-top-color: #e74c3c;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
@@ -423,10 +421,10 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 3rem;
-  background: rgba(244, 67, 54, 0.1);
+  background: #fee;
   border-radius: 12px;
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  color: #ff6b6b;
+  border: 1px solid #fcc;
+  color: #c0392b;
   text-align: center;
 }
 
