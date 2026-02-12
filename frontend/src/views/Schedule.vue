@@ -528,25 +528,19 @@ export default {
       if (!genre) return ''
       const trimmedGenre = String(genre).trim()
       if (!trimmedGenre) return ''
-      const words = trimmedGenre.split(/\s+/).filter(Boolean)
-      const formatToken = token => {
-        if (!token) return ''
-        return token
-          .split('-')
-          .filter(Boolean)
-          .map(part => {
-            const normalizedPart = part.toLowerCase()
-            if (!normalizedPart) {
-              return ''
-            }
-            return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
-          })
-          .filter(Boolean)
-          .join('-')
-      }
-      return words
-        .map(word => formatToken(word))
+      return trimmedGenre
+        .split(/\s+/)
         .filter(Boolean)
+        .map(word =>
+          word
+            .split('-')
+            .filter(Boolean)
+            .map(part => {
+              const normalizedPart = part.toLowerCase()
+              return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
+            })
+            .join('-')
+        )
         .join(' ')
     },
     formatApolloSubtitles(event, show) {
