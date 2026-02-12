@@ -631,6 +631,39 @@ app.get('/api/sessions', async (req, res) => {
       })
       .sort({ startTime: 1 });
 
+    if (sessions.length > 0) {
+      const sessionIds = sessions.map(session => session._id);
+      const bookedSeatCounts = await Booking.aggregate([
+        {
+          $match: {
+            session: { $in: sessionIds },
+            status: { $in: ['pending', 'confirmed'] }
+          }
+        },
+        {
+          $project: {
+            session: 1,
+            seatsCount: { $size: { $ifNull: ['$seats', []] } }
+          }
+        },
+        {
+          $group: {
+            _id: '$session',
+            bookedSeats: { $sum: '$seatsCount' }
+          }
+        }
+      ]);
+      const bookedSeatsBySession = new Map(
+        bookedSeatCounts.map(item => [String(item._id), item.bookedSeats])
+      );
+
+      sessions.forEach(session => {
+        const hallCapacity = session.hall?.capacity ?? session.availableSeats ?? 0;
+        const bookedSeats = bookedSeatsBySession.get(String(session._id)) ?? 0;
+        session.availableSeats = Math.max(hallCapacity - bookedSeats, 0);
+      });
+    }
+
     res.json({
       success: true,
       count: sessions.length,
