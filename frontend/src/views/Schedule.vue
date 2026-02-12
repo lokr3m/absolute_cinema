@@ -211,7 +211,7 @@
 import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
-const CURRENT_TIME_UPDATE_INTERVAL = 30000
+const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
 
 export default {
   name: 'Schedule',
@@ -475,7 +475,7 @@ export default {
                 startTimestamp: startTimestamp,
                 showUrl: show.ShowURL || '#'
               };
-            }).filter(Boolean);
+            }).filter(session => session !== null);
             
             // Auto-select first available date if no sessions for selected date
             const sessionsForSelectedDate = this.upcomingSessions.filter(s => s.date === this.selectedDate);
