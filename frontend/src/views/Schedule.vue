@@ -528,11 +528,20 @@ export default {
     formatGenreLabel(genre) {
       if (!genre) return ''
       const words = String(genre).match(/\S+/g) ?? []
+      const formatToken = token => {
+        if (!token) return ''
+        return token
+          .split('-')
+          .map(part => {
+            const normalizedPart = part.toLowerCase()
+            return normalizedPart ? normalizedPart[0].toUpperCase() + normalizedPart.slice(1) : ''
+          })
+          .filter(Boolean)
+          .join('-')
+      }
       return words
-        .map(word => {
-          const normalizedWord = word.toLowerCase()
-          return normalizedWord[0].toUpperCase() + normalizedWord.slice(1)
-        })
+        .map(word => formatToken(word))
+        .filter(Boolean)
         .join(' ')
     },
     formatApolloSubtitles(event, show) {
