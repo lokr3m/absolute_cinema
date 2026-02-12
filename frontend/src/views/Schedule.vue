@@ -320,6 +320,7 @@ export default {
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const nameMatches = aggregateCinemaNames?.has(sessionName)
+              || aggregateGroup.names.some(name => sessionName.includes(normalizeCinemaName(name)))
             if (!idMatches && !nameMatches) {
               matches = false
             }
