@@ -529,6 +529,7 @@ export default {
       return String(genre)
         .trim()
         .split(/\s+/)
+        .filter(Boolean)
         .map(word => {
           const normalizedWord = word.toLowerCase()
           return normalizedWord[0].toUpperCase() + normalizedWord.slice(1)
