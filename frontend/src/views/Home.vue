@@ -201,7 +201,7 @@ export default {
           : typeof movie.genre === 'string'
             ? movie.genre.split(',')
             : [];
-        let posterUrl;
+        const posterUrl = movieGenres.length ? this.getMoviePosterUrl(movie) : '';
 
         movieGenres.forEach(genre => {
           const displayName = this.normalizeGenreName(genre);
@@ -210,14 +210,10 @@ export default {
           const existing = genres.get(key);
           if (existing) {
             existing.count += 1;
-            if (!existing.imageUrl) {
-              posterUrl = posterUrl || this.getMoviePosterUrl(movie);
-              if (posterUrl) {
-                existing.imageUrl = posterUrl;
-              }
+            if (!existing.imageUrl && posterUrl) {
+              existing.imageUrl = posterUrl;
             }
           } else {
-            posterUrl = posterUrl || this.getMoviePosterUrl(movie);
             genres.set(key, { key, name: displayName, count: 1, imageUrl: posterUrl });
           }
         });
@@ -235,9 +231,9 @@ export default {
     getMoviePosterUrl(movie) {
       return movie?.posterUrl || movie?.PosterUrl || movie?.Images?.EventMediumImagePortrait || '';
     },
-    getRandomSample(movies, count) {
+    selectRandomMovies(movies, count) {
       const pool = Array.isArray(movies) ? [...movies] : [];
-      for (let i = pool.length - 1; i > 0; i -= 1) {
+      for (let i = pool.length - 1; i >= 1; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
@@ -302,7 +298,7 @@ export default {
         const response = await axios.get(`${apiUrl}/api/apollo-kino/events`);
         
         if (response.data.success) {
-          this.topMovies = this.getRandomSample(response.data.movies || [], TOP_MOVIE_COUNT);
+          this.topMovies = this.selectRandomMovies(response.data.movies || [], TOP_MOVIE_COUNT);
         } else {
           this.error = 'Failed to load featured movies';
         }
