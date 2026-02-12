@@ -199,6 +199,12 @@ async function refreshDatabaseFromApollo() {
       hallMap.set(key, hall);
       uniqueHalls.set(hall._id.toString(), hall);
     };
+    const selectRandomHall = hallsCollection => {
+      const hallsArray = Array.from(hallsCollection.values());
+      return hallsArray.length > 0
+        ? hallsArray[Math.floor(Math.random() * hallsArray.length)]
+        : null;
+    };
     let generatedHallCount = 0;
 
     if (shows.length > 0) {
@@ -256,6 +262,9 @@ async function refreshDatabaseFromApollo() {
           }
           
           if (!film) continue;
+
+          const presentationMethod = show.PresentationMethod?.toString().toLowerCase() || '';
+          const is3D = presentationMethod.includes('3d');
           
           const auditoriumId = normalizeApolloId(show.TheatreAuditoriumID);
           const theatreId = normalizeApolloId(show.TheatreID);
@@ -282,7 +291,7 @@ async function refreshDatabaseFromApollo() {
               const seatCapacityRaw = Number(show.TotalSeats);
               const hasSeatCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0;
               const baseCapacity = hasSeatCapacity ? seatCapacityRaw : DEFAULT_HALL_CAPACITY;
-              // Estimate row count assuming a rectangular hall with ~1.2:1 width-to-height ratio.
+              // Estimate row count assuming a rectangular hall: rows ≈ sqrt(capacity / ratio).
               const rows = Math.max(
                 MIN_HALL_DIMENSION,
                 Math.round(Math.sqrt(baseCapacity / DEFAULT_HALL_ASPECT_RATIO))
@@ -303,7 +312,7 @@ async function refreshDatabaseFromApollo() {
                 capacity,
                 rows,
                 seatsPerRow,
-                screenType: show.PresentationMethod?.includes('3D') ? '3D' : 'Standard',
+                screenType: is3D ? '3D' : 'Standard',
                 soundSystem: 'Standard'
               });
               registerHallKey(auditoriumKey, hall);
@@ -312,10 +321,7 @@ async function refreshDatabaseFromApollo() {
           }
 
           if (!hall) {
-            const hallsArray = Array.from(uniqueHalls.values());
-            hall = hallsArray.length > 0
-              ? hallsArray[Math.floor(Math.random() * hallsArray.length)]
-              : null;
+            hall = selectRandomHall(uniqueHalls);
           }
           if (!hall) continue;
           
@@ -336,7 +342,7 @@ async function refreshDatabaseFromApollo() {
               child: (parseFloat(show.PriceInCents) / 100 * 0.6) || 5.50,
               vip: (parseFloat(show.PriceInCents) / 100 * 1.5) || 14.00
             },
-            is3D: show.PresentationMethod?.includes('3D') || false,
+            is3D,
             subtitles: show.SubtitleLanguage1?.Name || 'Estonian',
             availableSeats: hall.capacity,
             status: 'scheduled'
