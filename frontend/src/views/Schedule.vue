@@ -239,7 +239,7 @@ export default {
   created() {
     this.allDates = this.generateDates()
     this.fetchCinemas()
-    this.fetchSchedule(this.selectedDate)
+    this.fetchSchedule()
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
     }, CURRENT_TIME_UPDATE_INTERVAL)
@@ -373,7 +373,6 @@ export default {
         const apolloDate = this.formatApolloDate(dateValue);
         if (apolloDate) {
           params.dt = apolloDate;
-          params.dtTo = apolloDate;
         }
       } else if (dateRange) {
         params.dtFrom = dateRange.from;
@@ -495,7 +494,8 @@ export default {
         const [year, month, day] = dateValue.split('-')
         return `${day}.${month}.${year}`
       }
-      return dateValue
+      console.warn('Unexpected date format for schedule selection:', dateValue)
+      return null
     },
     goToBooking(session) {
       if (!session) return
