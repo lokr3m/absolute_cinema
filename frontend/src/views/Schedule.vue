@@ -357,7 +357,7 @@ export default {
           genres.add(String(genre).trim().toLowerCase())
         })
       })
-      return Array.from(genres).sort((a, b) => a.localeCompare(b))
+      return Array.from(genres).sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }))
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
@@ -530,7 +530,10 @@ export default {
         .split(' ')
         .map(word => {
           const normalizedWord = word.toLowerCase()
-          return normalizedWord ? normalizedWord[0].toUpperCase() + normalizedWord.slice(1) : ''
+          if (!normalizedWord) {
+            return ''
+          }
+          return normalizedWord[0].toUpperCase() + normalizedWord.slice(1)
         })
         .join(' ')
     },
