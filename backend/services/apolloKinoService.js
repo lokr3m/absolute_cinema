@@ -277,7 +277,14 @@ class ApolloKinoService {
       const events = await this.fetchEvents();
 
       // Transform events to movie data
-      const movies = events.map(event => this.transformEventToFilm(event));
+      const movies = events.reduce((items, event) => {
+        try {
+          items.push(this.transformEventToFilm(event));
+        } catch (transformError) {
+          console.warn('Error transforming event to film:', transformError.message);
+        }
+        return items;
+      }, []);
       const shows = [];
 
       return { movies, shows, schedule, events };
