@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { Film, Session, Cinema, Hall, Booking, Seat } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
@@ -14,6 +15,20 @@ app.use(express.json());
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 const BOOKING_ID_BYTES = 6;
+const DEFAULT_COUNTRY = 'Estonia';
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 60;
+
+const cinemaRateLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later.'
+  }
+});
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
@@ -31,6 +46,25 @@ const normalizeApolloId = value => {
   }
   const normalized = String(value).trim();
   return normalized.length > 0 ? normalized : null;
+};
+
+const mapCinemaToTheatreArea = cinema => {
+  const apolloId = cinema.apolloId ?? null;
+  return {
+    ID: apolloId,
+    id: apolloId,
+    Name: cinema.name,
+    Address: cinema.address?.street,
+    City: cinema.address?.city,
+    PostalCode: cinema.address?.postalCode,
+    Phone: cinema.phone,
+    Email: cinema.email,
+    Facilities: cinema.facilities,
+    _id: cinema._id,
+    name: cinema.name,
+    address: cinema.address,
+    apolloId
+  };
 };
 
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
@@ -90,12 +124,13 @@ async function refreshDatabaseFromApollo() {
       try {
         // Create cinema from theatre area
         const cinemaData = {
+          apolloId: normalizeApolloId(area.ID),
           name: area.Name || `Apollo Kino ${area.ID}`,
           address: {
             street: area.Address || 'Unknown',
             city: area.City || 'Tallinn',
             postalCode: area.PostalCode || '10000',
-            country: 'Estonia'
+            country: DEFAULT_COUNTRY
           },
           phone: area.Phone || '',
           email: area.Email || 'info@apollokino.ee',
@@ -129,8 +164,9 @@ async function refreshDatabaseFromApollo() {
     if (theatreAreas.length === 0) {
       console.log('  ℹ️ No theatre areas from API, creating default cinema...');
       const defaultCinema = await Cinema.create({
+        apolloId: null,
         name: 'Apollo Kino Solaris',
-        address: { street: 'Estonia pst 9', city: 'Tallinn', postalCode: '10143', country: 'Estonia' },
+        address: { street: 'Estonia pst 9', city: 'Tallinn', postalCode: '10143', country: DEFAULT_COUNTRY },
         phone: '+372 6273 500',
         email: 'info@apollokino.ee',
         facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
@@ -590,7 +626,7 @@ app.get('/api/sessions', async (req, res) => {
         select: 'name cinema screenType soundSystem capacity',
         populate: {
           path: 'cinema',
-          select: 'name address'
+          select: 'name address apolloId'
         }
       })
       .sort({ startTime: 1 });
@@ -686,21 +722,66 @@ app.get('/api/sessions/:id/seats', async (req, res) => {
  * GET /api/cinemas
  * List all cinemas
  */
-app.get('/api/cinemas', async (req, res) => {
+app.get('/api/cinemas', cinemaRateLimiter, async (req, res) => {
   try {
+    const theatreAreas = await apolloKinoService.fetchTheatreAreas();
+    if (theatreAreas.length > 0) {
+      const apolloIds = theatreAreas
+        .map(area => normalizeApolloId(area.ID))
+        .filter(Boolean);
+      const cinemas = apolloIds.length > 0
+        ? await Cinema.find({ apolloId: { $in: apolloIds } })
+        : [];
+      const cinemaMap = new Map(cinemas.map(cinema => [cinema.apolloId, cinema]));
+      const cinemaData = theatreAreas.map(area => {
+        const apolloId = normalizeApolloId(area.ID);
+        const dbCinema = apolloId ? cinemaMap.get(apolloId) : null;
+        return {
+          ...area,
+          id: apolloId,
+          _id: dbCinema?._id ?? null,
+          name: dbCinema?.name ?? area.Name ?? area.name,
+          address: dbCinema?.address ?? {
+            street: area.Address,
+            city: area.City,
+            postalCode: area.PostalCode,
+            country: area.Country ?? DEFAULT_COUNTRY
+          },
+          apolloId: apolloId ?? dbCinema?.apolloId ?? null
+        };
+      });
+      return res.json({
+        success: true,
+        count: cinemaData.length,
+        data: cinemaData
+      });
+    }
+
     const cinemas = await Cinema.find().sort({ name: 1 });
-    
+    const cinemaData = cinemas.map(mapCinemaToTheatreArea);
+
     res.json({
       success: true,
-      count: cinemas.length,
-      data: cinemas
+      count: cinemaData.length,
+      data: cinemaData
     });
   } catch (error) {
-    console.error('Error fetching cinemas:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch cinemas'
-    });
+    console.error('Apollo API failed, attempting database fallback for cinemas:', error);
+    try {
+      const cinemas = await Cinema.find().sort({ name: 1 });
+      const cinemaData = cinemas.map(mapCinemaToTheatreArea);
+      res.json({
+        success: true,
+        count: cinemaData.length,
+        data: cinemaData
+      });
+    } catch (dbError) {
+      console.error('Database fallback for cinemas also failed:', dbError);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch cinemas'
+      });
+    }
   }
 });
 
@@ -708,20 +789,17 @@ app.get('/api/cinemas', async (req, res) => {
  * GET /api/cinemas/:id/halls
  * Get all halls for a specific cinema
  */
-app.get('/api/cinemas/:id/halls', async (req, res) => {
+app.get('/api/cinemas/:id/halls', cinemaRateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid cinema ID'
-      });
+    const cinemaQuery = [{ apolloId: id }];
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      cinemaQuery.unshift({ _id: id });
     }
+    const cinema = await Cinema.findOne({ $or: cinemaQuery });
+    const cinemaId = cinema?._id;
 
-    // Check if cinema exists
-    const cinema = await Cinema.findById(id);
     if (!cinema) {
       return res.status(404).json({
         success: false,
@@ -730,13 +808,14 @@ app.get('/api/cinemas/:id/halls', async (req, res) => {
     }
 
     // Get all halls for this cinema
-    const halls = await Hall.find({ cinema: id }).sort({ name: 1 });
+    const halls = await Hall.find({ cinema: cinemaId }).sort({ name: 1 });
 
     res.json({
       success: true,
       cinema: {
         id: cinema._id,
-        name: cinema.name
+        name: cinema.name,
+        apolloId: cinema.apolloId
       },
       count: halls.length,
       data: halls
@@ -1210,7 +1289,7 @@ app.get('/api/admin/sessions', async (req, res) => {
         select: 'name cinema screenType soundSystem capacity rows seatsPerRow',
         populate: {
           path: 'cinema',
-          select: 'name address'
+          select: 'name address apolloId'
         }
       })
       .sort({ startTime: -1 });
@@ -1523,7 +1602,7 @@ app.delete('/api/admin/sessions/:id', async (req, res) => {
 app.get('/api/admin/halls', async (req, res) => {
   try {
     const halls = await Hall.find()
-      .populate('cinema', 'name address')
+      .populate('cinema', 'name address apolloId')
       .sort({ 'cinema.name': 1, name: 1 });
 
     res.json({

@@ -33,10 +33,10 @@
               </div>
               <div 
                 v-for="cinema in cinemas" 
-                :key="cinema._id" 
+                :key="cinema.id" 
                 class="dropdown-item"
-                :class="{ active: selectedCinema === cinema._id }"
-                @click="selectCinema(cinema._id, cinema.name)"
+                :class="{ active: selectedCinema === cinema.id }"
+                @click="selectCinema(cinema.id, cinema.name)"
               >
                 {{ cinema.name }}
               </div>
@@ -169,36 +169,22 @@ export default {
     async fetchCinemas() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        
-        const [localCinemasResponse, theatreAreasResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/cinemas`).catch(() => null),
-          fetch(`${apiUrl}/api/apollo-kino/TheatreAreas`).catch(() => null)
-        ]);
-        
-        let allCinemas = [];
-        
-        if (localCinemasResponse && localCinemasResponse.ok) {
-          const data = await localCinemasResponse.json();
-          if (data.success && data.data) {
-            allCinemas = data.data.map(cinema => ({
-              _id: cinema._id,
-              name: cinema.name
-            }));
-          }
+        const response = await fetch(`${apiUrl}/api/cinemas`);
+        const data = await response.json();
+        if (data.success && data.data) {
+          this.cinemas = data.data
+            .map(cinema => {
+              const cinemaId = cinema.id ?? cinema.ID ?? cinema.apolloId;
+              if (!cinemaId) return null;
+              return {
+                id: String(cinemaId),
+                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+              };
+            })
+            .filter(Boolean);
+        } else {
+          this.cinemas = [];
         }
-        
-        if (theatreAreasResponse && theatreAreasResponse.ok) {
-          const data = await theatreAreasResponse.json();
-          if (data.success && data.data) {
-            const theatreAreas = data.data.map(area => ({
-              _id: area.ID,
-              name: area.Name
-            }));
-            allCinemas = [...allCinemas, ...theatreAreas];
-          }
-        }
-        
-        this.cinemas = allCinemas;
       } catch (err) {
         console.error('Error fetching cinemas:', err);
       }

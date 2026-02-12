@@ -284,8 +284,8 @@ export default {
       
       return this.sessions.filter(session => {
         const matchesFilm = !this.selectedFilm || session.film._id === this.selectedFilm
-        const matchesCinema = !this.selectedCinema || 
-          (session.hall && session.hall.cinema && session.hall.cinema._id === this.selectedCinema)
+        const sessionCinemaId = session.hall?.cinema?.apolloId ?? session.hall?.cinema?._id
+        const matchesCinema = !this.selectedCinema || sessionCinemaId === this.selectedCinema
         const matchesHall = !this.selectedHall || 
           (session.hall && session.hall._id === this.selectedHall)
         
@@ -341,7 +341,17 @@ export default {
       try {
         this.loading = true
         const response = await axios.get(`${API_BASE_URL}/cinemas`)
-        this.cinemas = response.data.data || []
+        const cinemas = response.data.data || []
+        this.cinemas = cinemas
+          .map(cinema => {
+            const cinemaId = cinema.id ?? cinema.ID ?? cinema.apolloId
+            if (!cinemaId) return null
+            return {
+              id: String(cinemaId),
+              name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+            }
+          })
+          .filter(Boolean)
       } catch (error) {
         console.error('Error loading cinemas:', error)
         this.error = 'Failed to load cinemas'
@@ -354,6 +364,7 @@ export default {
       const filmName = Array.isArray(film) ? film[0] : film
       const cinemaName = Array.isArray(cinema) ? cinema[0] : cinema
       const cinemaKey = Array.isArray(cinemaId) ? cinemaId[0] : cinemaId
+      const normalizedCinemaKey = cinemaKey ? String(cinemaKey) : null
       const dateValue = Array.isArray(date) ? date[0] : date
       const timeValue = Array.isArray(time) ? time[0] : time
       const hallName = Array.isArray(hall) ? hall[0] : hall
@@ -375,17 +386,17 @@ export default {
         }
       }
 
-      if (cinemaKey) {
-        const cinemaMatch = this.cinemas.find(item => item._id === cinemaKey)
+      if (normalizedCinemaKey) {
+        const cinemaMatch = this.cinemas.find(item => item.id === normalizedCinemaKey)
         if (cinemaMatch) {
-          this.selectedCinema = cinemaMatch._id
+          this.selectedCinema = cinemaMatch.id
         }
       }
 
       if (!this.selectedCinema && cinemaName) {
         const cinemaMatch = this.cinemas.find(item => item.name?.toLowerCase() === cinemaName.toLowerCase())
         if (cinemaMatch) {
-          this.selectedCinema = cinemaMatch._id
+          this.selectedCinema = cinemaMatch.id
         }
       }
 
@@ -400,13 +411,36 @@ export default {
       const normalizedTime = this.normalizeTime(timeValue)
       if (normalizedTime) {
         const sessionsToSearch = this.filteredSessions.length ? this.filteredSessions : this.sessions
-        const sessionMatch = sessionsToSearch.find(
+        let sessionMatch = sessionsToSearch.find(
           session => {
             const matchesTime = this.formatSessionTime(session) === normalizedTime
             const matchesHall = !hallName || session.hall?.name?.toLowerCase() === hallName.toLowerCase()
             return matchesTime && matchesHall
           }
         )
+
+        if (!sessionMatch && hallName) {
+          const timeMatches = sessionsToSearch.filter(
+            session => this.formatSessionTime(session) === normalizedTime
+          )
+          if (timeMatches.length > 1) {
+            const hallNames = timeMatches
+              .map(session => session.hall?.name)
+              .filter(Boolean)
+              .join(', ')
+            const message = `Multiple showtimes found at ${normalizedTime}. Please verify the hall: ${hallNames || 'Unknown hall'}. The first option has been selected.`
+            console.warn(message)
+            this.error = message
+            setTimeout(() => {
+              if (this.error === message) {
+                this.error = null
+              }
+            }, 5000)
+          }
+          if (timeMatches.length > 0) {
+            sessionMatch = timeMatches[0]
+          }
+        }
 
         if (sessionMatch) {
           this.selectedSession = sessionMatch._id
@@ -641,7 +675,7 @@ export default {
       return film ? film.title : ''
     },
     getCinemaName(cinemaId) {
-      const cinema = this.cinemas.find(c => c._id === cinemaId)
+      const cinema = this.cinemas.find(c => c.id === cinemaId)
       return cinema ? cinema.name : ''
     },
     getHallName(hallId) {

@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const cinemaSchema = new mongoose.Schema({
+  apolloId: {
+    type: String,
+    trim: true,
+    index: true
+  },
   name: {
     type: String,
     required: true,
