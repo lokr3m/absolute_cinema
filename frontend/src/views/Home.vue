@@ -231,7 +231,7 @@ export default {
     getMoviePosterUrl(movie) {
       return movie?.posterUrl || movie?.PosterUrl || movie?.Images?.EventMediumImagePortrait || '';
     },
-    selectRandomMovies(movies, count) {
+    getRandomMovies(movies, count) {
       const pool = Array.isArray(movies) ? [...movies] : [];
       for (let i = pool.length - 1; i >= 1; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -298,7 +298,7 @@ export default {
         const response = await axios.get(`${apiUrl}/api/apollo-kino/events`);
         
         if (response.data.success) {
-          this.topMovies = this.selectRandomMovies(response.data.movies || [], TOP_MOVIE_COUNT);
+          this.topMovies = this.getRandomMovies(response.data.movies || [], TOP_MOVIE_COUNT);
         } else {
           this.error = 'Failed to load featured movies';
         }
