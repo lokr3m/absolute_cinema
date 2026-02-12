@@ -25,6 +25,10 @@
             <span class="step-number">3</span>
             <span class="step-label">Email</span>
           </div>
+          <div class="step" :class="{ active: currentStep === 4 }">
+            <span class="step-number">4</span>
+            <span class="step-label">Payment</span>
+          </div>
         </div>
 
       <div class="booking-content">
@@ -109,12 +113,75 @@
 
           <div v-if="currentStep === 3" class="step-content">
             <h2>Confirm Your Email</h2>
-            <form class="payment-form" @submit.prevent="confirmBooking">
+            <form class="payment-form" @submit.prevent="confirmEmail">
               <div class="form-group">
                 <label>Email: *</label>
                 <input type="email" v-model="paymentInfo.email" placeholder="john@example.com" required>
               </div>
             </form>
+            <p class="info-text">Click OK to choose your payment method.</p>
+          </div>
+
+          <div v-if="currentStep === 4" class="step-content">
+            <h2>Select Payment Method</h2>
+            <div class="payment-methods">
+              <label
+                v-for="method in paymentMethods"
+                :key="method.key"
+                class="payment-method"
+                :class="{ selected: selectedPaymentMethod === method.key, disabled: !method.available }"
+              >
+                <input
+                  type="radio"
+                  name="payment-method"
+                  :value="method.key"
+                  v-model="selectedPaymentMethod"
+                  :disabled="!method.available"
+                >
+                <div>
+                  <span class="payment-name">{{ method.label }}</span>
+                  <span class="payment-status">
+                    {{ method.available ? 'Available' : 'Coming soon' }}
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div v-if="selectedPaymentMethod === 'card'" class="card-payment">
+              <div class="demo-card">
+                <div class="demo-card-title">Skrill Demo Card</div>
+                <p class="info-text">
+                  Use the demo card number <strong>4111 1111 1111 1111</strong>, expiry <strong>12/30</strong>,
+                  and CVV <strong>123</strong> to complete the test payment.
+                </p>
+              </div>
+              <div class="form-group">
+                <label>Cardholder Name *</label>
+                <input type="text" v-model="cardDetails.name" placeholder="John Doe" required>
+              </div>
+              <div class="form-group">
+                <label>Card Number *</label>
+                <input
+                  type="text"
+                  v-model="cardDetails.number"
+                  placeholder="4111 1111 1111 1111"
+                  inputmode="numeric"
+                  maxlength="19"
+                  required
+                >
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Expiry (MM/YY) *</label>
+                  <input type="text" v-model="cardDetails.expiry" placeholder="12/30" maxlength="5" required>
+                </div>
+                <div class="form-group">
+                  <label>CVV *</label>
+                  <input type="text" v-model="cardDetails.cvv" placeholder="123" maxlength="4" required>
+                </div>
+              </div>
+              <p v-if="paymentError" class="payment-error">{{ paymentError }}</p>
+            </div>
           </div>
 
           <div class="navigation-buttons">
@@ -124,8 +191,11 @@
             <button v-if="currentStep < 3" @click="nextStep" class="btn btn-primary" :disabled="loading || (currentStep === 1 && !canProceedToStep2)">
               Next
             </button>
-            <button v-if="currentStep === 3" @click="confirmBooking" class="btn btn-primary" :disabled="loading">
-              {{ loading ? 'Processing...' : 'Ok' }}
+            <button v-if="currentStep === 3" @click="confirmEmail" class="btn btn-primary" :disabled="loading">
+              Ok
+            </button>
+            <button v-if="currentStep === 4" @click="processPayment" class="btn btn-primary" :disabled="loading">
+              {{ loading ? 'Processing...' : 'Pay with Skrill Demo' }}
             </button>
           </div>
         </div>
@@ -220,6 +290,20 @@ export default {
       paymentInfo: {
         email: ''
       },
+      paymentMethods: [
+        { key: 'apple-pay', label: 'Apple Pay', available: false },
+        { key: 'google-pay', label: 'Google Pay', available: false },
+        { key: 'paypal', label: 'PayPal', available: false },
+        { key: 'card', label: 'Credit / Debit Card', available: true }
+      ],
+      selectedPaymentMethod: 'card',
+      cardDetails: {
+        name: '',
+        number: '',
+        expiry: '',
+        cvv: ''
+      },
+      paymentError: '',
       loading: false,
       error: null
     }
@@ -642,25 +726,60 @@ export default {
         this.selectedSeats.push({ row, number: seat })
       }
     },
-    async confirmBooking() {
+    confirmEmail() {
       if (!this.paymentInfo.email) {
         alert('Please enter your email')
         return
       }
-      
+      this.paymentError = ''
+      this.currentStep = 4
+    },
+    normalizeCardNumber(value) {
+      return value.replace(/\s+/g, '')
+    },
+    isDemoCardValid() {
+      const cardNumber = this.normalizeCardNumber(this.cardDetails.number)
+      const expiry = this.cardDetails.expiry.trim()
+      const cvv = this.cardDetails.cvv.trim()
+      const name = this.cardDetails.name.trim()
+
+      return (
+        name.length > 0 &&
+        cardNumber === '4111111111111111' &&
+        expiry === '12/30' &&
+        cvv === '123'
+      )
+    },
+    async processPayment() {
+      if (this.selectedPaymentMethod !== 'card') {
+        this.paymentError = 'This payment method is not available yet.'
+        return
+      }
+
+      if (!this.isDemoCardValid()) {
+        this.paymentError = 'Please use the Skrill demo card details shown above.'
+        return
+      }
+
+      this.paymentError = ''
+
       try {
         this.loading = true
         const bookingData = {
           sessionId: this.selectedSession,
           seats: this.selectedSeats,
-          contactEmail: this.paymentInfo.email
+          contactEmail: this.paymentInfo.email,
+          paymentMethod: 'card',
+          paymentStatus: 'paid'
         }
-        
+
         const response = await axios.post(`${API_BASE_URL}/bookings`, bookingData)
-        
+
         if (response.data.success) {
-          alert(`Booking confirmed! Your booking number is: ${response.data.data.bookingNumber}\nTotal: €${response.data.data.totalPrice}`)
-          this.$router.push('/')
+          this.$router.push({
+            name: 'BookingSuccess',
+            params: { bookingNumber: response.data.data.bookingNumber }
+          })
         }
       } catch (error) {
         console.error('Error creating booking:', error)
@@ -935,6 +1054,85 @@ export default {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.payment-methods {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.payment-method {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 2px solid #e8e8e8;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.payment-method input {
+  margin: 0;
+}
+
+.payment-method.selected {
+  border-color: #ff6600;
+  box-shadow: 0 6px 18px rgba(231, 76, 60, 0.15);
+  transform: translateY(-1px);
+}
+
+.payment-method.disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
+.payment-name {
+  display: block;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.payment-status {
+  display: block;
+  color: #95a5a6;
+  font-size: 0.9rem;
+  margin-top: 0.15rem;
+}
+
+.card-payment {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px dashed #e8e8e8;
+  padding: 1.5rem;
+}
+
+.demo-card {
+  background: #fff5ed;
+  border-radius: 12px;
+  border: 1px solid #ffd5b8;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.demo-card-title {
+  font-weight: 700;
+  color: #ff6600;
+  margin-bottom: 0.35rem;
+}
+
+.payment-error {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fff0e6;
+  border-radius: 10px;
+  border: 1px solid #ffc4a3;
+  color: #e65c00;
+  font-weight: 600;
 }
 
 .screen {

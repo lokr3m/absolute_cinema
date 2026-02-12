@@ -3,6 +3,7 @@ import Home from '../views/Home.vue'
 import Movies from '../views/Movies.vue'
 import MovieDetail from '../views/MovieDetail.vue'
 import Booking from '../views/Booking.vue'
+import BookingSuccess from '../views/BookingSuccess.vue'
 import Schedule from '../views/Schedule.vue'
 import Admin from '../views/Admin.vue'
 import News from '../views/News.vue'
@@ -80,6 +81,11 @@ const routes = [
 
       next()
     }
+  },
+  {
+    path: '/booking-success/:bookingNumber',
+    name: 'BookingSuccess',
+    component: BookingSuccess
   },
   {
     path: '/schedule',
