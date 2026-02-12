@@ -18,6 +18,7 @@ const BOOKING_ID_BYTES = 6;
 const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
+const PAYMENT_METHODS = ['card', 'cash', 'online'];
 
 const cinemaRateLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -1177,7 +1178,7 @@ app.get('/api/apollo-kino/News', async (req, res) => {
  */
 app.post('/api/bookings', async (req, res) => {
   try {
-    const { sessionId, seats, contactEmail, contactPhone, paymentMethod, userId } = req.body;
+    const { sessionId, seats, contactEmail, contactPhone, paymentMethod, paymentStatus, userId } = req.body;
 
     if (!sessionId || !Array.isArray(seats) || seats.length === 0 || !contactEmail) {
       return res.status(400).json({
@@ -1273,15 +1274,19 @@ app.post('/api/bookings', async (req, res) => {
     const ticketPrice = session.price && session.price.standard ? session.price.standard : 0;
     const totalPrice = ticketPrice * seatIds.length;
 
+    const normalizedPaymentMethod = PAYMENT_METHODS.includes(paymentMethod) ? paymentMethod : undefined;
+    const normalizedPaymentStatus = normalizedPaymentMethod && paymentStatus === 'paid' ? 'paid' : 'pending';
+    const normalizedBookingStatus = normalizedPaymentStatus === 'paid' ? 'confirmed' : 'pending';
+
     const booking = await Booking.create({
       user: userId && mongoose.Types.ObjectId.isValid(userId) ? userId : undefined,
       session: sessionId,
       seats: seatIds,
       totalPrice,
       bookingNumber,
-      status: 'pending',
-      paymentStatus: 'pending',
-      paymentMethod,
+      status: normalizedBookingStatus,
+      paymentStatus: normalizedPaymentStatus,
+      paymentMethod: normalizedPaymentMethod,
       contactEmail,
       contactPhone
     });
@@ -1314,7 +1319,24 @@ app.get('/api/bookings/:bookingNumber', async (req, res) => {
   try {
     const { bookingNumber } = req.params;
     const booking = await Booking.findOne({ bookingNumber })
-      .populate('session', 'startTime')
+      .populate({
+        path: 'session',
+        select: 'startTime endTime',
+        populate: [
+          {
+            path: 'film',
+            select: 'title originalTitle duration genre ageRating posterUrl rating language subtitles'
+          },
+          {
+            path: 'hall',
+            select: 'name cinema screenType soundSystem',
+            populate: {
+              path: 'cinema',
+              select: 'name address apolloId'
+            }
+          }
+        ]
+      })
       .populate({
         path: 'seats',
         select: 'row number'
