@@ -274,11 +274,11 @@ class ApolloKinoService {
       }
 
       const schedule = await this.fetchJSON(schedulePath);
-      const events = await this.fetchJSON("/Events");
+      const events = await this.fetchEvents();
 
-      // The structure may vary, so we'll handle different possible structures
-      let movies = [];
-      let shows = [];
+      // Transform events to movie data
+      const movies = events.map(event => this.transformEventToFilm(event));
+      const shows = [];
 
       return { movies, shows, schedule, events };
     } catch (error) {
