@@ -966,10 +966,11 @@ app.get('/api/films/:id/sessions', async (req, res) => {
  */
 app.get('/api/apollo-kino/sync', async (req, res) => {
   try {
+    const dtParam = req.query.dt ? normalizeScheduleDate(req.query.dt, 'dt') : null;
     // Get and validate date parameters
     const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo, req.query.dt);
     
-    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
+    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo, dtParam);
     
     if (data.error) {
       return res.status(503).json({
@@ -1083,10 +1084,11 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
+    const dtParam = req.query.dt ? normalizeScheduleDate(req.query.dt, 'dt') : null;
     // Get and validate date parameters
     const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo, req.query.dt);
     
-    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
+    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo, dtParam);
     
     if (data.error) {
       return res.status(503).json({

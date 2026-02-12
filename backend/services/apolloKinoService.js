@@ -252,21 +252,41 @@ class ApolloKinoService {
 
   /**
    * Fetch and parse all Apollo Kino data
-   * @param {string} dateFrom - Start date in YYYY-MM-DD format (optional)
-   * @param {string} dateTo - End date in YYYY-MM-DD format (optional)
+   * @param {string} dateFrom - Start date in YYYY-MM-DD or DD.MM.YYYY format (optional)
+   * @param {string} dateTo - End date in YYYY-MM-DD or DD.MM.YYYY format (optional)
+   * @param {string} date - Apollo dt date in YYYY-MM-DD or DD.MM.YYYY format (optional)
    * @returns {Promise<Object>} Object containing movies and shows
    */
-  async fetchSchedule(dateFrom = null, dateTo = null) {
+  async fetchSchedule(dateFrom = null, dateTo = null, date = null) {
     try {
       // Build query parameters for date range
       let schedulePath = "/Schedule";
       const params = [];
       
-      if (dateFrom) {
-        params.push(`dtFrom=${encodeURIComponent(dateFrom)}`);
+      const toApolloDate = value => {
+        if (!value) return null;
+        if (/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
+          return value;
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          const [year, month, day] = value.split('-');
+          return `${day}.${month}.${year}`;
+        }
+        return value;
+      };
+
+      const apolloDate = toApolloDate(date);
+      const apolloDateFrom = toApolloDate(dateFrom);
+      const apolloDateTo = toApolloDate(dateTo);
+
+      if (apolloDate) {
+        params.push(`dt=${encodeURIComponent(apolloDate)}`);
       }
-      if (dateTo) {
-        params.push(`dtTo=${encodeURIComponent(dateTo)}`);
+      if (apolloDateFrom) {
+        params.push(`dtFrom=${encodeURIComponent(apolloDateFrom)}`);
+      }
+      if (apolloDateTo) {
+        params.push(`dtTo=${encodeURIComponent(apolloDateTo)}`);
       }
       
       if (params.length > 0) {
