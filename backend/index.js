@@ -57,6 +57,7 @@ const extractShowEventId = show =>
 const extractShowTitle = show =>
   show?.EventTitle ?? show?.Title ?? show?.OriginalTitle ?? show?.Event?.Title ?? show?.Event?.OriginalTitle ?? null;
 
+// Prefer the schedule synopsis but fall back to event-level description when needed.
 const extractShowDescription = show =>
   show?.Synopsis ?? show?.EventDescription ?? null;
 
