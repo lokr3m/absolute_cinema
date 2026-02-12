@@ -211,11 +211,13 @@ export default {
       if (genre === null || genre === undefined) return '';
       const trimmed = String(genre).trim();
       if (!trimmed) return '';
+      // Preserve acronyms like IMAX or 3D.
       if (/[A-Z]/.test(trimmed) && !/[a-z]/.test(trimmed)) {
         return trimmed;
       }
       return trimmed
         .toLowerCase()
+        // Title-case words separated by spaces, hyphens, slashes, or apostrophes.
         .replace(/(^|[\s-\/'])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
     },
     closeDropdown(event) {
