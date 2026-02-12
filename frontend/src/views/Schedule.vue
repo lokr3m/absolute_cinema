@@ -353,9 +353,11 @@ export default {
     availableGenres() {
       const genres = new Set()
       this.sessions.forEach(session => {
-        this.normalizeGenreList(session.genre).forEach(genre => genres.add(genre))
+        this.normalizeGenreList(session.genre).forEach(genre => {
+          genres.add(String(genre).trim().toLowerCase())
+        })
       })
-      return Array.from(genres).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+      return Array.from(genres).sort((a, b) => a.localeCompare(b))
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
@@ -526,7 +528,10 @@ export default {
       if (!genre) return ''
       return String(genre)
         .split(' ')
-        .map(word => word ? word[0].toUpperCase() + word.slice(1) : '')
+        .map(word => {
+          const normalizedWord = word.toLowerCase()
+          return normalizedWord ? normalizedWord[0].toUpperCase() + normalizedWord.slice(1) : ''
+        })
         .join(' ')
     },
     formatApolloSubtitles(event, show) {
