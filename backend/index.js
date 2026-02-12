@@ -243,10 +243,15 @@ async function refreshDatabaseFromApollo() {
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          const eventId = show.EventID ?? show.EventId ?? show.Event?.ID ?? show.Event?.EventID;
+          const eventId = show.EventID ?? show.EventId ?? show.Event?.ID ?? show.Event?.EventID ?? null;
           const apolloId = normalizeApolloId(eventId);
           let film = apolloId ? filmMap.get(apolloId) : null;
-          const showTitle = show.EventTitle || show.Title || show.OriginalTitle || show.Event?.Title || show.Event?.OriginalTitle;
+          const showTitle = show.EventTitle
+            ?? show.Title
+            ?? show.OriginalTitle
+            ?? show.Event?.Title
+            ?? show.Event?.OriginalTitle
+            ?? null;
           
           // If film not found in events, create it from show data
           if (!film && showTitle) {
@@ -268,7 +273,7 @@ async function refreshDatabaseFromApollo() {
               const filmData = {
                 title: showTitle,
                 originalTitle: show.OriginalTitle || showTitle,
-                description: show.Synopsis || show.EventDescription || 'No description available',
+                description: show.Synopsis ?? show.EventDescription ?? 'No description available',
                 duration: parseInt(show.LengthInMinutes) || 90,
                 genre: genres,
                 director: 'Unknown',
