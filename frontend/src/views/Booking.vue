@@ -417,9 +417,13 @@ export default {
         )
 
         if (!sessionMatch && hallName) {
-          sessionMatch = sessionsToSearch.find(
+          const timeMatches = sessionsToSearch.filter(
             session => this.formatSessionTime(session) === normalizedTime
           )
+          if (timeMatches.length > 1) {
+            console.warn('Multiple sessions matched by time only; selecting the first match.')
+          }
+          sessionMatch = timeMatches[0]
         }
 
         if (sessionMatch) {

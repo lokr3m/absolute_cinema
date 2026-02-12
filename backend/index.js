@@ -707,7 +707,7 @@ app.get('/api/cinemas', async (req, res) => {
       data: cinemas
     });
   } catch (error) {
-    console.error('Error fetching cinemas from Apollo API, falling back to database:', error);
+    console.error('Apollo API failed, attempting database fallback for cinemas:', error);
     try {
       const cinemas = await Cinema.find().sort({ name: 1 });
       res.json({
@@ -716,7 +716,7 @@ app.get('/api/cinemas', async (req, res) => {
         data: cinemas
       });
     } catch (dbError) {
-      console.error('Error fetching cinemas from database after Apollo failure:', dbError);
+      console.error('Database fallback for cinemas also failed:', dbError);
       res.status(500).json({
         success: false,
         error: 'Failed to fetch cinemas'
