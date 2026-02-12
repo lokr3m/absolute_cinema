@@ -148,6 +148,11 @@
 <script>
 import axios from 'axios'
 
+const HAS_UPPERCASE_REGEX = /[A-Z]/;
+const HAS_LOWERCASE_REGEX = /[a-z]/;
+// Matches word boundaries: start of string, spaces, hyphens, slashes, or apostrophes.
+const TITLE_CASE_BOUNDARY_REGEX = /(^|[\s-\/'])([a-z])/g;
+
 export default {
   name: 'Home',
   data() {
@@ -212,13 +217,13 @@ export default {
       const trimmed = String(genre).trim();
       if (!trimmed) return '';
       // Preserve acronyms like IMAX or 3D.
-      if (/[A-Z]/.test(trimmed) && !/[a-z]/.test(trimmed)) {
+      if (HAS_UPPERCASE_REGEX.test(trimmed) && !HAS_LOWERCASE_REGEX.test(trimmed)) {
         return trimmed;
       }
       return trimmed
         .toLowerCase()
         // Title-case words separated by spaces, hyphens, slashes, or apostrophes.
-        .replace(/(^|[\s-\/'])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
+        .replace(TITLE_CASE_BOUNDARY_REGEX, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
     },
     closeDropdown(event) {
       if (!event.target.closest('.custom-dropdown')) {
