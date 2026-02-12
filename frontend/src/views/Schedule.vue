@@ -222,7 +222,10 @@ const AGGREGATE_CINEMA_GROUPS = {
     names: ['Lõunakeskus', 'Eeden', 'Tasku']
   }
 }
-const normalizeCinemaName = value => (value ?? '').toLowerCase().replace('kristine', 'kristiine')
+const normalizeCinemaName = value => (value ?? '')
+  .toLowerCase()
+  .trim()
+  .replace(/\bkristine\b/g, 'kristiine')
 
 export default {
   name: 'Schedule',
@@ -306,10 +309,9 @@ export default {
             const sessionCinemaId = session.cinemaId
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
-            const nameMatches = aggregateCinemaNames?.has(sessionName)
-            const fallbackNameMatches = !nameMatches
-              && aggregateGroup.names.some(name => sessionName.includes(normalizeCinemaName(name)))
-            if (!idMatches && !nameMatches && !fallbackNameMatches) {
+            const fallbackNameMatches = aggregateGroup.names.some(name => sessionName.includes(normalizeCinemaName(name)))
+            const nameMatches = aggregateCinemaNames?.has(sessionName) || fallbackNameMatches
+            if (!idMatches && !nameMatches) {
               matches = false
             }
           } else if (session.cinemaId !== this.selectedCinema) {
