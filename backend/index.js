@@ -49,9 +49,11 @@ const normalizeApolloId = value => {
   return normalized.length > 0 ? normalized : null;
 };
 
+// Apollo payloads vary between EventID/EventId casing depending on source/version.
 const extractShowEventId = show =>
   show?.EventID ?? show?.EventId ?? show?.Event?.ID ?? show?.Event?.EventID ?? null;
 
+// Prefer explicit show titles (EventTitle/Title) before falling back to original titles.
 const extractShowTitle = show =>
   show?.EventTitle ?? show?.Title ?? show?.OriginalTitle ?? show?.Event?.Title ?? show?.Event?.OriginalTitle ?? null;
 
