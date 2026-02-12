@@ -33,6 +33,21 @@ const normalizeApolloId = value => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const mapCinemaToTheatreArea = cinema => ({
+  ID: cinema.apolloId ?? (cinema._id ? String(cinema._id) : null),
+  Name: cinema.name,
+  Address: cinema.address?.street,
+  City: cinema.address?.city,
+  PostalCode: cinema.address?.postalCode,
+  Phone: cinema.phone,
+  Email: cinema.email,
+  Facilities: cinema.facilities,
+  _id: cinema._id,
+  name: cinema.name,
+  address: cinema.address,
+  apolloId: cinema.apolloId
+});
+
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
 
 const extractShowsFromSchedule = schedulePayload => {
@@ -700,20 +715,22 @@ app.get('/api/cinemas', async (req, res) => {
     }
 
     const cinemas = await Cinema.find().sort({ name: 1 });
+    const cinemaData = cinemas.map(mapCinemaToTheatreArea);
 
     res.json({
       success: true,
-      count: cinemas.length,
-      data: cinemas
+      count: cinemaData.length,
+      data: cinemaData
     });
   } catch (error) {
     console.error('Apollo API failed, attempting database fallback for cinemas:', error);
     try {
       const cinemas = await Cinema.find().sort({ name: 1 });
+      const cinemaData = cinemas.map(mapCinemaToTheatreArea);
       res.json({
         success: true,
-        count: cinemas.length,
-        data: cinemas
+        count: cinemaData.length,
+        data: cinemaData
       });
     } catch (dbError) {
       console.error('Database fallback for cinemas also failed:', dbError);

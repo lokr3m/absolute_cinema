@@ -421,7 +421,13 @@ export default {
             session => this.formatSessionTime(session) === normalizedTime
           )
           if (timeMatches.length > 1) {
-            console.warn('Multiple sessions matched by time only; selecting the first match.')
+            const hallNames = timeMatches
+              .map(session => session.hall?.name)
+              .filter(Boolean)
+              .join(', ')
+            console.warn(
+              `Multiple sessions matched by time only (${timeMatches.length}). Halls: ${hallNames || 'Unknown'}. Selecting the first match.`
+            )
           }
           sessionMatch = timeMatches[0]
         }
