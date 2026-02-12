@@ -215,13 +215,14 @@ const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
 const AGGREGATE_CINEMA_GROUPS = {
   '1004': {
     city: 'Tallinn',
-    names: ['Solaris', 'Mustamäe', 'Ülemiste', 'Plaza', 'Kristine', 'Kristiine']
+    names: ['Solaris', 'Mustamäe', 'Ülemiste', 'Plaza', 'Kristiine']
   },
   '1015': {
     city: 'Tartu',
     names: ['Lõunakeskus', 'Eeden', 'Tasku']
   }
 }
+const normalizeCinemaName = value => (value ?? '').toLowerCase().replace('kristine', 'kristiine')
 
 export default {
   name: 'Schedule',
@@ -288,12 +289,14 @@ export default {
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
+      const aggregateCinemas = aggregateGroup
+        ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroup.city.toLowerCase())
+        : []
       const aggregateCinemaIds = aggregateGroup
-        ? new Set(
-          this.cinemas
-            .filter(cinema => cinema.id !== this.selectedCinema && cinema.city?.toLowerCase() === aggregateGroup.city.toLowerCase())
-            .map(cinema => cinema.id)
-        )
+        ? new Set(aggregateCinemas.map(cinema => cinema.id))
+        : null
+      const aggregateCinemaNames = aggregateGroup
+        ? new Set(aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean))
         : null
       return this.upcomingSessions.filter(session => {
         let matches = true
@@ -301,10 +304,12 @@ export default {
         if (this.selectedCinema) {
           if (aggregateGroup) {
             const sessionCinemaId = session.cinemaId
-            const sessionName = (session.cinema || '').toLowerCase()
-            const nameMatches = aggregateGroup.names.some(name => sessionName.includes(name.toLowerCase()))
+            const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
-            if (!idMatches && !nameMatches) {
+            const nameMatches = aggregateCinemaNames?.has(sessionName)
+            const fallbackNameMatches = !nameMatches
+              && aggregateGroup.names.some(name => sessionName.includes(normalizeCinemaName(name)))
+            if (!idMatches && !nameMatches && !fallbackNameMatches) {
               matches = false
             }
           } else if (session.cinemaId !== this.selectedCinema) {
