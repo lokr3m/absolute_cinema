@@ -232,6 +232,9 @@ const normalizeCinemaName = value => (value ?? '')
   .filter(Boolean)
   .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
   .join(' ')
+const tokenizeCinemaName = value => normalizeCinemaName(value)
+  .split(' ')
+  .filter(Boolean)
 
 export default {
   name: 'Schedule',
@@ -302,13 +305,19 @@ export default {
       const aggregateCinemas = aggregateGroup
         ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroupCity)
         : []
+      const aggregateGroupNames = aggregateGroup
+        ? aggregateGroup.names.map(name => normalizeCinemaName(name)).filter(Boolean)
+        : []
+      const aggregateGroupTokens = aggregateGroup
+        ? aggregateGroup.names.map(name => tokenizeCinemaName(name)).filter(tokens => tokens.length > 0)
+        : []
       const aggregateCinemaIds = aggregateGroup
         ? new Set(aggregateCinemas.map(cinema => cinema.id))
         : null
       const aggregateCinemaNames = aggregateGroup
         ? new Set([
           ...aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean),
-          ...aggregateGroup.names.map(name => normalizeCinemaName(name))
+          ...aggregateGroupNames
         ])
         : null
       return this.upcomingSessions.filter(session => {
@@ -320,8 +329,11 @@ export default {
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const nameMatches = aggregateCinemaNames?.has(sessionName)
-              || aggregateGroup.names.some(name => sessionName.includes(normalizeCinemaName(name)))
-            if (!idMatches && !nameMatches) {
+            const sessionTokens = tokenizeCinemaName(session.cinema)
+            const tokenMatches = aggregateGroupTokens?.some(tokens =>
+              tokens.every(token => sessionTokens.includes(token))
+            )
+            if (!idMatches && !nameMatches && !tokenMatches) {
               matches = false
             }
           } else if (session.cinemaId !== this.selectedCinema) {
