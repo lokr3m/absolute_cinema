@@ -353,9 +353,7 @@ export default {
     availableGenres() {
       const genres = new Set()
       this.sessions.forEach(session => {
-        this.normalizeGenreList(session.genre).forEach(genre => {
-          genres.add(String(genre).trim().toLowerCase())
-        })
+        this.normalizeGenreList(session.genre).forEach(genre => genres.add(genre))
       })
       const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
       return Array.from(genres).sort(collator.compare)
@@ -427,9 +425,9 @@ export default {
         }
         
         if (this.selectedGenre) {
-          const selectedGenre = this.selectedGenre.toLowerCase()
+          const selectedGenre = this.selectedGenre
           const sessionGenres = this.normalizeGenreList(session.genre)
-          const hasGenreMatch = sessionGenres.some(genre => genre.toLowerCase() === selectedGenre)
+          const hasGenreMatch = sessionGenres.includes(selectedGenre)
           if (!hasGenreMatch) {
             matches = false
           }
@@ -518,19 +516,19 @@ export default {
     normalizeGenreList(genresValue) {
       if (!genresValue) return []
       if (Array.isArray(genresValue)) {
-        return genresValue.map(genre => String(genre).trim()).filter(Boolean)
+        return genresValue
+          .map(genre => String(genre).trim().toLowerCase())
+          .filter(Boolean)
       }
       return String(genresValue)
         .split(',')
-        .map(genre => genre.trim())
+        .map(genre => genre.trim().toLowerCase())
         .filter(Boolean)
     },
     formatGenreLabel(genre) {
       if (!genre) return ''
-      return String(genre)
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
+      const words = String(genre).match(/\S+/g) ?? []
+      return words
         .map(word => {
           const normalizedWord = word.toLowerCase()
           return normalizedWord[0].toUpperCase() + normalizedWord.slice(1)
