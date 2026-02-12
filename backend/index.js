@@ -445,16 +445,31 @@ function validateDate(dateStr) {
   return dateStr;
 }
 
+function normalizeScheduleDate(dateStr) {
+  if (!dateStr) return null;
+  const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const apolloRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+  if (isoRegex.test(dateStr)) {
+    return validateDate(dateStr);
+  }
+  if (apolloRegex.test(dateStr)) {
+    const [day, month, year] = dateStr.split('.');
+    const normalized = `${year}-${month}-${day}`;
+    return validateDate(normalized);
+  }
+  throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+}
+
 // Helper function to get default date range
-function getDefaultDateRange(dtFrom, dtTo) {
-  let fromDate = dtFrom;
+function getDefaultDateRange(dtFrom, dtTo, dt) {
+  let fromDate = dtFrom || dt;
   let toDate = dtTo;
   
   // Default to today if not provided
   if (!fromDate) {
     fromDate = formatDateLocal(new Date());
   } else {
-    fromDate = validateDate(fromDate);
+    fromDate = normalizeScheduleDate(fromDate);
   }
   
   // Default to 14 days from dtFrom if not provided
@@ -463,7 +478,7 @@ function getDefaultDateRange(dtFrom, dtTo) {
     fromDateObj.setDate(fromDateObj.getDate() + 14);
     toDate = formatDateLocal(fromDateObj);
   } else {
-    toDate = validateDate(toDate);
+    toDate = normalizeScheduleDate(toDate);
   }
   
   // Validate that dtTo is not before dtFrom
@@ -926,13 +941,14 @@ app.get('/api/films/:id/sessions', async (req, res) => {
  * Fetch and sync data from Apollo Kino API to database
  * This endpoint fetches movies and sessions from Apollo Kino and stores them in the database
  * Query parameters:
- *   - dtFrom: Start date (YYYY-MM-DD) - defaults to today
- *   - dtTo: End date (YYYY-MM-DD) - defaults to 14 days from dtFrom
+ *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom
+ *   - dtFrom: Start date (YYYY-MM-DD or DD.MM.YYYY) - defaults to today
+ *   - dtTo: End date (YYYY-MM-DD or DD.MM.YYYY) - defaults to 14 days from dtFrom
  */
 app.get('/api/apollo-kino/sync', async (req, res) => {
   try {
     // Get and validate date parameters
-    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
+    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo, req.query.dt);
     
     const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
@@ -1042,13 +1058,14 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  * Get schedule data from Apollo Kino API
  * Returns movies and shows data from the Schedule endpoint
  * Query parameters:
- *   - dtFrom: Start date (YYYY-MM-DD) - defaults to today
- *   - dtTo: End date (YYYY-MM-DD) - defaults to 14 days from dtFrom
+ *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom
+ *   - dtFrom: Start date (YYYY-MM-DD or DD.MM.YYYY) - defaults to today
+ *   - dtTo: End date (YYYY-MM-DD or DD.MM.YYYY) - defaults to 14 days from dtFrom
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
     // Get and validate date parameters
-    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
+    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo, req.query.dt);
     
     const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
     
