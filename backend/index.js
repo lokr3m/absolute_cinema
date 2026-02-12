@@ -445,6 +445,24 @@ function validateDate(dateStr) {
   return dateStr;
 }
 
+function parseScheduleDate(dateStr) {
+  if (!dateStr) return null;
+  const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const localRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+  let normalizedDate = dateStr;
+  if (localRegex.test(dateStr)) {
+    const [day, month, year] = dateStr.split('.');
+    normalizedDate = `${year}-${month}-${day}`;
+  } else if (!isoRegex.test(dateStr)) {
+    throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+  }
+  const parsedDate = new Date(`${normalizedDate}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error(`Invalid date: ${dateStr}`);
+  }
+  return parsedDate;
+}
+
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo) {
   let fromDate = dtFrom;
@@ -572,12 +590,13 @@ app.get('/api/films/:id', async (req, res) => {
  * List all scheduled sessions
  * Query parameters:
  *   - filmId: Filter by film ID
- *   - date: Filter by date (YYYY-MM-DD)
+ *   - date: Filter by date (YYYY-MM-DD or DD.MM.YYYY)
+ *   - dt: Alias for date (DD.MM.YYYY or YYYY-MM-DD)
  *   - hallId: Filter by hall ID
  */
 app.get('/api/sessions', async (req, res) => {
   try {
-    const { filmId, date, hallId } = req.query;
+    const { filmId, date, dt, hallId } = req.query;
     
     // Build query filter
     const filter = { status: 'scheduled' };
@@ -602,11 +621,21 @@ app.get('/api/sessions', async (req, res) => {
       filter.hall = hallId;
     }
     
-    if (date) {
+    const dateParam = date || dt;
+    if (dateParam) {
+      let parsedDate;
+      try {
+        parsedDate = parseScheduleDate(dateParam);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          error: error.message
+        });
+      }
       // Filter sessions for the specified date
-      const startOfDay = new Date(date);
+      const startOfDay = new Date(parsedDate);
       startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
+      const endOfDay = new Date(parsedDate);
       endOfDay.setHours(23, 59, 59, 999);
       
       filter.startTime = {
