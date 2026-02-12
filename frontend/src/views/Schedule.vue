@@ -216,6 +216,7 @@ import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
+const GENRE_COLLATOR = new Intl.Collator(undefined, { sensitivity: 'base' })
 const AGGREGATE_CINEMA_GROUPS = {
   '1004': {
     city: 'tallinn',
@@ -355,8 +356,7 @@ export default {
       this.sessions.forEach(session => {
         this.normalizeGenreList(session.genre).forEach(genre => genres.add(genre))
       })
-      const collator = new Intl.Collator(undefined, { sensitivity: 'base' })
-      return Array.from(genres).sort(collator.compare)
+      return Array.from(genres).sort(GENRE_COLLATOR.compare)
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
@@ -537,8 +537,12 @@ export default {
             .filter(Boolean)
             .map(part => {
               const normalizedPart = part.toLowerCase()
+              if (!normalizedPart) {
+                return ''
+              }
               return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
             })
+            .filter(Boolean)
             .join('-')
         )
         .join(' ')
