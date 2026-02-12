@@ -192,7 +192,7 @@
               Next
             </button>
             <button v-if="currentStep === 3" @click="confirmEmail" class="btn btn-primary" :disabled="loading">
-              Ok
+              OK
             </button>
             <button v-if="currentStep === 4" @click="processPayment" class="btn btn-primary" :disabled="loading">
               {{ loading ? 'Processing...' : 'Pay with Skrill Demo' }}

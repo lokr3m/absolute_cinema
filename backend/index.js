@@ -18,6 +18,7 @@ const BOOKING_ID_BYTES = 6;
 const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
+const PAYMENT_METHODS = ['card', 'cash', 'online'];
 
 const cinemaRateLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -1273,8 +1274,7 @@ app.post('/api/bookings', async (req, res) => {
     const ticketPrice = session.price && session.price.standard ? session.price.standard : 0;
     const totalPrice = ticketPrice * seatIds.length;
 
-    const allowedPaymentMethods = ['card', 'cash', 'online'];
-    const normalizedPaymentMethod = allowedPaymentMethods.includes(paymentMethod) ? paymentMethod : undefined;
+    const normalizedPaymentMethod = PAYMENT_METHODS.includes(paymentMethod) ? paymentMethod : undefined;
     const normalizedPaymentStatus = normalizedPaymentMethod && paymentStatus === 'paid' ? 'paid' : 'pending';
     const normalizedBookingStatus = normalizedPaymentStatus === 'paid' ? 'confirmed' : 'pending';
 
