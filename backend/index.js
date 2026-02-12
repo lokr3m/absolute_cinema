@@ -191,6 +191,10 @@ async function refreshDatabaseFromApollo() {
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
 
+      const uniqueHalls = new Map(
+        Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])
+      );
+
       for (const show of shows) {
         try {
           // Find or create the film by event ID
@@ -264,25 +268,23 @@ async function refreshDatabaseFromApollo() {
           if (!hall && (auditoriumKey || nameKey)) {
             const cinema = theatreId ? cinemaMap.get(theatreId) : null;
             if (cinema) {
-              const seatCapacityRaw = Number.parseInt(
-                show.TotalSeats ?? show.SeatsAvailable ?? show.AvailableSeats,
-                10
-              );
-              const baseCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0
-                ? seatCapacityRaw
-                : 120;
+              const seatCapacityRaw = [show.TotalSeats, show.SeatsAvailable, show.AvailableSeats]
+                .map(value => Number.parseInt(value, 10))
+                .find(value => Number.isFinite(value) && value > 0);
+              const baseCapacity = seatCapacityRaw || 120;
               const rows = Math.max(8, Math.round(Math.sqrt(baseCapacity)));
               const seatsPerRow = Math.max(8, Math.ceil(baseCapacity / rows));
               const capacity = rows * seatsPerRow;
               hall = await Hall.create({
                 cinema: cinema._id,
-                name: auditoriumName || `Hall ${hallMap.size + 1}`,
+                name: auditoriumName || `Hall ${uniqueHalls.size + 1}`,
                 capacity,
                 rows,
                 seatsPerRow,
                 screenType: show.PresentationMethod?.includes('3D') ? '3D' : 'Standard',
                 soundSystem: 'Dolby Atmos'
               });
+              uniqueHalls.set(hall._id.toString(), hall);
               if (auditoriumKey) {
                 hallMap.set(auditoriumKey, hall);
               }
@@ -293,11 +295,9 @@ async function refreshDatabaseFromApollo() {
           }
 
           if (!hall) {
-            const uniqueHalls = Array.from(
-              new Map(Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])).values()
-            );
-            hall = uniqueHalls.length > 0
-              ? uniqueHalls[Math.floor(Math.random() * uniqueHalls.length)]
+            const hallsArray = Array.from(uniqueHalls.values());
+            hall = hallsArray.length > 0
+              ? hallsArray[Math.floor(Math.random() * hallsArray.length)]
               : null;
           }
           if (!hall) continue;
