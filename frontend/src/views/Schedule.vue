@@ -424,13 +424,14 @@ export default {
           }
           
           if (shows.length > 0) {
-            this.sessions = shows.map((show, index) => {
+            const mappedSessions = [];
+            shows.forEach((show, index) => {
               const startTime = new Date(show.dttmShowStart);
-              if (Number.isNaN(startTime.getTime())) {
-                console.warn('Invalid show start time:', show.dttmShowStart);
-                return null;
-              }
               const startTimestamp = startTime.getTime();
+              if (Number.isNaN(startTimestamp)) {
+                console.warn('Invalid show start time:', show.dttmShowStart);
+                return;
+              }
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
@@ -458,7 +459,7 @@ export default {
                 || 'https://via.placeholder.com/200x300/1a1a2e/e94560?text=' + encodeURIComponent(show.Title || 'No Image');
               
               const cinemaId = show.TheatreID != null ? String(show.TheatreID) : '';
-              return {
+              mappedSessions.push({
                 id: show.ID || index,
                 movieTitle: show.Title || 'Unknown',
                 genre: show.Genres || '',
@@ -475,8 +476,9 @@ export default {
                 date: showDate,
                 startTimestamp: startTimestamp,
                 showUrl: show.ShowURL || '#'
-              };
-            }).filter(session => session !== null);
+              });
+            });
+            this.sessions = mappedSessions;
             
             // Auto-select first available date if no sessions for selected date
             const sessionsForSelectedDate = this.upcomingSessions.filter(s => s.date === this.selectedDate);
