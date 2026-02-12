@@ -213,6 +213,7 @@
 
 <script>
 import axios from 'axios'
+import { formatLocalDate } from '../utils/date'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
@@ -249,14 +250,6 @@ const normalizeCinemaName = value => (value ?? '')
   .filter(Boolean)
   .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
   .join(' ')
-
-const formatLocalDate = date => {
-  if (!date) return ''
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 /**
  * Split a normalized cinema name into an array of space-separated tokens, removing empty segments.
