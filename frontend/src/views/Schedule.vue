@@ -396,85 +396,55 @@ export default {
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      axios.get(`${apiUrl}/api/apollo-kino/schedule`)
+      axios.get(`${apiUrl}/api/sessions`)
         .then(res => {
-          // Transform the schedule data to sessions format
-          const scheduleData = res.data.schedule;
+          const sessionsData = res.data.data || [];
           
-          // Try different possible structures (similar to fetchEvents pattern)
-          let shows = [];
-          if (scheduleData) {
-            if (scheduleData.Schedule?.Shows?.Show) {
-              // Structure: { Schedule: { Shows: { Show: [...] } } }
-              shows = Array.isArray(scheduleData.Schedule.Shows.Show)
-                ? scheduleData.Schedule.Shows.Show
-                : [scheduleData.Schedule.Shows.Show];
-            } else if (scheduleData.Shows?.Show) {
-              // Structure: { Shows: { Show: [...] } }
-              shows = Array.isArray(scheduleData.Shows.Show)
-                ? scheduleData.Shows.Show
-                : [scheduleData.Shows.Show];
-            } else if (Array.isArray(scheduleData.Shows)) {
-              // Structure: { Shows: [...] }
-              shows = scheduleData.Shows;
-            } else if (Array.isArray(scheduleData)) {
-              // Structure: [...]
-              shows = scheduleData;
-            }
-          }
-          
-          if (shows.length > 0) {
-            const mappedSessions = shows.reduce((sessions, show, index) => {
-              const startTime = new Date(show.dttmShowStart);
+          if (sessionsData.length > 0) {
+            const mappedSessions = sessionsData.reduce((sessions, session, index) => {
+              const startTime = new Date(session.startTime);
               if (Number.isNaN(startTime.getTime())) {
-                console.warn('Invalid show start time:', show.dttmShowStart);
+                console.warn('Invalid session start time:', session.startTime);
                 return sessions;
               }
               const startTimestamp = startTime.getTime();
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
-              const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
-              const totalSeats = parseInt(show.TotalSeats) || 100;
+              const seatsAvailable = Number.isFinite(session.availableSeats)
+                ? session.availableSeats
+                : 0;
+              const totalSeats = session.hall?.capacity ?? 0;
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;
-              
-              // Extract language name from object if it's an object
-              const spokenLang = typeof show.SpokenLanguage === 'object' 
-                ? (show.SpokenLanguage?.Name || 'Unknown')
-                : (show.SpokenLanguage || 'Unknown');
-              
-              // Extract subtitle language name from object if it's an object
-              const subtitleLang = typeof show.SubtitleLanguage1 === 'object'
-                ? (show.SubtitleLanguage1?.Name || 'Puudub')
-                : (show.SubtitleLanguage1 || 'Puudub');
-              
-              // Try multiple possible poster URL fields
-              const posterUrl = show.Images?.EventMediumImagePortrait 
-                || show.EventMediumImagePortrait 
-                || show.Images?.EventSmallImagePortrait
-                || show.EventSmallImagePortrait
-                || 'https://via.placeholder.com/200x300/1a1a2e/e94560?text=' + encodeURIComponent(show.Title || 'No Image');
-              
-              const cinemaId = show.TheatreID != null ? String(show.TheatreID) : '';
+              const genre = Array.isArray(session.film?.genre)
+                ? session.film.genre.join(', ')
+                : (session.film?.genre || '');
+              const posterUrl = session.film?.posterUrl
+                || `https://via.placeholder.com/200x300/1a1a2e/e94560?text=${encodeURIComponent(session.film?.title || 'No Image')}`;
+              const cinemaIdentifier = session.hall?.cinema?.apolloId;
+              const cinemaId = cinemaIdentifier ?? session.hall?.cinema?._id;
+              const subtitles = Array.isArray(session.film?.subtitles)
+                ? session.film.subtitles.join(', ')
+                : (session.film?.subtitles || 'Puudub');
               sessions.push({
-                id: show.ID || index,
-                movieTitle: show.Title || 'Unknown',
-                genre: show.Genres || '',
+                id: session._id || index,
+                movieTitle: session.film?.title || 'Unknown',
+                genre,
                 time: `${hours}:${minutes}`,
-                cinema: show.TheatreName || show.Theatre || 'Unknown Cinema',
-                cinemaId,
-                hall: show.TheatreAuditorium || 'Unknown Hall',
-                posterUrl: posterUrl,
-                language: spokenLang,
-                subtitles: subtitleLang,
-                format: show.PresentationMethod?.includes('3D') ? '3D' : '2D',
+                cinema: session.hall?.cinema?.name || 'Unknown Cinema',
+                cinemaId: cinemaId != null ? String(cinemaId) : '',
+                hall: session.hall?.name || 'Unknown Hall',
+                posterUrl,
+                language: session.film?.language || 'Unknown',
+                subtitles,
+                format: session.is3D ? '3D' : '2D',
                 availability: availabilityPercent,
                 availableSeats: seatsAvailable,
                 date: showDate,
                 startTimestamp,
-                showUrl: show.ShowURL || '#'
+                showUrl: '#'
               });
               return sessions;
             }, []);

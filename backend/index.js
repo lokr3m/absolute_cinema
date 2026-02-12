@@ -629,12 +629,51 @@ app.get('/api/sessions', async (req, res) => {
           select: 'name address apolloId'
         }
       })
-      .sort({ startTime: 1 });
+      .sort({ startTime: 1 })
+      .lean();
+
+    let sessionsToReturn = sessions;
+    if (sessions.length > 0) {
+      const sessionIds = sessions.map(session => session._id);
+      const bookedSeatCounts = await Booking.aggregate([
+        {
+          $match: {
+            session: { $in: sessionIds },
+            status: { $in: ['pending', 'confirmed'] }
+          }
+        },
+        {
+          $project: {
+            session: 1,
+            seatsCount: { $size: { $ifNull: ['$seats', []] } }
+          }
+        },
+        {
+          $group: {
+            _id: '$session',
+            bookedSeats: { $sum: '$seatsCount' }
+          }
+        }
+      ]);
+      const seatCountBySession = bookedSeatCounts.reduce((seatCountMap, item) => {
+        seatCountMap[String(item._id)] = item.bookedSeats;
+        return seatCountMap;
+      }, {});
+
+      sessionsToReturn = sessions.map(session => {
+        const totalCapacity = session.hall?.capacity ?? 0;
+        const bookedSeats = seatCountBySession[String(session._id)] ?? 0;
+        return {
+          ...session,
+          availableSeats: Math.max(totalCapacity - bookedSeats, 0)
+        };
+      });
+    }
 
     res.json({
       success: true,
-      count: sessions.length,
-      data: sessions
+      count: sessionsToReturn.length,
+      data: sessionsToReturn
     });
   } catch (error) {
     console.error('Error fetching sessions:', error);
