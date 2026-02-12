@@ -63,11 +63,15 @@
                 >
                   All Genres
                 </div>
-                <div class="dropdown-item" :class="{ active: selectedGenre === 'action' }" @click="selectGenre('action')">Action</div>
-                <div class="dropdown-item" :class="{ active: selectedGenre === 'comedy' }" @click="selectGenre('comedy')">Comedy</div>
-                <div class="dropdown-item" :class="{ active: selectedGenre === 'drama' }" @click="selectGenre('drama')">Drama</div>
-                <div class="dropdown-item" :class="{ active: selectedGenre === 'horror' }" @click="selectGenre('horror')">Horror</div>
-                <div class="dropdown-item" :class="{ active: selectedGenre === 'scifi' }" @click="selectGenre('scifi')">Sci-Fi</div>
+                <div
+                  v-for="genre in availableGenres"
+                  :key="genre"
+                  class="dropdown-item"
+                  :class="{ active: selectedGenre === genre }"
+                  @click="selectGenre(genre)"
+                >
+                  {{ formatGenreLabel(genre) }}
+                </div>
               </div>
             </div>
           </div>
@@ -212,6 +216,19 @@ import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
+const GENRE_COLLATOR = new Intl.Collator(undefined, { sensitivity: 'base' })
+const formatGenreToken = token => token
+  .split('-')
+  .filter(Boolean)
+  .map(part => {
+    const normalizedPart = part.toLowerCase()
+    if (!normalizedPart) {
+      return ''
+    }
+    return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
+  })
+  .filter(Boolean)
+  .join('-')
 const AGGREGATE_CINEMA_GROUPS = {
   '1004': {
     city: 'tallinn',
@@ -346,6 +363,13 @@ export default {
         }
       })
     },
+    availableGenres() {
+      const genres = new Set()
+      this.sessions.forEach(session => {
+        this.normalizeGenreList(session.genre).forEach(genre => genres.add(genre))
+      })
+      return Array.from(genres).sort((a, b) => GENRE_COLLATOR.compare(a, b))
+    },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
       const aggregateGroupCity = aggregateGroup ? aggregateGroup.city : ''
@@ -412,8 +436,12 @@ export default {
           }
         }
         
-        if (this.selectedGenre && !session.genre.toLowerCase().includes(this.selectedGenre.toLowerCase())) {
-          matches = false
+        if (this.selectedGenre) {
+          const sessionGenres = this.normalizeGenreList(session.genre)
+          const hasGenreMatch = sessionGenres.includes(this.selectedGenre)
+          if (!hasGenreMatch) {
+            matches = false
+          }
         }
         
         if (this.selectedFormat && session.format !== this.selectedFormat) {
@@ -495,6 +523,28 @@ export default {
     formatApolloGenres(genresValue) {
       if (!genresValue) return ''
       return Array.isArray(genresValue) ? genresValue.join(', ') : String(genresValue)
+    },
+    normalizeGenreList(genresValue) {
+      if (!genresValue) return []
+      if (Array.isArray(genresValue)) {
+        return genresValue
+          .map(genre => String(genre).trim().toLowerCase())
+          .filter(Boolean)
+      }
+      return String(genresValue)
+        .split(',')
+        .map(genre => genre.trim().toLowerCase())
+        .filter(Boolean)
+    },
+    formatGenreLabel(genre) {
+      if (!genre) return ''
+      const trimmedGenre = String(genre).trim()
+      if (!trimmedGenre) return ''
+      return trimmedGenre
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => formatGenreToken(word))
+        .join(' ')
     },
     formatApolloSubtitles(event, show) {
       const normalizeSubtitle = value => {
