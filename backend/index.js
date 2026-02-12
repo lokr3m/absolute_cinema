@@ -53,9 +53,12 @@ const normalizeApolloId = value => {
 const extractShowEventId = show =>
   show?.EventID ?? show?.EventId ?? show?.Event?.ID ?? show?.Event?.EventID ?? null;
 
-// Prefer explicit show titles (EventTitle/Title) before falling back to original titles.
+// Prefer explicit show titles (EventTitle/Title) and fall back to original titles when needed.
 const extractShowTitle = show =>
   show?.EventTitle ?? show?.Title ?? show?.OriginalTitle ?? show?.Event?.Title ?? show?.Event?.OriginalTitle ?? null;
+
+const extractShowDescription = show =>
+  show?.Synopsis ?? show?.EventDescription ?? null;
 
 const mapCinemaToTheatreArea = cinema => {
   const apolloId = cinema.apolloId ?? null;
@@ -276,7 +279,7 @@ async function refreshDatabaseFromApollo() {
               const filmData = {
                 title: showTitle,
                 originalTitle: show.OriginalTitle ?? showTitle,
-                description: show.Synopsis ?? show.EventDescription ?? 'No description available',
+                description: extractShowDescription(show) ?? 'No description available',
                 duration: parseInt(show.LengthInMinutes) || 90,
                 genre: genres,
                 director: 'Unknown',
