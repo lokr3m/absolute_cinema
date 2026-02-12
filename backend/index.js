@@ -208,6 +208,9 @@ async function refreshDatabaseFromApollo() {
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         // Use normalized Apollo IDs for consistent schedule lookups.
         cinemaMap.set(cinemaKey, cinema);
+        if (area.ID !== null && area.ID !== undefined && String(area.ID) !== cinemaKey) {
+          cinemaMap.set(area.ID, cinema);
+        }
         console.log(`  ✓ Created cinema: ${cinema.name}`);
 
         // Create default halls for each cinema (3 halls per cinema)
@@ -337,7 +340,7 @@ async function refreshDatabaseFromApollo() {
               const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
               film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
-              const eventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
+              const eventTitle = scheduleEvent?.Title ?? scheduleEvent?.OriginalTitle ?? scheduleEvent?.EventTitle ?? 'Unknown';
               console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
