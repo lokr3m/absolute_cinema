@@ -457,6 +457,9 @@ function normalizeScheduleDate(dateStr, label = 'date') {
     const day = Number(dayStr);
     const month = Number(monthStr);
     const year = Number(yearStr);
+    if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
+      throw new Error(`Invalid ${label}: ${dateStr}`);
+    }
     const date = new Date(year, month - 1, day);
     if (
       date.getFullYear() !== year
@@ -465,7 +468,9 @@ function normalizeScheduleDate(dateStr, label = 'date') {
     ) {
       throw new Error(`Invalid ${label}: ${dateStr}`);
     }
-    return `${yearStr}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
+    const paddedDay = String(day).padStart(2, '0');
+    const paddedMonth = String(month).padStart(2, '0');
+    return `${yearStr}-${paddedMonth}-${paddedDay}`;
   }
   throw new Error(`Invalid ${label} format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
 }
@@ -477,7 +482,7 @@ function getDefaultDateRange(dtFrom, dtTo, dt) {
   }
   let fromDate = dtFrom || dt;
   let toDate = dtTo;
-  const fromDateLabel = dtFrom ? 'dtFrom' : 'dt';
+  const fromDateLabel = dtFrom ? 'dtFrom' : (dt ? 'dt' : 'date');
   
   // Default to today if not provided
   if (!fromDate) {
