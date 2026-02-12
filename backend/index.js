@@ -653,14 +653,14 @@ app.get('/api/sessions', async (req, res) => {
           }
         }
       ]);
-      const bookedSeatsBySession = bookedSeatCounts.reduce((accumulator, item) => {
-        accumulator[String(item._id)] = item.bookedSeats;
-        return accumulator;
+      const seatCountBySession = bookedSeatCounts.reduce((bookingMap, item) => {
+        bookingMap[String(item._id)] = item.bookedSeats;
+        return bookingMap;
       }, {});
 
       sessions.forEach(session => {
         const totalCapacity = session.hall?.capacity ?? 0;
-        const bookedSeats = bookedSeatsBySession[String(session._id)] ?? 0;
+        const bookedSeats = seatCountBySession[String(session._id)] ?? 0;
         session.availableSeats = Math.max(totalCapacity - bookedSeats, 0);
       });
     }

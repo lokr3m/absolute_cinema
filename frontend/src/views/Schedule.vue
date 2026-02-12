@@ -414,7 +414,7 @@ export default {
               const seatsAvailable = Number.isFinite(session.availableSeats)
                 ? session.availableSeats
                 : 0;
-              const totalSeats = session.hall?.capacity ?? (seatsAvailable || 0);
+              const totalSeats = session.hall?.capacity ?? 0;
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;
