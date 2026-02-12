@@ -284,13 +284,14 @@ class ApolloKinoService {
           } catch (transformError) {
             console.warn('Error transforming event to film:', {
               error: transformError,
-              eventId: event?.ID
+              eventId: event?.ID,
+              title: event?.Title || event?.OriginalTitle
             });
             return null;
           }
         })
         .filter(Boolean);
-      const shows = []; // Schedule parsing handled by callers that need shows.
+      const shows = []; // Callers can parse the returned schedule payload for shows.
 
       return { movies, shows, schedule, events };
     } catch (error) {
