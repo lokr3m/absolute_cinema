@@ -135,14 +135,13 @@
           </div>
 
           <div v-else class="genre-grid">
-            <div class="genre-card" v-for="genre in featuredGenres" :key="genre.key">
+            <div class="genre-card" v-for="genre in featuredGenres.slice(0, 5)" :key="genre.key">
               <div class="genre-image">
                 <img :src="genre.imageUrl" :alt="`${genre.name} genre`">
               </div>
               <div class="genre-card-content">
                 <span class="genre-icon">🎞️</span>
                 <h3>{{ genre.name }}</h3>
-                <p class="genre-count">{{ genre.count }} movie{{ genre.count !== 1 ? 's' : '' }}</p>
               </div>
             </div>
           </div>
@@ -578,12 +577,6 @@ export default {
   font-size: 1.15rem;
   color: #2c3e50;
   font-weight: 600;
-}
-
-.genre-count {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #7f8c8d;
 }
 
 .movie-card {
