@@ -338,6 +338,7 @@ export default {
           ...normalizedAggregateNames
         ])
         : null
+      const sessionTokenCache = new Map()
       return this.upcomingSessions.filter(session => {
         let matches = true
         
@@ -347,7 +348,8 @@ export default {
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const nameMatches = aggregateCinemaNames?.has(sessionName)
-            const sessionTokens = tokenizeCinemaName(sessionName)
+            const sessionTokens = sessionTokenCache.get(sessionName) ?? tokenizeCinemaName(sessionName)
+            sessionTokenCache.set(sessionName, sessionTokens)
             // Subset match: all tokens from an aggregate cinema name appear in the session name (e.g. "Apollo Kino" -> "Apollo Kino Solaris").
             const aggregateTokenMatch = aggregateNameTokens?.some(tokens =>
               tokens.every(token => sessionTokens.includes(token))
@@ -357,12 +359,14 @@ export default {
             }
           } else {
             const sessionName = normalizeCinemaName(session.cinema)
-            const sessionTokens = tokenizeCinemaName(sessionName)
+            const sessionTokens = sessionTokenCache.get(sessionName) ?? tokenizeCinemaName(sessionName)
+            sessionTokenCache.set(sessionName, sessionTokens)
             const idMatches = session.cinemaId === this.selectedCinema
             const nameMatches = selectedCinemaName && sessionName === selectedCinemaName
-            const tokenMatch = selectedCinemaTokens.length > 0
-              && (selectedCinemaTokens.every(token => sessionTokens.includes(token))
-                || sessionTokens.every(token => selectedCinemaTokens.includes(token)))
+            const sharedTokenCount = selectedCinemaTokens.filter(token => sessionTokens.includes(token)).length
+            const minTokenCount = Math.min(selectedCinemaTokens.length, sessionTokens.length)
+            const tokenMatch = selectedCinemaTokens.length > 0 && sessionTokens.length > 0
+              && (minTokenCount === 1 ? sharedTokenCount === 1 : sharedTokenCount >= minTokenCount)
             if (!idMatches && !nameMatches && !tokenMatch) {
               matches = false
             }
