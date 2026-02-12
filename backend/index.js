@@ -632,6 +632,7 @@ app.get('/api/sessions', async (req, res) => {
       .sort({ startTime: 1 })
       .lean();
 
+    let sessionsToReturn = sessions;
     if (sessions.length > 0) {
       const sessionIds = sessions.map(session => session._id);
       const bookedSeatCounts = await Booking.aggregate([
@@ -659,17 +660,20 @@ app.get('/api/sessions', async (req, res) => {
         return seatCountMap;
       }, {});
 
-      sessions.forEach(session => {
+      sessionsToReturn = sessions.map(session => {
         const totalCapacity = session.hall?.capacity ?? 0;
         const bookedSeats = seatCountBySession[String(session._id)] ?? 0;
-        session.availableSeats = Math.max(totalCapacity - bookedSeats, 0);
+        return {
+          ...session,
+          availableSeats: Math.max(totalCapacity - bookedSeats, 0)
+        };
       });
     }
 
     res.json({
       success: true,
-      count: sessions.length,
-      data: sessions
+      count: sessionsToReturn.length,
+      data: sessionsToReturn
     });
   } catch (error) {
     console.error('Error fetching sessions:', error);
