@@ -217,6 +217,14 @@ import axios from 'axios'
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
 const GENRE_COLLATOR = new Intl.Collator(undefined, { sensitivity: 'base' })
+const formatGenreToken = token => token
+  .split('-')
+  .filter(Boolean)
+  .map(part => {
+    const normalizedPart = part.toLowerCase()
+    return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
+  })
+  .join('-')
 const AGGREGATE_CINEMA_GROUPS = {
   '1004': {
     city: 'tallinn',
@@ -356,7 +364,7 @@ export default {
       this.sessions.forEach(session => {
         this.normalizeGenreList(session.genre).forEach(genre => genres.add(genre))
       })
-      return Array.from(genres).sort(GENRE_COLLATOR.compare)
+      return Array.from(genres).sort((a, b) => GENRE_COLLATOR.compare(a, b))
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
@@ -531,20 +539,7 @@ export default {
       return trimmedGenre
         .split(/\s+/)
         .filter(Boolean)
-        .map(word =>
-          word
-            .split('-')
-            .filter(Boolean)
-            .map(part => {
-              const normalizedPart = part.toLowerCase()
-              if (!normalizedPart) {
-                return ''
-              }
-              return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
-            })
-            .filter(Boolean)
-            .join('-')
-        )
+        .map(word => formatGenreToken(word))
         .join(' ')
     },
     formatApolloSubtitles(event, show) {
