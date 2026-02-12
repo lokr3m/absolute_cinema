@@ -132,7 +132,7 @@
         </div>
 
         <div v-else class="genre-grid">
-          <div class="genre-card" v-for="genre in featuredGenres" :key="genre.name">
+          <div class="genre-card" v-for="genre in featuredGenres" :key="genre.key">
             <div class="genre-card-content">
               <span class="genre-icon">🎞️</span>
               <h3>{{ genre.name }}</h3>
@@ -191,15 +191,17 @@ export default {
         movieGenres.forEach(genre => {
           const trimmed = String(genre).trim();
           if (!trimmed) return;
-          const displayName = trimmed
-            .toLowerCase()
-            .replace(/\b\w/g, char => char.toUpperCase());
+          const displayName = trimmed === trimmed.toUpperCase()
+            ? trimmed
+            : trimmed
+              .toLowerCase()
+              .replace(/(^|[\s-])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
           const key = displayName.toLowerCase();
           const existing = genres.get(key);
           if (existing) {
             existing.count += 1;
           } else {
-            genres.set(key, { name: displayName, count: 1 });
+            genres.set(key, { key, name: displayName, count: 1 });
           }
         });
       });
@@ -499,7 +501,7 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
 .genre-icon {
