@@ -369,6 +369,16 @@ export default {
       return Array.isArray(genresValue) ? genresValue.join(', ') : String(genresValue)
     },
     formatApolloSubtitles(event, show) {
+      const normalizeSubtitle = value => {
+        if (!value) return []
+        if (Array.isArray(value)) {
+          return value.flatMap(normalizeSubtitle)
+        }
+        if (typeof value === 'object') {
+          return normalizeSubtitle(value.Name ?? value.name ?? value.Language ?? value.language)
+        }
+        return [String(value)]
+      }
       const subtitleValues = [
         event?.SubtitleLanguage1?.Name,
         event?.SubtitleLanguage2?.Name,
@@ -379,7 +389,7 @@ export default {
         show?.SubtitleLanguage1,
         show?.SubtitleLanguage2,
         show?.SubtitleLanguage
-      ].filter(Boolean)
+      ].flatMap(normalizeSubtitle)
       return subtitleValues.length > 0 ? [...new Set(subtitleValues)].join(', ') : 'Puudub'
     },
     mapApolloScheduleToSessions(schedulePayload, eventsPayload) {
@@ -522,7 +532,7 @@ export default {
     generateDates() {
       const dates = []
       const today = new Date()
-      const days = ['L', 'P', 'E', 'T', 'K', 'N', 'R'] // Estonian day abbreviations (L=Sunday, P=Monday, etc.)
+      const days = ['P', 'E', 'T', 'K', 'N', 'R', 'L'] // Estonian day abbreviations aligned to Date.getDay() (0=Sunday)
       
       for (let i = 0; i < 14; i++) {
         const date = new Date(today)
