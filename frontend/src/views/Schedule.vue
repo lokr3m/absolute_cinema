@@ -252,36 +252,6 @@ export default {
       clearInterval(this.currentTimeInterval)
     }
   },
-  watch: {
-    selectedDate(newDate) {
-      // When a date is selected, check if it has sessions
-      // If not, find the nearest date with sessions
-      if (this.sessions.length > 0) {
-        const sessionsForDate = this.upcomingSessions.filter(s => s.date === newDate)
-        if (sessionsForDate.length === 0 && this.availableDates.length > 0) {
-          // Find the closest available date
-          const selectedDateObj = new Date(newDate)
-          let closestDate = this.availableDates[0]
-          let minDiff = Math.abs(new Date(this.availableDates[0]) - selectedDateObj)
-          
-          for (const availDate of this.availableDates) {
-            const diff = Math.abs(new Date(availDate) - selectedDateObj)
-            if (diff < minDiff) {
-              minDiff = diff
-              closestDate = availDate
-            }
-          }
-          
-          // Only update if we found a different date
-          if (closestDate !== newDate) {
-            this.$nextTick(() => {
-              this.selectedDate = closestDate
-            })
-          }
-        }
-      }
-    }
-  },
   computed: {
     upcomingSessions() {
       // Hide sessions once their start time has been reached.
