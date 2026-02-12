@@ -197,6 +197,7 @@ async function refreshDatabaseFromApollo() {
       const uniqueHalls = new Map(
         Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])
       );
+      // Keep hall lookup keys and unique hall tracking aligned.
       const registerHallKey = (key, hall) => {
         if (!key || !hall) return;
         hallMap.set(key, hall);
@@ -290,7 +291,7 @@ async function refreshDatabaseFromApollo() {
               const hallName = auditoriumName
                 || (auditoriumId
                   ? `Hall ${auditoriumId}`
-                  : `Hall ${theatreId || 'default'}-${uniqueHalls.size + 1}`);
+                  : `Hall ${theatreId || 'Unknown'}-${uniqueHalls.size + 1}`);
               hall = await Hall.create({
                 cinema: cinema._id,
                 name: hallName,
