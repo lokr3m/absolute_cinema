@@ -16,7 +16,7 @@ const isValidDateParts = (year, month, day) => {
   );
 };
 
-const toApolloDate = value => {
+const normalizeApolloDate = value => {
   if (!value) return null;
   if (APOLLO_DATE_REGEX.test(value)) {
     const [dayStr, monthStr, yearStr] = value.split('.');
@@ -24,7 +24,7 @@ const toApolloDate = value => {
     const month = Number(monthStr);
     const year = Number(yearStr);
     if (!isValidDateParts(year, month, day)) {
-      throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+      throw new Error(`Invalid schedule date value: ${value}. Expected a real calendar date.`);
     }
     return value;
   }
@@ -34,7 +34,7 @@ const toApolloDate = value => {
     const month = Number(monthStr);
     const year = Number(yearStr);
     if (!isValidDateParts(year, month, day)) {
-      throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+      throw new Error(`Invalid schedule date value: ${value}. Expected a real calendar date.`);
     }
     return `${dayStr}.${monthStr}.${yearStr}`;
   }
@@ -303,9 +303,9 @@ class ApolloKinoService {
       let schedulePath = "/Schedule";
       const params = [];
       
-      const apolloDate = toApolloDate(date);
-      const apolloDateFrom = toApolloDate(dateFrom);
-      const apolloDateTo = toApolloDate(dateTo);
+      const apolloDate = normalizeApolloDate(date);
+      const apolloDateFrom = normalizeApolloDate(dateFrom);
+      const apolloDateTo = normalizeApolloDate(dateTo);
 
       if (apolloDate) {
         params.push(`dt=${encodeURIComponent(apolloDate)}`);
