@@ -71,6 +71,7 @@ const normalizeHallName = value => {
   return String(value).trim().toLowerCase();
 };
 
+// Prioritize fields in the order Apollo schedule payloads commonly expose hall names.
 const SCHEDULE_HALL_FIELDS = ['TheatreAuditorium', 'Auditorium', 'AuditoriumName', 'TheatreAuditoriumName'];
 
 const extractShowHallName = show => {
@@ -206,7 +207,7 @@ async function refreshDatabaseFromApollo() {
         const cinema = await Cinema.create(cinemaData);
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         cinemaMap.set(cinemaKey, cinema);
-        // Store both normalized and raw Apollo IDs to handle inconsistent payload formats.
+        // Store both normalized and raw Apollo IDs since schedule payloads use either format.
         if (area.ID !== null && area.ID !== undefined) {
           cinemaMap.set(area.ID, cinema);
         }
@@ -338,8 +339,8 @@ async function refreshDatabaseFromApollo() {
               const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
               film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
-              const scheduleEventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
-              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${scheduleEventTitle}):`, filmErr.message);
+              const eventTitleForLog = extractShowTitle(scheduleEvent) ?? 'Unknown';
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitleForLog}):`, filmErr.message);
               // Skip if film creation fails
               continue;
             }
