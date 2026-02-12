@@ -22,6 +22,42 @@ if (!MONGODB_URI) {
 
 const apolloKinoService = new ApolloKinoService();
 
+const normalizeApolloId = value => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    return null;
+  }
+  const normalized = String(value).trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
+
+const extractShowsFromSchedule = schedulePayload => {
+  if (!schedulePayload) return [];
+  // Apollo schedule responses may include { Schedule: { Shows: ... } }.
+  const nestedScheduleShows = schedulePayload.Schedule?.Shows?.Show;
+  if (nestedScheduleShows != null) {
+    return normalizeToArray(nestedScheduleShows);
+  }
+  // Apollo schedule responses may include { Shows: { Show: ... } }.
+  const directShows = schedulePayload.Shows?.Show;
+  if (directShows != null) {
+    return normalizeToArray(directShows);
+  }
+  // Apollo schedule responses may include { Shows: [...] }.
+  if (Array.isArray(schedulePayload.Shows)) {
+    return schedulePayload.Shows;
+  }
+  // Apollo schedule responses may return an array of shows directly.
+  if (Array.isArray(schedulePayload)) {
+    return schedulePayload;
+  }
+  return [];
+};
+
 /**
  * Refresh database with fresh data from Apollo Kino API
  * Clears all existing data and populates from API
@@ -126,7 +162,10 @@ async function refreshDatabaseFromApollo() {
       try {
         const filmData = apolloKinoService.transformEventToFilm(event);
         const film = await Film.create(filmData);
-        filmMap.set(event.ID, film);
+        const apolloId = normalizeApolloId(event.ID);
+        if (apolloId) {
+          filmMap.set(apolloId, film);
+        }
       } catch (err) {
         console.error(`  ⚠️ Error creating film for event ${event.ID}:`, err.message);
       }
@@ -147,22 +186,19 @@ async function refreshDatabaseFromApollo() {
     let sessionsCreated = 0;
     
     // Process schedule shows if available
-    if (scheduleData.schedule && scheduleData.schedule.Shows) {
-      const shows = Array.isArray(scheduleData.schedule.Shows) 
-        ? scheduleData.schedule.Shows 
-        : (scheduleData.schedule.Shows.Show ? 
-            (Array.isArray(scheduleData.schedule.Shows.Show) ? scheduleData.schedule.Shows.Show : [scheduleData.schedule.Shows.Show])
-            : [scheduleData.schedule.Shows]);
-      
+    const shows = extractShowsFromSchedule(scheduleData.schedule);
+
+    if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
-      
+
       // Get all halls as array for random assignment
       const allHalls = Array.from(hallMap.values());
-      
+
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          let film = filmMap.get(show.EventID);
+          const apolloId = normalizeApolloId(show.EventID);
+          let film = apolloId ? filmMap.get(apolloId) : null;
           
           // If film not found in events, create it from show data
           if (!film && show.Title) {
@@ -200,7 +236,9 @@ async function refreshDatabaseFromApollo() {
               };
               
               film = await Film.create(filmData);
-              filmMap.set(show.EventID, film);
+              if (apolloId) {
+                filmMap.set(apolloId, film);
+              }
             } catch (filmErr) {
               // Skip if film creation fails
               continue;

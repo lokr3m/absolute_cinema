@@ -7,6 +7,51 @@ import Schedule from '../views/Schedule.vue'
 import Admin from '../views/Admin.vue'
 import News from '../views/News.vue'
 
+const REQUIRED_BOOKING_QUERY = ['film', 'cinema', 'date', 'time']
+const DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
+const TIME_FORMAT = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+const hasContent = value => value.length > 0
+
+const isValidDateValue = value => {
+  if (!DATE_FORMAT.test(value)) return false
+  const [year, month, day] = value.split('-').map(Number)
+  const targetDate = Date.UTC(year, month - 1, day)
+  const date = new Date(targetDate)
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() + 1 !== month ||
+    date.getUTCDate() !== day
+  ) {
+    return false
+  }
+  const now = Date.now()
+  const today = new Date(now)
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  return targetDate >= todayUtc
+}
+
+const BOOKING_QUERY_VALIDATORS = {
+  film: hasContent,
+  cinema: hasContent,
+  date: isValidDateValue,
+  time: value => TIME_FORMAT.test(value)
+}
+
+const isValidBookingQueryValue = (key, value) => {
+  if (typeof value !== 'string') return false
+  const trimmedValue = value.trim()
+  const validator = BOOKING_QUERY_VALIDATORS[key]
+  return validator ? validator(trimmedValue) : false
+}
+
+const hasValidBookingQuery = to =>
+  REQUIRED_BOOKING_QUERY.every(key => {
+    const value = to.query[key]
+    if (value === undefined || value === null) return false
+    if (Array.isArray(value)) return false
+    return isValidBookingQueryValue(key, value)
+  })
+
 const routes = [
   {
     path: '/',
@@ -26,7 +71,15 @@ const routes = [
   {
     path: '/booking',
     name: 'Booking',
-    component: Booking
+    component: Booking,
+    beforeEnter: (to, from, next) => {
+      if (!hasValidBookingQuery(to)) {
+        next({ name: 'Schedule' })
+        return
+      }
+
+      next()
+    }
   },
   {
     path: '/schedule',
