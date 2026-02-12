@@ -120,6 +120,7 @@ async function refreshDatabaseFromApollo() {
 
     const cinemaMap = new Map(); // Map Apollo cinema ID to MongoDB cinema
     const hallMap = new Map(); // Map Apollo hall/auditorium ID to MongoDB hall
+    const hallsByCinemaId = new Map();
 
     for (const area of theatreAreas) {
       try {
@@ -139,6 +140,7 @@ async function refreshDatabaseFromApollo() {
         };
 
         const cinema = await Cinema.create(cinemaData);
+        const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         cinemaMap.set(area.ID, cinema);
         console.log(`  ✓ Created cinema: ${cinema.name}`);
 
@@ -155,6 +157,9 @@ async function refreshDatabaseFromApollo() {
           };
           const hall = await Hall.create(hallData);
           hallMap.set(`${area.ID}-${i}`, hall);
+          const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
+          hallsForCinema.push(hall);
+          hallsByCinemaId.set(cinemaKey, hallsForCinema);
         }
       } catch (err) {
         console.error(`  ⚠️ Error creating cinema for area ${area.ID}:`, err.message);
@@ -173,6 +178,7 @@ async function refreshDatabaseFromApollo() {
         facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
       });
       cinemaMap.set('default', defaultCinema);
+      const defaultCinemaKey = normalizeApolloId(defaultCinema.apolloId) ?? 'default';
       
       for (let i = 1; i <= 3; i++) {
         const hall = await Hall.create({
@@ -185,6 +191,9 @@ async function refreshDatabaseFromApollo() {
           soundSystem: i <= 2 ? 'Dolby Atmos' : 'Digital 5.1'
         });
         hallMap.set(`default-${i}`, hall);
+        const hallsForCinema = hallsByCinemaId.get(defaultCinemaKey) ?? [];
+        hallsForCinema.push(hall);
+        hallsByCinemaId.set(defaultCinemaKey, hallsForCinema);
       }
     }
 
@@ -284,12 +293,23 @@ async function refreshDatabaseFromApollo() {
           
           if (!film) continue;
           
-          // Assign a hall (use TheatreAuditoriumID if available, otherwise random)
-          const hall = allHalls.length > 0 ? allHalls[Math.floor(Math.random() * allHalls.length)] : null;
+          const cinemaKey = normalizeApolloId(show.TheatreID ?? show.Theatre?.ID ?? show.TheatreId) ?? 'default';
+          const candidateHalls = hallsByCinemaId.get(cinemaKey) ?? allHalls;
+          const hall = candidateHalls.length > 0
+            ? candidateHalls[Math.floor(Math.random() * candidateHalls.length)]
+            : null;
           if (!hall) continue;
-          
-          const startTime = new Date(show.dttmShowStart);
-          const endTime = new Date(show.dttmShowEnd || new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000));
+
+          const startValue = show.dttmShowStart || show.dttmShowStartUTC || show.dttmShowStartLocal;
+          const startTime = startValue ? new Date(startValue) : null;
+          if (!startTime || Number.isNaN(startTime.getTime())) {
+            continue;
+          }
+          const endValue = show.dttmShowEnd || show.dttmShowEndUTC || show.dttmShowEndLocal;
+          let endTime = endValue ? new Date(endValue) : null;
+          if (!endTime || Number.isNaN(endTime.getTime())) {
+            endTime = new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000);
+          }
           
           // Skip past sessions
           if (startTime < new Date()) continue;
