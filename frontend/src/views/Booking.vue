@@ -425,7 +425,10 @@ export default {
         ? [titleTokens, filmTokens]
         : [filmTokens, titleTokens]
       if (shorterTokens.length === 1) {
-        return titleTokens.length === 1 && filmTokens.length === 1 && shorterTokens[0] === longerTokens[0]
+        if (titleTokens.length !== 1 || filmTokens.length !== 1) {
+          return false
+        }
+        return shorterTokens[0] === longerTokens[0]
       }
       const longerTokenSet = new Set(longerTokens)
       return shorterTokens.every(token => longerTokenSet.has(token))

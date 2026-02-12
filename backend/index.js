@@ -301,23 +301,27 @@ async function refreshDatabaseFromApollo() {
           if (!hall) continue;
 
           // Prefer API-provided local start time when available, fall back to UTC/local variants from older payloads.
-          const startField = show.dttmShowStart
-            ? 'dttmShowStart'
-            : show.dttmShowStartUTC
-              ? 'dttmShowStartUTC'
-              : show.dttmShowStartLocal
-                ? 'dttmShowStartLocal'
-                : null;
+          let startField = null;
+          if (show.dttmShowStart) {
+            startField = 'dttmShowStart';
+          } else if (show.dttmShowStartUTC) {
+            startField = 'dttmShowStartUTC';
+          } else if (show.dttmShowStartLocal) {
+            startField = 'dttmShowStartLocal';
+          }
           const startValue = startField ? show[startField] : null;
           const startTime = startValue ? new Date(startValue) : null;
           if (!startTime || Number.isNaN(startTime.getTime())) {
             continue;
           }
-          const endValue = startField === 'dttmShowStartUTC'
-            ? (show.dttmShowEndUTC || show.dttmShowEnd || show.dttmShowEndLocal)
+          const endFieldPriority = startField === 'dttmShowStartUTC'
+            ? ['dttmShowEndUTC', 'dttmShowEnd', 'dttmShowEndLocal']
             : startField === 'dttmShowStartLocal'
-              ? (show.dttmShowEndLocal || show.dttmShowEnd || show.dttmShowEndUTC)
-              : (show.dttmShowEnd || show.dttmShowEndLocal || show.dttmShowEndUTC);
+              ? ['dttmShowEndLocal', 'dttmShowEnd', 'dttmShowEndUTC']
+              : ['dttmShowEnd', 'dttmShowEndLocal', 'dttmShowEndUTC'];
+          const endValue = endFieldPriority
+            .map(field => show[field])
+            .find(value => value);
           let endTime = endValue ? new Date(endValue) : null;
           if (!endTime || Number.isNaN(endTime.getTime())) {
             endTime = new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000);
