@@ -104,7 +104,7 @@
                 v-for="(date, index) in displayedDates"
                 :key="index"
                 @click="selectedDate = date.value"
-                :class="['date-btn-inline', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
+                :class="['date-btn-inline', { active: selectedDate === date.value, 'no-schedule': date.hasSchedule === false }]"
                 :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
               >
                 <div class="date-day">{{ date.day }}</div>
@@ -226,6 +226,7 @@ export default {
       currentWeekIndex: 0,
       allDates: [],
       sessions: [],
+      scheduleCache: {},
       cinemas: [],
       loading: false,
       error: null,
@@ -254,32 +255,7 @@ export default {
   },
   watch: {
     selectedDate(newDate) {
-      // When a date is selected, check if it has sessions
-      // If not, find the nearest date with sessions
-      if (this.sessions.length > 0) {
-        const sessionsForDate = this.upcomingSessions.filter(s => s.date === newDate)
-        if (sessionsForDate.length === 0 && this.availableDates.length > 0) {
-          // Find the closest available date
-          const selectedDateObj = new Date(newDate)
-          let closestDate = this.availableDates[0]
-          let minDiff = Math.abs(new Date(this.availableDates[0]) - selectedDateObj)
-          
-          for (const availDate of this.availableDates) {
-            const diff = Math.abs(new Date(availDate) - selectedDateObj)
-            if (diff < minDiff) {
-              minDiff = diff
-              closestDate = availDate
-            }
-          }
-          
-          // Only update if we found a different date
-          if (closestDate !== newDate) {
-            this.$nextTick(() => {
-              this.selectedDate = closestDate
-            })
-          }
-        }
-      }
+      this.fetchSchedule(newDate)
     }
   },
   computed: {
@@ -290,15 +266,15 @@ export default {
     displayedDates() {
       const startIndex = this.currentWeekIndex * 7
       const dates = this.allDates.slice(startIndex, startIndex + 7)
-      
-      // Get all available dates from sessions
-      const availableDates = new Set(this.upcomingSessions.map(s => s.date))
-      
-      // Mark dates that have sessions
-      return dates.map(date => ({
-        ...date,
-        hasSchedule: availableDates.has(date.value)
-      }))
+
+      return dates.map(date => {
+        const hasCachedDate = Object.prototype.hasOwnProperty.call(this.scheduleCache, date.value)
+        const cachedSessions = hasCachedDate ? (this.scheduleCache[date.value] || []) : []
+        return {
+          ...date,
+          hasSchedule: hasCachedDate ? cachedSessions.length > 0 : null
+        }
+      })
     },
     filteredSessions() {
       return this.upcomingSessions.filter(session => {
@@ -324,10 +300,6 @@ export default {
         return matches
       })
     },
-    availableDates() {
-      // Get unique dates that have sessions, sorted
-      return [...new Set(this.upcomingSessions.map(s => s.date))].sort()
-    }
   },
   methods: {
     closeAllDropdowns(event) {
@@ -367,6 +339,125 @@ export default {
       this.selectedFormat = value
       this.formatDropdownOpen = false
     },
+    formatApolloScheduleDate(dateValue) {
+      if (!dateValue) return ''
+      const [year, month, day] = dateValue.split('-')
+      if (year && month && day) {
+        return `${day}.${month}.${year}`
+      }
+      return dateValue
+    },
+    normalizeApolloArray(value) {
+      if (!value) return []
+      return Array.isArray(value) ? value : [value]
+    },
+    extractApolloShows(schedulePayload) {
+      if (!schedulePayload) return []
+      const scheduleShows = schedulePayload.Schedule?.Shows?.Show
+        ?? schedulePayload.Shows?.Show
+        ?? schedulePayload.Shows
+        ?? schedulePayload
+      return this.normalizeApolloArray(scheduleShows)
+    },
+    extractApolloEvents(eventsPayload) {
+      if (!eventsPayload) return []
+      const eventList = eventsPayload.Events?.Event ?? eventsPayload.Event ?? eventsPayload
+      return this.normalizeApolloArray(eventList)
+    },
+    formatApolloGenres(genresValue) {
+      if (!genresValue) return ''
+      return Array.isArray(genresValue) ? genresValue.join(', ') : String(genresValue)
+    },
+    formatApolloSubtitles(event, show) {
+      const subtitleValues = [
+        event?.SubtitleLanguage1?.Name,
+        event?.SubtitleLanguage2?.Name,
+        event?.SubtitleLanguage1,
+        event?.SubtitleLanguage2,
+        show?.SubtitleLanguage1?.Name,
+        show?.SubtitleLanguage2?.Name,
+        show?.SubtitleLanguage1,
+        show?.SubtitleLanguage2,
+        show?.SubtitleLanguage
+      ].filter(Boolean)
+      return subtitleValues.length > 0 ? [...new Set(subtitleValues)].join(', ') : 'Puudub'
+    },
+    mapApolloScheduleToSessions(schedulePayload, eventsPayload) {
+      const shows = this.extractApolloShows(schedulePayload)
+      const events = this.extractApolloEvents(eventsPayload)
+      const eventMap = new Map(
+        events
+          .map(event => [event.ID ?? event.EventID, event])
+          .filter(([id]) => id != null)
+          .map(([id, event]) => [String(id), event])
+      )
+
+      return shows.reduce((sessions, show, index) => {
+        const startValue = show.dttmShowStart || show.dttmShowStartUTC || show.dttmShowStartLocal
+        const startTime = new Date(startValue)
+        if (Number.isNaN(startTime.getTime())) {
+          console.warn('Invalid schedule start time:', startValue)
+          return sessions
+        }
+        const eventId = show.EventID ?? show.EventId ?? show.Event?.ID
+        const event = eventId != null ? eventMap.get(String(eventId)) : null
+        const movieTitle = show.EventTitle || show.Title || event?.Title || event?.OriginalTitle || event?.EventTitle || 'Unknown'
+        const genre = this.formatApolloGenres(event?.Genres ?? show.Genres)
+        const posterUrl = event?.Images?.EventMediumImagePortrait
+          || event?.Images?.EventSmallImagePortrait
+          || event?.Images?.EventLargeImagePortrait
+          || show.EventMediumImagePortrait
+          || show.EventSmallImagePortrait
+          || show.EventLargeImagePortrait
+          || `https://via.placeholder.com/200x300/1a1a2e/e94560?text=${encodeURIComponent(movieTitle || 'No Image')}`
+        const language = event?.SpokenLanguage?.Name
+          || event?.SpokenLanguage
+          || show.SpokenLanguage?.Name
+          || show.SpokenLanguage
+          || 'Unknown'
+        const subtitles = this.formatApolloSubtitles(event, show)
+        const presentationMethod = show.PresentationMethod
+          || show.PresentationMethodAndLanguage
+          || show.PresentationMethod?.Name
+          || ''
+        const format = typeof presentationMethod === 'string' && presentationMethod.toLowerCase().includes('3d')
+          ? '3D'
+          : '2D'
+        const availableSeatsValue = Number.parseInt(show.SeatsAvailable, 10)
+        const availableSeats = Number.isFinite(availableSeatsValue) ? availableSeatsValue : 0
+        const totalSeatsValue = Number.parseInt(show.SeatsTotal ?? show.SeatsMax ?? show.TotalSeats, 10)
+        const totalSeats = Number.isFinite(totalSeatsValue) ? totalSeatsValue : 0
+        const availabilityPercent = totalSeats > 0
+          ? Math.round((availableSeats / totalSeats) * 100)
+          : DEFAULT_AVAILABILITY_PERCENT
+        const hours = startTime.getHours().toString().padStart(2, '0')
+        const minutes = startTime.getMinutes().toString().padStart(2, '0')
+        const showDate = startTime.toISOString().split('T')[0]
+        const cinemaName = show.Theatre?.Name || show.Theatre || show.TheatreName || 'Unknown Cinema'
+        const hallName = show.TheatreAuditorium || show.Auditorium || show.AuditoriumName || 'Unknown Hall'
+        const cinemaId = show.TheatreID ?? show.Theatre?.ID
+
+        sessions.push({
+          id: show.ID || show.ShowID || index,
+          movieTitle,
+          genre,
+          time: `${hours}:${minutes}`,
+          cinema: cinemaName,
+          cinemaId: cinemaId != null ? String(cinemaId) : '',
+          hall: hallName,
+          posterUrl,
+          language,
+          subtitles,
+          format,
+          availability: availabilityPercent,
+          availableSeats,
+          date: showDate,
+          startTimestamp: startTime.getTime(),
+          showUrl: show.ShowURL || show.EventURL || '#'
+        })
+        return sessions
+      }, [])
+    },
     async fetchCinemas() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -390,85 +481,43 @@ export default {
         console.error('Error fetching cinemas:', err);
       }
     },
-    fetchSchedule() {
-      this.loading = true;
-      this.error = null;
-      
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      
-      axios.get(`${apiUrl}/api/sessions`)
-        .then(res => {
-          const sessionsData = res.data.data || [];
-          
-          if (sessionsData.length > 0) {
-            const mappedSessions = sessionsData.reduce((sessions, session, index) => {
-              const startTime = new Date(session.startTime);
-              if (Number.isNaN(startTime.getTime())) {
-                console.warn('Invalid session start time:', session.startTime);
-                return sessions;
-              }
-              const startTimestamp = startTime.getTime();
-              const hours = startTime.getHours().toString().padStart(2, '0');
-              const minutes = startTime.getMinutes().toString().padStart(2, '0');
-              const showDate = startTime.toISOString().split('T')[0];
-              const seatsAvailable = Number.isFinite(session.availableSeats)
-                ? session.availableSeats
-                : 0;
-              const totalSeats = session.hall?.capacity ?? 0;
-              const availabilityPercent = totalSeats > 0 
-                ? Math.round((seatsAvailable / totalSeats) * 100) 
-                : DEFAULT_AVAILABILITY_PERCENT;
-              const genre = Array.isArray(session.film?.genre)
-                ? session.film.genre.join(', ')
-                : (session.film?.genre || '');
-              const posterUrl = session.film?.posterUrl
-                || `https://via.placeholder.com/200x300/1a1a2e/e94560?text=${encodeURIComponent(session.film?.title || 'No Image')}`;
-              const cinemaIdentifier = session.hall?.cinema?.apolloId;
-              const cinemaId = cinemaIdentifier ?? session.hall?.cinema?._id;
-              const subtitles = Array.isArray(session.film?.subtitles)
-                ? session.film.subtitles.join(', ')
-                : (session.film?.subtitles || 'Puudub');
-              sessions.push({
-                id: session._id || index,
-                movieTitle: session.film?.title || 'Unknown',
-                genre,
-                time: `${hours}:${minutes}`,
-                cinema: session.hall?.cinema?.name || 'Unknown Cinema',
-                cinemaId: cinemaId != null ? String(cinemaId) : '',
-                hall: session.hall?.name || 'Unknown Hall',
-                posterUrl,
-                language: session.film?.language || 'Unknown',
-                subtitles,
-                format: session.is3D ? '3D' : '2D',
-                availability: availabilityPercent,
-                availableSeats: seatsAvailable,
-                date: showDate,
-                startTimestamp,
-                showUrl: '#'
-              });
-              return sessions;
-            }, []);
-            this.sessions = mappedSessions;
-            
-            // Auto-select first available date if no sessions for selected date
-            const sessionsForSelectedDate = this.upcomingSessions.filter(s => s.date === this.selectedDate);
-            if (sessionsForSelectedDate.length === 0 && this.upcomingSessions.length > 0) {
-              const availableDates = [...new Set(this.upcomingSessions.map(s => s.date))].sort();
-              if (availableDates.length > 0) {
-                this.selectedDate = availableDates[0];
-              }
-            }
-          } else {
-            this.sessions = [];
-          }
-          
-          this.loading = false;
+    async fetchSchedule(date = this.selectedDate) {
+      this.loading = true
+      this.error = null
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+      if (Object.prototype.hasOwnProperty.call(this.scheduleCache, date)) {
+        this.sessions = this.scheduleCache[date]
+        this.loading = false
+        return
+      }
+
+      try {
+        const scheduleDate = this.formatApolloScheduleDate(date)
+        const response = await axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
+          params: scheduleDate ? { dt: scheduleDate } : {}
         })
-        .catch(err => {
-          console.error('Error fetching schedule:', err);
-          this.loading = false;
-          this.error = err.response?.data?.message || err.message || 'Failed to fetch schedule data';
-        });
+
+        if (!response.data?.success) {
+          this.sessions = []
+          this.error = response.data?.error || 'Failed to fetch schedule data'
+          return
+        }
+
+        const mappedSessions = this.mapApolloScheduleToSessions(response.data.schedule, response.data.events)
+        this.sessions = mappedSessions
+        this.scheduleCache = {
+          ...this.scheduleCache,
+          [date]: mappedSessions
+        }
+      } catch (err) {
+        console.error('Error fetching schedule:', err)
+        this.sessions = []
+        this.error = err.response?.data?.message || err.message || 'Failed to fetch schedule data'
+      } finally {
+        this.loading = false
+      }
     },
     generateDates() {
       const dates = []

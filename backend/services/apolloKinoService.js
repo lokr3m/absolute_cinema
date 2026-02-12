@@ -256,17 +256,21 @@ class ApolloKinoService {
    * @param {string} dateTo - End date in YYYY-MM-DD format (optional)
    * @returns {Promise<Object>} Object containing movies and shows
    */
-  async fetchSchedule(dateFrom = null, dateTo = null) {
+  async fetchSchedule(dateFrom = null, dateTo = null, date = null) {
     try {
       // Build query parameters for date range
       let schedulePath = "/Schedule";
       const params = [];
-      
-      if (dateFrom) {
-        params.push(`dtFrom=${encodeURIComponent(dateFrom)}`);
-      }
-      if (dateTo) {
-        params.push(`dtTo=${encodeURIComponent(dateTo)}`);
+
+      if (date) {
+        params.push(`dt=${encodeURIComponent(date)}`);
+      } else {
+        if (dateFrom) {
+          params.push(`dtFrom=${encodeURIComponent(dateFrom)}`);
+        }
+        if (dateTo) {
+          params.push(`dtTo=${encodeURIComponent(dateTo)}`);
+        }
       }
       
       if (params.length > 0) {
