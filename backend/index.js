@@ -254,7 +254,9 @@ async function refreshDatabaseFromApollo() {
           const theatreId = normalizeApolloId(show.TheatreID);
           const auditoriumName = show.TheatreAuditorium || show.TheatreAndAuditorium || null;
           const auditoriumKey = auditoriumId ? `auditorium-${auditoriumId}` : null;
-          const normalizedAuditoriumName = auditoriumName ? auditoriumName.trim().toLowerCase() : null;
+          const normalizedAuditoriumName = auditoriumName
+            ? auditoriumName.trim().replace(/\s+/g, ' ').toLowerCase()
+            : null;
           const nameKey = theatreId && normalizedAuditoriumName
             ? `name-${theatreId}-${normalizedAuditoriumName}`
             : null;
@@ -270,14 +272,16 @@ async function refreshDatabaseFromApollo() {
           if (!hall && (auditoriumKey || nameKey)) {
             const cinema = theatreId ? cinemaMap.get(theatreId) : null;
             if (cinema) {
-              const seatCapacityRaw = [show.TotalSeats, show.SeatsAvailable, show.AvailableSeats]
-                .map(value => Number(value))
-                .find(value => Number.isFinite(value) && value > 0);
-              const baseCapacity = seatCapacityRaw || DEFAULT_HALL_CAPACITY;
+              const seatCapacityRaw = Number(show.TotalSeats);
+              const hasSeatCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0;
+              const baseCapacity = hasSeatCapacity ? seatCapacityRaw : DEFAULT_HALL_CAPACITY;
               const rows = Math.max(MIN_HALL_DIMENSION, Math.round(Math.sqrt(baseCapacity)));
               const seatsPerRow = Math.max(MIN_HALL_DIMENSION, Math.ceil(baseCapacity / rows));
               const capacity = rows * seatsPerRow;
-              const hallName = auditoriumName || (auditoriumId ? `Hall ${auditoriumId}` : `Hall ${uniqueHalls.size + 1}`);
+              const hallName = auditoriumName
+                || (auditoriumId
+                  ? `Hall ${auditoriumId}`
+                  : `Hall ${theatreId || 'default'}-${uniqueHalls.size + 1}`);
               hall = await Hall.create({
                 cinema: cinema._id,
                 name: hallName,
