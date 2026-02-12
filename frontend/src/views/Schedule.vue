@@ -212,6 +212,76 @@ import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
+const AGGREGATE_CINEMA_GROUPS = {
+  '1004': {
+    city: 'tallinn',
+    names: ['Solaris', 'Mustamäe', 'Ülemiste', 'Plaza', 'Kristiine']
+  },
+  '1015': {
+    city: 'tartu',
+    names: ['Lõunakeskus', 'Eeden', 'Tasku']
+  }
+}
+const CINEMA_NAME_NORMALIZATIONS = {
+  kristine: 'kristiine'
+}
+const normalizeCinemaName = value => (value ?? '')
+  .toLowerCase()
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean)
+  .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
+  .join(' ')
+
+/**
+ * Split a normalized cinema name into an array of space-separated tokens, removing empty segments.
+ * @param {string} value - Normalized cinema name.
+ * @returns {string[]} Tokens for aggregate name matching.
+ */
+const tokenizeCinemaName = value => (value ?? '').split(' ').filter(Boolean)
+
+/**
+ * Get cached token data for a session cinema name, creating it when missing.
+ * @param {string} sessionName - Normalized session cinema name.
+ * @param {Map<string, {tokens: string[], tokenSet: Set<string>}>} cache - Token cache for this filter run.
+ * @returns {{tokens: string[], tokenSet: Set<string>}} Cached token data.
+ */
+const getSessionTokenData = (sessionName, cache) => {
+  let cached = cache.get(sessionName)
+  if (!cached) {
+    const tokens = tokenizeCinemaName(sessionName)
+    cached = { tokens, tokenSet: new Set(tokens) }
+    cache.set(sessionName, cached)
+  }
+  return cached
+}
+
+/**
+ * Compare selected cinema tokens to a session token set using the shortest-name rule.
+ * @param {string[]} selectedTokens - Tokens from the selected cinema.
+ * @param {{tokens: string[], tokenSet: Set<string>}} sessionTokenData - Session token cache entry.
+ * @returns {boolean} True when the tokens match.
+ */
+const tokensMatchByShortestName = (selectedTokens, sessionTokenData) => {
+  // selectedTokens comes from the chosen cinema; sessionTokenData contains tokens for the session cinema name.
+  if (!sessionTokenData || selectedTokens.length === 0 || sessionTokenData.tokens.length === 0) {
+    return false
+  }
+  const minTokenCount = Math.min(selectedTokens.length, sessionTokenData.tokens.length)
+  let sharedTokenCount = 0
+  for (const token of selectedTokens) {
+    if (sessionTokenData.tokenSet.has(token)) {
+      sharedTokenCount += 1
+      if (sharedTokenCount >= minTokenCount) {
+        break
+      }
+    }
+  }
+  // Single-token names must match exactly to avoid false positives; multi-token names must share all tokens from the shorter name.
+  const isSingleTokenExactMatch = minTokenCount === 1 && sharedTokenCount === 1
+  const isMultiTokenSubsetMatch = minTokenCount > 1 && sharedTokenCount >= minTokenCount
+  return isSingleTokenExactMatch || isMultiTokenSubsetMatch
+}
 
 export default {
   name: 'Schedule',
@@ -277,11 +347,69 @@ export default {
       })
     },
     filteredSessions() {
+      const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
+      const aggregateGroupCity = aggregateGroup ? aggregateGroup.city : ''
+      const aggregateCinemas = aggregateGroup
+        ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroupCity)
+        : []
+      const selectedCinemaEntry = this.selectedCinema
+        ? this.cinemas.find(cinema => cinema.id === this.selectedCinema)
+        : null
+      const selectedCinemaName = selectedCinemaEntry
+        ? normalizeCinemaName(selectedCinemaEntry.name)
+        : ''
+      const selectedCinemaTokens = selectedCinemaName
+        ? tokenizeCinemaName(selectedCinemaName)
+        : []
+      const normalizedAggregateNames = []
+      const aggregateNameTokens = []
+      if (aggregateGroup) {
+        aggregateGroup.names.forEach(name => {
+          const normalized = normalizeCinemaName(name)
+          if (normalized) {
+            normalizedAggregateNames.push(normalized)
+            aggregateNameTokens.push(tokenizeCinemaName(normalized))
+          }
+        })
+      }
+      const aggregateCinemaIds = aggregateGroup
+        ? new Set(aggregateCinemas.map(cinema => cinema.id))
+        : null
+      const aggregateCinemaNames = aggregateGroup
+        ? new Set([
+          ...aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean),
+          ...normalizedAggregateNames
+        ])
+        : null
+      const sessionTokenCache = new Map()
       return this.upcomingSessions.filter(session => {
         let matches = true
         
-        if (this.selectedCinema && session.cinemaId !== this.selectedCinema) {
-          matches = false
+        if (this.selectedCinema) {
+          if (aggregateGroup) {
+            const sessionCinemaId = session.cinemaId
+            const sessionName = normalizeCinemaName(session.cinema)
+            const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
+            const nameMatches = aggregateCinemaNames?.has(sessionName)
+            const sessionTokenData = getSessionTokenData(sessionName, sessionTokenCache)
+            // Subset match: all tokens from an aggregate cinema name appear in the session name (e.g. "Apollo Kino" -> "Apollo Kino Solaris").
+            const aggregateTokenMatch = aggregateNameTokens?.some(tokens =>
+              tokens.every(token => sessionTokenData.tokenSet.has(token))
+            )
+            if (!idMatches && !nameMatches && !aggregateTokenMatch) {
+              matches = false
+            }
+          } else {
+            const sessionName = normalizeCinemaName(session.cinema)
+            const sessionTokenData = getSessionTokenData(sessionName, sessionTokenCache)
+            // For non-aggregate cinemas, compare directly with the selected cinema ID.
+            const idMatches = session.cinemaId === this.selectedCinema
+            const nameMatches = sessionName === selectedCinemaName
+            const tokenMatch = tokensMatchByShortestName(selectedCinemaTokens, sessionTokenData)
+            if (!idMatches && !nameMatches && !tokenMatch) {
+              matches = false
+            }
+          }
         }
         
         if (this.selectedGenre && !session.genre.toLowerCase().includes(this.selectedGenre.toLowerCase())) {
@@ -480,7 +608,8 @@ export default {
               if (!cinemaId) return null;
               return {
                 id: String(cinemaId),
-                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema',
+                city: cinema.address?.city ?? cinema.City ?? cinema.city ?? ''
               };
             })
             .filter(Boolean);
