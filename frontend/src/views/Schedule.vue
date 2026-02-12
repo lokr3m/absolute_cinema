@@ -103,7 +103,7 @@
               <button
                 v-for="(date, index) in displayedDates"
                 :key="index"
-                @click="selectedDate = date.value"
+                @click="selectDate(date.value)"
                 :class="['date-btn-inline', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
                 :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
               >
@@ -239,7 +239,7 @@ export default {
   created() {
     this.allDates = this.generateDates()
     this.fetchCinemas()
-    this.fetchSchedule()
+    this.fetchSchedule(this.selectedDate)
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
     }, CURRENT_TIME_UPDATE_INTERVAL)
@@ -360,7 +360,7 @@ export default {
         console.error('Error fetching cinemas:', err);
       }
     },
-    fetchSchedule() {
+    fetchSchedule(dateValue = null) {
       this.loading = true;
       this.error = null;
       
@@ -369,7 +369,13 @@ export default {
         ? { from: this.allDates[0].value, to: this.allDates[this.allDates.length - 1].value }
         : null;
       const params = {};
-      if (dateRange) {
+      if (dateValue) {
+        const apolloDate = this.formatApolloDate(dateValue);
+        if (apolloDate) {
+          params.dt = apolloDate;
+          params.dtTo = apolloDate;
+        }
+      } else if (dateRange) {
         params.dtFrom = dateRange.from;
         params.dtTo = dateRange.to;
       }
@@ -475,6 +481,21 @@ export default {
       if (this.currentWeekIndex < maxWeekIndex) {
         this.currentWeekIndex++
       }
+    },
+    selectDate(dateValue) {
+      this.selectedDate = dateValue
+      this.fetchSchedule(dateValue)
+    },
+    formatApolloDate(dateValue) {
+      if (!dateValue) return null
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateValue)) {
+        return dateValue
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+        const [year, month, day] = dateValue.split('-')
+        return `${day}.${month}.${year}`
+      }
+      return dateValue
     },
     goToBooking(session) {
       if (!session) return
