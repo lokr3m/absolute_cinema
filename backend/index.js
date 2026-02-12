@@ -37,6 +37,10 @@ const normalizeApolloId = value => {
 };
 
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
+const normalizeAuditoriumName = value => (
+  value ? value.trim().replace(/\s+/g, ' ').toLowerCase() : null
+);
+const is3DPresentation = value => value?.toString().toLowerCase().includes('3d');
 
 const extractShowsFromSchedule = schedulePayload => {
   if (!schedulePayload) return [];
@@ -205,7 +209,7 @@ async function refreshDatabaseFromApollo() {
         ? hallsArray[Math.floor(Math.random() * hallsArray.length)]
         : null;
     };
-    let generatedHallCount = 0;
+    const generatedHallCounts = new Map();
 
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
@@ -263,16 +267,13 @@ async function refreshDatabaseFromApollo() {
           
           if (!film) continue;
 
-          const presentationMethod = show.PresentationMethod?.toString().toLowerCase() || '';
-          const is3D = presentationMethod.includes('3d');
+          const is3D = is3DPresentation(show.PresentationMethod);
           
           const auditoriumId = normalizeApolloId(show.TheatreAuditoriumID);
           const theatreId = normalizeApolloId(show.TheatreID);
           const auditoriumName = show.TheatreAuditorium || show.TheatreAndAuditorium || null;
           const auditoriumKey = auditoriumId ? `auditorium-${auditoriumId}` : null;
-          const normalizedAuditoriumName = auditoriumName
-            ? auditoriumName.trim().replace(/\s+/g, ' ').toLowerCase()
-            : null;
+          const normalizedAuditoriumName = normalizeAuditoriumName(auditoriumName);
           const nameKey = theatreId && normalizedAuditoriumName
             ? `name-${theatreId}-${normalizedAuditoriumName}`
             : null;
@@ -289,8 +290,9 @@ async function refreshDatabaseFromApollo() {
             const cinema = theatreId ? cinemaMap.get(theatreId) : null;
             if (cinema) {
               const seatCapacityRaw = Number(show.TotalSeats);
-              const hasSeatCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0;
-              const baseCapacity = hasSeatCapacity ? seatCapacityRaw : DEFAULT_HALL_CAPACITY;
+              const baseCapacity = (Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0)
+                ? seatCapacityRaw
+                : DEFAULT_HALL_CAPACITY;
               // Estimate row count assuming a rectangular hall: rows ≈ sqrt(capacity / ratio).
               const rows = Math.max(
                 MIN_HALL_DIMENSION,
@@ -303,8 +305,10 @@ async function refreshDatabaseFromApollo() {
                 hallName = `Hall ${auditoriumId}`;
               }
               if (!hallName) {
-                generatedHallCount += 1;
-                hallName = `Hall ${theatreId || 'Unknown'}-${generatedHallCount}`;
+                const hallCounterKey = theatreId || 'Unknown';
+                const nextCount = (generatedHallCounts.get(hallCounterKey) || 0) + 1;
+                generatedHallCounts.set(hallCounterKey, nextCount);
+                hallName = `Hall ${hallCounterKey}-${nextCount}`;
               }
               hall = await Hall.create({
                 cinema: cinema._id,
