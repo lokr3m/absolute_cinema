@@ -707,10 +707,33 @@ app.get('/api/cinemas', async (req, res) => {
   try {
     const theatreAreas = await apolloKinoService.fetchTheatreAreas();
     if (theatreAreas.length > 0) {
+      const apolloIds = theatreAreas
+        .map(area => normalizeApolloId(area.ID))
+        .filter(Boolean);
+      const cinemas = apolloIds.length > 0
+        ? await Cinema.find({ apolloId: { $in: apolloIds } })
+        : [];
+      const cinemaMap = new Map(cinemas.map(cinema => [cinema.apolloId, cinema]));
+      const cinemaData = theatreAreas.map(area => {
+        const apolloId = normalizeApolloId(area.ID);
+        const dbCinema = apolloId ? cinemaMap.get(apolloId) : null;
+        return {
+          ...area,
+          _id: dbCinema?._id ?? area._id ?? null,
+          name: dbCinema?.name ?? area.Name ?? area.name,
+          address: dbCinema?.address ?? {
+            street: area.Address,
+            city: area.City,
+            postalCode: area.PostalCode,
+            country: area.Country ?? 'Estonia'
+          },
+          apolloId: apolloId ?? dbCinema?.apolloId ?? null
+        };
+      });
       return res.json({
         success: true,
-        count: theatreAreas.length,
-        data: theatreAreas
+        count: cinemaData.length,
+        data: cinemaData
       });
     }
 

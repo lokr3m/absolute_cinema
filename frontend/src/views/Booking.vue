@@ -429,7 +429,9 @@ export default {
               `Multiple sessions matched by time only (${timeMatches.length}). Halls: ${hallNames || 'Unknown'}. Selecting the first match.`
             )
           }
-          sessionMatch = timeMatches[0]
+          if (timeMatches.length > 0) {
+            sessionMatch = timeMatches[0]
+          }
         }
 
         if (sessionMatch) {
