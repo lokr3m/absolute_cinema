@@ -214,11 +214,11 @@ const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
 const AGGREGATE_CINEMA_GROUPS = {
   '1004': {
-    city: 'Tallinn',
+    city: 'tallinn',
     names: ['Solaris', 'Mustamäe', 'Ülemiste', 'Plaza', 'Kristiine']
   },
   '1015': {
-    city: 'Tartu',
+    city: 'tartu',
     names: ['Lõunakeskus', 'Eeden', 'Tasku']
   }
 }
@@ -298,7 +298,7 @@ export default {
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
-      const aggregateGroupCity = aggregateGroup ? aggregateGroup.city.toLowerCase() : ''
+      const aggregateGroupCity = aggregateGroup ? aggregateGroup.city : ''
       const aggregateCinemas = aggregateGroup
         ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroupCity)
         : []
