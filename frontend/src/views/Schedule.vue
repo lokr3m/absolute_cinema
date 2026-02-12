@@ -212,6 +212,8 @@ import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
+const APOLLO_DATE_FORMAT = /^\d{2}\.\d{2}\.\d{4}$/
+const ISO_DATE_FORMAT = /^\d{4}-\d{2}-\d{2}$/
 
 export default {
   name: 'Schedule',
@@ -487,14 +489,14 @@ export default {
     },
     formatApolloDate(dateValue) {
       if (!dateValue) return null;
-      if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateValue)) {
+      if (APOLLO_DATE_FORMAT.test(dateValue)) {
         return dateValue;
       }
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+      if (ISO_DATE_FORMAT.test(dateValue)) {
         const [year, month, day] = dateValue.split('-');
         return `${day}.${month}.${year}`;
       }
-      console.warn('Unexpected date format for schedule selection:', dateValue);
+      console.warn('Unexpected date format for schedule selection. Expected DD.MM.YYYY or YYYY-MM-DD, received:', dateValue);
       return null;
     },
     goToBooking(session) {
