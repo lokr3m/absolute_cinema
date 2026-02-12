@@ -474,7 +474,7 @@ export default {
                 availability: availabilityPercent,
                 availableSeats: seatsAvailable,
                 date: showDate,
-                startTimestamp: startTimestamp,
+                startTimestamp,
                 showUrl: show.ShowURL || '#'
               });
             });
