@@ -135,7 +135,7 @@
           </div>
 
           <div v-else class="genre-grid">
-            <div class="genre-card" v-for="genre in featuredGenres.slice(0, -1)" :key="genre.key">
+            <div class="genre-card" v-for="genre in featuredGenres.slice(0, 5)" :key="genre.key">
               <div class="genre-image">
                 <img :src="genre.imageUrl" :alt="`${genre.name} genre`">
               </div>
