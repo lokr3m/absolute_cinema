@@ -206,6 +206,7 @@ async function refreshDatabaseFromApollo() {
         const cinema = await Cinema.create(cinemaData);
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         cinemaMap.set(cinemaKey, cinema);
+        // Store both normalized and raw Apollo IDs to handle inconsistent payload formats.
         if (area.ID !== null && area.ID !== undefined) {
           cinemaMap.set(area.ID, cinema);
         }
@@ -273,6 +274,13 @@ async function refreshDatabaseFromApollo() {
     console.log(`✓ Found ${events.length} events`);
 
     const filmMap = new Map(); // Map Apollo event ID to MongoDB film
+    const createFilmRecord = async (filmData, apolloId) => {
+      const film = await Film.create(filmData);
+      if (apolloId) {
+        filmMap.set(apolloId, film);
+      }
+      return film;
+    };
 
     for (const event of events) {
       try {
@@ -328,11 +336,10 @@ async function refreshDatabaseFromApollo() {
             const scheduleEvent = scheduleEventMap.get(apolloId);
             try {
               const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
-              film = await Film.create(filmData);
-              filmMap.set(apolloId, film);
+              film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
-              const eventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
-              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
+              const scheduleEventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${scheduleEventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
             }
@@ -373,10 +380,7 @@ async function refreshDatabaseFromApollo() {
                 isActive: true
               };
               
-              film = await Film.create(filmData);
-              if (apolloId) {
-                filmMap.set(apolloId, film);
-              }
+              film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
               // Skip if film creation fails
               continue;
