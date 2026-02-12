@@ -17,6 +17,9 @@ const BOOKING_ID_BYTES = 6;
 const DEFAULT_HALL_CAPACITY = 120;
 const MIN_HALL_DIMENSION = 8;
 const DEFAULT_HALL_ASPECT_RATIO = 1.2;
+const HALL_SCREEN_TYPE_3D = '3D';
+const HALL_SCREEN_TYPE_STANDARD = 'Standard';
+const HALL_SOUND_SYSTEM_STANDARD = 'Standard';
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
@@ -92,6 +95,12 @@ async function refreshDatabaseFromApollo() {
 
     const cinemaMap = new Map(); // Map Apollo cinema ID to MongoDB cinema
     const hallMap = new Map(); // Map Apollo hall/auditorium ID to MongoDB hall
+    const uniqueHalls = new Map();
+    const registerHallKey = (key, hall) => {
+      if (!key || !hall) return;
+      hallMap.set(key, hall);
+      uniqueHalls.set(hall._id.toString(), hall);
+    };
 
     for (const area of theatreAreas) {
       try {
@@ -125,7 +134,7 @@ async function refreshDatabaseFromApollo() {
             soundSystem: i <= 2 ? 'Dolby Atmos' : 'Digital 5.1'
           };
           const hall = await Hall.create(hallData);
-          hallMap.set(`${area.ID}-${i}`, hall);
+          registerHallKey(`${area.ID}-${i}`, hall);
         }
       } catch (err) {
         console.error(`  ⚠️ Error creating cinema for area ${area.ID}:`, err.message);
@@ -154,7 +163,7 @@ async function refreshDatabaseFromApollo() {
           screenType: i === 1 ? 'IMAX' : (i === 2 ? '3D' : 'Standard'),
           soundSystem: i <= 2 ? 'Dolby Atmos' : 'Digital 5.1'
         });
-        hallMap.set(`default-${i}`, hall);
+        registerHallKey(`default-${i}`, hall);
       }
     }
 
@@ -194,15 +203,6 @@ async function refreshDatabaseFromApollo() {
     
     // Process schedule shows if available
     const shows = extractShowsFromSchedule(scheduleData.schedule);
-    const uniqueHalls = new Map(
-      Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])
-    );
-    // Keep hall lookup keys and unique hall tracking aligned.
-    const registerHallKey = (key, hall) => {
-      if (!key || !hall) return;
-      hallMap.set(key, hall);
-      uniqueHalls.set(hall._id.toString(), hall);
-    };
     const selectRandomHall = hallsCollection => {
       const hallsArray = Array.from(hallsCollection.values());
       return hallsArray.length > 0
@@ -305,10 +305,11 @@ async function refreshDatabaseFromApollo() {
                 hallName = `Hall ${auditoriumId}`;
               }
               if (!hallName) {
-                const hallCounterKey = theatreId || 'Unknown';
+                const hallCounterKey = theatreId || cinema._id.toString();
+                const hallCounterLabel = cinema.name || theatreId || 'Unknown';
                 const nextCount = (generatedHallCounts.get(hallCounterKey) || 0) + 1;
                 generatedHallCounts.set(hallCounterKey, nextCount);
-                hallName = `Hall ${hallCounterKey}-${nextCount}`;
+                hallName = `Hall ${hallCounterLabel}-${nextCount}`;
               }
               hall = await Hall.create({
                 cinema: cinema._id,
@@ -316,8 +317,8 @@ async function refreshDatabaseFromApollo() {
                 capacity,
                 rows,
                 seatsPerRow,
-                screenType: is3D ? '3D' : 'Standard',
-                soundSystem: 'Standard'
+                screenType: is3D ? HALL_SCREEN_TYPE_3D : HALL_SCREEN_TYPE_STANDARD,
+                soundSystem: HALL_SOUND_SYSTEM_STANDARD
               });
               registerHallKey(auditoriumKey, hall);
               registerHallKey(nameKey, hall);
