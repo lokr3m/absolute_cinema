@@ -241,7 +241,7 @@ export default {
     this.fetchSchedule()
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
-    }, 15000)
+    }, 30000)
     // Close dropdowns when clicking outside
     document.addEventListener('click', this.closeAllDropdowns)
   },
@@ -424,9 +424,12 @@ export default {
           if (shows.length > 0) {
             this.sessions = shows.map((show, index) => {
               const startTime = new Date(show.dttmShowStart);
+              const startTimestamp = startTime.getTime();
+              if (Number.isNaN(startTimestamp)) {
+                return null;
+              }
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
-              const startTimestamp = startTime.getTime();
               const showDate = startTime.toISOString().split('T')[0];
               const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
               const totalSeats = parseInt(show.TotalSeats) || 100;
@@ -467,10 +470,10 @@ export default {
                 availability: availabilityPercent,
                 availableSeats: seatsAvailable,
                 date: showDate,
-                startTimestamp: Number.isNaN(startTimestamp) ? 0 : startTimestamp,
+                startTimestamp: startTimestamp,
                 showUrl: show.ShowURL || '#'
               };
-            });
+            }).filter(Boolean);
             
             // Auto-select first available date if no sessions for selected date
             const sessionsForSelectedDate = this.upcomingSessions.filter(s => s.date === this.selectedDate);
