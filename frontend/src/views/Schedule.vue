@@ -299,8 +299,9 @@ export default {
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
+      const aggregateGroupCity = aggregateGroup ? aggregateGroup.city.toLowerCase() : ''
       const aggregateCinemas = aggregateGroup
-        ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroup.city.toLowerCase())
+        ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroupCity)
         : []
       const aggregateCinemaIds = aggregateGroup
         ? new Set(aggregateCinemas.map(cinema => cinema.id))
@@ -311,13 +312,23 @@ export default {
       const aggregateGroupNames = aggregateGroup
         ? aggregateGroup.names.map(name => normalizeCinemaName(name))
         : []
+      const normalizedSessionNames = new Map()
+      const getNormalizedSessionName = value => {
+        if (!value) return ''
+        if (normalizedSessionNames.has(value)) {
+          return normalizedSessionNames.get(value)
+        }
+        const normalized = normalizeCinemaName(value)
+        normalizedSessionNames.set(value, normalized)
+        return normalized
+      }
       return this.upcomingSessions.filter(session => {
         let matches = true
         
         if (this.selectedCinema) {
           if (aggregateGroup) {
             const sessionCinemaId = session.cinemaId
-            const sessionName = normalizeCinemaName(session.cinema)
+            const sessionName = getNormalizedSessionName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const fallbackNameMatches = aggregateGroupNames.some(name => sessionName.includes(name))
             const nameMatches = aggregateCinemaNames?.has(sessionName) || fallbackNameMatches
