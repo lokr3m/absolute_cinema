@@ -222,8 +222,12 @@ const formatGenreToken = token => token
   .filter(Boolean)
   .map(part => {
     const normalizedPart = part.toLowerCase()
+    if (!normalizedPart) {
+      return ''
+    }
     return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
   })
+  .filter(Boolean)
   .join('-')
 const AGGREGATE_CINEMA_GROUPS = {
   '1004': {
