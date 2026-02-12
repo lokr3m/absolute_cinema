@@ -19,9 +19,9 @@ const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
 const PAYMENT_METHODS = ['card', 'cash', 'online'];
-const DEFAULT_SCHEDULE_HALL_CAPACITY = 150;
 const DEFAULT_SCHEDULE_HALL_ROWS = 10;
 const DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW = 15;
+const DEFAULT_SCHEDULE_HALL_CAPACITY = DEFAULT_SCHEDULE_HALL_ROWS * DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW;
 const DEFAULT_SCHEDULE_HALL_SCREEN_TYPE = 'Standard';
 const DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM = 'Digital 5.1';
 
@@ -337,8 +337,8 @@ async function refreshDatabaseFromApollo() {
               const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
               film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
-              const scheduleEventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
-              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${scheduleEventTitle}):`, filmErr.message);
+              const eventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
             }
