@@ -277,18 +277,20 @@ class ApolloKinoService {
       const events = await this.fetchEvents();
 
       // Transform events to movie data
-      const movies = events.flatMap(event => {
-        try {
-          return [this.transformEventToFilm(event)];
-        } catch (transformError) {
-          console.warn('Error transforming event to film:', {
-            error: transformError,
-            eventId: event?.ID
-          });
-          return [];
-        }
-      });
-      const shows = [];
+      const movies = events
+        .map(event => {
+          try {
+            return this.transformEventToFilm(event);
+          } catch (transformError) {
+            console.warn('Error transforming event to film:', {
+              error: transformError,
+              eventId: event?.ID
+            });
+            return null;
+          }
+        })
+        .filter(Boolean);
+      const shows = []; // Schedule parsing handled by callers that need shows.
 
       return { movies, shows, schedule, events };
     } catch (error) {
