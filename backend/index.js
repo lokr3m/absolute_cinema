@@ -208,7 +208,7 @@ async function refreshDatabaseFromApollo() {
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         cinemaMap.set(cinemaKey, cinema);
         // Store both normalized and raw Apollo IDs since schedule payloads use either format.
-        if (area.ID !== null && area.ID !== undefined) {
+        if (area.ID !== null && area.ID !== undefined && String(area.ID) !== cinemaKey) {
           cinemaMap.set(area.ID, cinema);
         }
         console.log(`  ✓ Created cinema: ${cinema.name}`);
@@ -339,8 +339,8 @@ async function refreshDatabaseFromApollo() {
               const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
               film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
-              const eventTitleForLog = extractShowTitle(scheduleEvent) ?? 'Unknown';
-              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitleForLog}):`, filmErr.message);
+              const eventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
             }
@@ -393,8 +393,13 @@ async function refreshDatabaseFromApollo() {
           const cinemaKey = normalizeApolloId(show.TheatreID ?? show.Theatre?.ID ?? show.TheatreId) ?? 'default';
           const hallName = extractShowHallName(show);
           const hallNameKey = normalizeHallName(hallName);
-          const hallNameMap = hallNameKey ? hallsByCinemaName.get(cinemaKey) : null;
-          let hall = hallNameKey && hallNameMap?.has(hallNameKey) ? hallNameMap.get(hallNameKey) : null;
+          let hall = null;
+          if (hallNameKey) {
+            const hallNameMap = hallsByCinemaName.get(cinemaKey);
+            if (hallNameMap?.has(hallNameKey)) {
+              hall = hallNameMap.get(hallNameKey);
+            }
+          }
           const candidateHalls = hallsByCinemaId.get(cinemaKey) ?? allHalls;
           if (!hall && hallNameKey) {
             const cinema = cinemaMap.get(cinemaKey);
