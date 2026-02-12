@@ -211,6 +211,7 @@
 import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
+const CURRENT_TIME_UPDATE_INTERVAL = 30000
 
 export default {
   name: 'Schedule',
@@ -241,7 +242,7 @@ export default {
     this.fetchSchedule()
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
-    }, 30000)
+    }, CURRENT_TIME_UPDATE_INTERVAL)
     // Close dropdowns when clicking outside
     document.addEventListener('click', this.closeAllDropdowns)
   },
@@ -426,6 +427,7 @@ export default {
               const startTime = new Date(show.dttmShowStart);
               const startTimestamp = startTime.getTime();
               if (Number.isNaN(startTimestamp)) {
+                console.warn('Invalid show start time:', show.dttmShowStart);
                 return null;
               }
               const hours = startTime.getHours().toString().padStart(2, '0');
