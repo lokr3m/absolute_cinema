@@ -254,7 +254,6 @@ export default {
       allDates: [],
       sessions: [],
       scheduleCache: {},
-      sessionTokenCache: new Map(),
       cinemas: [],
       loading: false,
       error: null,
@@ -310,6 +309,15 @@ export default {
       const aggregateCinemas = aggregateGroup
         ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroupCity)
         : []
+      const selectedCinemaEntry = this.selectedCinema
+        ? this.cinemas.find(cinema => cinema.id === this.selectedCinema)
+        : null
+      const selectedCinemaName = selectedCinemaEntry
+        ? normalizeCinemaName(selectedCinemaEntry.name)
+        : ''
+      const selectedCinemaTokens = selectedCinemaName
+        ? tokenizeCinemaName(selectedCinemaName)
+        : []
       const normalizedAggregateNames = []
       const aggregateNameTokens = []
       if (aggregateGroup) {
@@ -339,20 +347,25 @@ export default {
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const nameMatches = aggregateCinemaNames?.has(sessionName)
-            let sessionTokenSet = this.sessionTokenCache.get(sessionName)
-            if (!sessionTokenSet) {
-              sessionTokenSet = new Set(tokenizeCinemaName(sessionName))
-              this.sessionTokenCache.set(sessionName, sessionTokenSet)
-            }
+            const sessionTokens = tokenizeCinemaName(sessionName)
             // Subset match: all tokens from an aggregate cinema name appear in the session name (e.g. "Apollo Kino" -> "Apollo Kino Solaris").
             const aggregateTokenMatch = aggregateNameTokens?.some(tokens =>
-              tokens.every(token => sessionTokenSet.has(token))
+              tokens.every(token => sessionTokens.includes(token))
             )
             if (!idMatches && !nameMatches && !aggregateTokenMatch) {
               matches = false
             }
-          } else if (session.cinemaId !== this.selectedCinema) {
-            matches = false
+          } else {
+            const sessionName = normalizeCinemaName(session.cinema)
+            const sessionTokens = tokenizeCinemaName(sessionName)
+            const idMatches = session.cinemaId === this.selectedCinema
+            const nameMatches = selectedCinemaName && sessionName === selectedCinemaName
+            const tokenMatch = selectedCinemaTokens.length > 0
+              && (selectedCinemaTokens.every(token => sessionTokens.includes(token))
+                || sessionTokens.every(token => selectedCinemaTokens.includes(token)))
+            if (!idMatches && !nameMatches && !tokenMatch) {
+              matches = false
+            }
           }
         }
         
@@ -398,12 +411,6 @@ export default {
       this.formatDropdownOpen = !this.formatDropdownOpen
       this.cinemaDropdownOpen = false
       this.genreDropdownOpen = false
-    },
-    /**
-     * Reset cached session name tokens when schedules refresh.
-     */
-    resetSessionTokenCache() {
-      this.sessionTokenCache.clear()
     },
     selectCinema(value) {
       this.selectedCinema = value
@@ -578,7 +585,6 @@ export default {
 
       if (Object.prototype.hasOwnProperty.call(this.scheduleCache, date)) {
         this.sessions = this.scheduleCache[date]
-        this.resetSessionTokenCache()
         this.loading = false
         return
       }
@@ -596,7 +602,6 @@ export default {
         }
 
         const mappedSessions = this.mapApolloScheduleToSessions(response.data.schedule, response.data.events)
-        this.resetSessionTokenCache()
         this.sessions = mappedSessions
         this.scheduleCache = {
           ...this.scheduleCache,
