@@ -212,6 +212,16 @@ import axios from 'axios'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
+const AGGREGATE_CINEMA_GROUPS = {
+  '1004': {
+    city: 'Tallinn',
+    names: ['Solaris', 'Mustamäe', 'Ülemiste', 'Plaza', 'Kristine', 'Kristiine']
+  },
+  '1015': {
+    city: 'Tartu',
+    names: ['Lõunakeskus', 'Eeden', 'Tasku']
+  }
+}
 
 export default {
   name: 'Schedule',
@@ -277,11 +287,29 @@ export default {
       })
     },
     filteredSessions() {
+      const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
+      const aggregateCinemaIds = aggregateGroup
+        ? new Set(
+          this.cinemas
+            .filter(cinema => cinema.id !== this.selectedCinema && cinema.city?.toLowerCase() === aggregateGroup.city.toLowerCase())
+            .map(cinema => cinema.id)
+        )
+        : null
       return this.upcomingSessions.filter(session => {
         let matches = true
         
-        if (this.selectedCinema && session.cinemaId !== this.selectedCinema) {
-          matches = false
+        if (this.selectedCinema) {
+          if (aggregateGroup) {
+            const sessionCinemaId = session.cinemaId
+            const sessionName = (session.cinema || '').toLowerCase()
+            const nameMatches = aggregateGroup.names.some(name => sessionName.includes(name.toLowerCase()))
+            const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
+            if (!idMatches && !nameMatches) {
+              matches = false
+            }
+          } else if (session.cinemaId !== this.selectedCinema) {
+            matches = false
+          }
         }
         
         if (this.selectedGenre && !session.genre.toLowerCase().includes(this.selectedGenre.toLowerCase())) {
@@ -480,7 +508,8 @@ export default {
               if (!cinemaId) return null;
               return {
                 id: String(cinemaId),
-                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema',
+                city: cinema.address?.city ?? cinema.City ?? cinema.city ?? ''
               };
             })
             .filter(Boolean);
