@@ -241,7 +241,7 @@ export default {
     this.fetchSchedule()
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
-    }, 60000)
+    }, 15000)
     // Close dropdowns when clicking outside
     document.addEventListener('click', this.closeAllDropdowns)
   },
@@ -426,6 +426,7 @@ export default {
               const startTime = new Date(show.dttmShowStart);
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
+              const startTimestamp = startTime.getTime();
               const showDate = startTime.toISOString().split('T')[0];
               const seatsAvailable = parseInt(show.SeatsAvailable) || 0;
               const totalSeats = parseInt(show.TotalSeats) || 100;
@@ -466,7 +467,7 @@ export default {
                 availability: availabilityPercent,
                 availableSeats: seatsAvailable,
                 date: showDate,
-                startTimestamp: startTime.getTime(),
+                startTimestamp: Number.isNaN(startTimestamp) ? 0 : startTimestamp,
                 showUrl: show.ShowURL || '#'
               };
             });
