@@ -432,44 +432,45 @@ async function initializeServer() {
 initializeServer();
 
 // Helper function to validate and parse date string
-function validateDate(dateStr) {
+function validateDate(dateStr, label = 'date') {
   if (!dateStr) return null;
   const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
   if (!dateRegex.test(dateStr)) {
-    throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD.`);
+    throw new Error(`Invalid ${label} format: ${dateStr}. Expected YYYY-MM-DD.`);
   }
   const date = new Date(dateStr + 'T00:00:00'); // Parse as local time
   if (isNaN(date.getTime())) {
-    throw new Error(`Invalid date: ${dateStr}`);
+    throw new Error(`Invalid ${label}: ${dateStr}`);
   }
   return dateStr;
 }
 
-function normalizeScheduleDate(dateStr) {
+function normalizeScheduleDate(dateStr, label = 'date') {
   if (!dateStr) return null;
   const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
   const apolloRegex = /^\d{2}\.\d{2}\.\d{4}$/;
   if (isoRegex.test(dateStr)) {
-    return validateDate(dateStr);
+    return validateDate(dateStr, label);
   }
   if (apolloRegex.test(dateStr)) {
     const [day, month, year] = dateStr.split('.');
     const normalized = `${year}-${month}-${day}`;
-    return validateDate(normalized);
+    return validateDate(normalized, label);
   }
-  throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+  throw new Error(`Invalid ${label} format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
 }
 
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo, dt) {
   let fromDate = dtFrom || dt;
   let toDate = dtTo;
+  const fromDateLabel = dtFrom ? 'dtFrom' : 'dt';
   
   // Default to today if not provided
   if (!fromDate) {
     fromDate = formatDateLocal(new Date());
   } else {
-    fromDate = normalizeScheduleDate(fromDate);
+    fromDate = normalizeScheduleDate(fromDate, fromDateLabel);
   }
   
   // Default to 14 days from dtFrom if not provided
@@ -478,7 +479,7 @@ function getDefaultDateRange(dtFrom, dtTo, dt) {
     fromDateObj.setDate(fromDateObj.getDate() + 14);
     toDate = formatDateLocal(fromDateObj);
   } else {
-    toDate = normalizeScheduleDate(toDate);
+    toDate = normalizeScheduleDate(toDate, 'dtTo');
   }
   
   // Validate that dtTo is not before dtFrom
@@ -941,7 +942,7 @@ app.get('/api/films/:id/sessions', async (req, res) => {
  * Fetch and sync data from Apollo Kino API to database
  * This endpoint fetches movies and sessions from Apollo Kino and stores them in the database
  * Query parameters:
- *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom
+ *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom when dtFrom is omitted
  *   - dtFrom: Start date (YYYY-MM-DD or DD.MM.YYYY) - defaults to today
  *   - dtTo: End date (YYYY-MM-DD or DD.MM.YYYY) - defaults to 14 days from dtFrom
  */
@@ -1058,7 +1059,7 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  * Get schedule data from Apollo Kino API
  * Returns movies and shows data from the Schedule endpoint
  * Query parameters:
- *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom
+ *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom when dtFrom is omitted
  *   - dtFrom: Start date (YYYY-MM-DD or DD.MM.YYYY) - defaults to today
  *   - dtTo: End date (YYYY-MM-DD or DD.MM.YYYY) - defaults to 14 days from dtFrom
  */
