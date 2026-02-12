@@ -243,11 +243,13 @@ async function refreshDatabaseFromApollo() {
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          const apolloId = normalizeApolloId(show.EventID);
+          const eventId = show.EventID ?? show.EventId ?? show.Event?.ID ?? show.Event?.EventID;
+          const apolloId = normalizeApolloId(eventId);
           let film = apolloId ? filmMap.get(apolloId) : null;
+          const showTitle = show.EventTitle || show.Title || show.OriginalTitle || show.Event?.Title || show.Event?.OriginalTitle;
           
           // If film not found in events, create it from show data
-          if (!film && show.Title) {
+          if (!film && showTitle) {
             try {
               const ageRatingMap = {
                 'MS-6': 'MS-6',
@@ -264,9 +266,9 @@ async function refreshDatabaseFromApollo() {
               const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : ['General'];
               
               const filmData = {
-                title: show.Title,
-                originalTitle: show.OriginalTitle || show.Title,
-                description: show.Synopsis || 'No description available',
+                title: showTitle,
+                originalTitle: show.OriginalTitle || showTitle,
+                description: show.Synopsis || show.EventDescription || 'No description available',
                 duration: parseInt(show.LengthInMinutes) || 90,
                 genre: genres,
                 director: 'Unknown',
