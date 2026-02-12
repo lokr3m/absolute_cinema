@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { Film, Session, Cinema, Hall, Booking, Seat } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
@@ -18,30 +19,16 @@ const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
 
-const rateLimitStore = new Map();
-
-const rateLimit = (req, res, next) => {
-  const now = Date.now();
-  const key = req.ip || req.connection?.remoteAddress || 'unknown';
-  const entry = rateLimitStore.get(key) || { count: 0, start: now };
-
-  if (now - entry.start > RATE_LIMIT_WINDOW_MS) {
-    entry.count = 0;
-    entry.start = now;
+const cinemaRateLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later.'
   }
-
-  entry.count += 1;
-  rateLimitStore.set(key, entry);
-
-  if (entry.count > RATE_LIMIT_MAX) {
-    return res.status(429).json({
-      success: false,
-      error: 'Too many requests, please try again later.'
-    });
-  }
-
-  next();
-};
+});
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
@@ -735,7 +722,7 @@ app.get('/api/sessions/:id/seats', async (req, res) => {
  * GET /api/cinemas
  * List all cinemas
  */
-app.get('/api/cinemas', rateLimit, async (req, res) => {
+app.get('/api/cinemas', cinemaRateLimiter, async (req, res) => {
   try {
     const theatreAreas = await apolloKinoService.fetchTheatreAreas();
     if (theatreAreas.length > 0) {
@@ -802,7 +789,7 @@ app.get('/api/cinemas', rateLimit, async (req, res) => {
  * GET /api/cinemas/:id/halls
  * Get all halls for a specific cinema
  */
-app.get('/api/cinemas/:id/halls', rateLimit, async (req, res) => {
+app.get('/api/cinemas/:id/halls', cinemaRateLimiter, async (req, res) => {
   try {
     const { id } = req.params;
 
