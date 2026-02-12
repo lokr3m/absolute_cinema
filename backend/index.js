@@ -453,9 +453,22 @@ function normalizeScheduleDate(dateStr, label = 'date') {
     return validateDate(dateStr, label);
   }
   if (apolloRegex.test(dateStr)) {
-    const [day, month, year] = dateStr.split('.');
-    const normalized = `${year}-${month}-${day}`;
-    return validateDate(normalized, label);
+    const [dayStr, monthStr, yearStr] = dateStr.split('.');
+    const day = Number(dayStr);
+    const month = Number(monthStr);
+    const year = Number(yearStr);
+    const date = new Date(year, month - 1, day);
+    if (
+      !Number.isInteger(day)
+      || !Number.isInteger(month)
+      || !Number.isInteger(year)
+      || date.getFullYear() !== year
+      || date.getMonth() !== month - 1
+      || date.getDate() !== day
+    ) {
+      throw new Error(`Invalid ${label}: ${dateStr}`);
+    }
+    return `${yearStr}-${monthStr}-${dayStr}`;
   }
   throw new Error(`Invalid ${label} format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
 }
@@ -463,7 +476,7 @@ function normalizeScheduleDate(dateStr, label = 'date') {
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo, dt) {
   if (dtFrom && dt) {
-    throw new Error('Provide either dtFrom or dt, not both.');
+    throw new Error('Cannot specify both dtFrom and dt. Use dtFrom for explicit start date or dt as an alias.');
   }
   let fromDate = dtFrom || dt;
   let toDate = dtTo;
