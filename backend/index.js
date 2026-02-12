@@ -245,9 +245,9 @@ async function refreshDatabaseFromApollo() {
         email: 'info@apollokino.ee',
         facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
       });
+      cinemaMap.set('default', defaultCinema);
       const defaultCinemaKey = normalizeApolloId(defaultCinema.apolloId) ?? 'default';
       cinemaMap.set(defaultCinemaKey, defaultCinema);
-      cinemaMap.set('default', defaultCinema);
       
       for (let i = 1; i <= 3; i++) {
         const hall = await Hall.create({
@@ -331,7 +331,7 @@ async function refreshDatabaseFromApollo() {
               film = await Film.create(filmData);
               filmMap.set(apolloId, film);
             } catch (filmErr) {
-              const eventTitle = scheduleEvent?.Title || scheduleEvent?.OriginalTitle || scheduleEvent?.EventTitle || 'Unknown';
+              const eventTitle = extractShowTitle(scheduleEvent) ?? 'Unknown';
               console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
