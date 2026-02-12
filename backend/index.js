@@ -462,6 +462,9 @@ function normalizeScheduleDate(dateStr, label = 'date') {
 
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo, dt) {
+  if (dtFrom && dt) {
+    throw new Error('Provide either dtFrom or dt, not both.');
+  }
   let fromDate = dtFrom || dt;
   let toDate = dtTo;
   const fromDateLabel = dtFrom ? 'dtFrom' : 'dt';
