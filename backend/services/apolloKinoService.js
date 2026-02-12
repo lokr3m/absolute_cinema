@@ -272,7 +272,7 @@ class ApolloKinoService {
           const [year, month, day] = value.split('-');
           return `${day}.${month}.${year}`;
         }
-        return value;
+        throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
       };
 
       const apolloDate = toApolloDate(date);
