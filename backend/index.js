@@ -445,6 +445,20 @@ function validateDate(dateStr) {
   return dateStr;
 }
 
+function normalizeApolloScheduleDate(dateStr) {
+  if (!dateStr) return null;
+  const apolloRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+  if (apolloRegex.test(dateStr)) {
+    return dateStr;
+  }
+  const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (isoRegex.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}.${month}.${year}`;
+  }
+  throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+}
+
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo) {
   let fromDate = dtFrom;
@@ -1047,10 +1061,12 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
-    // Get and validate date parameters
-    const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
+    const scheduleDate = req.query.dt ? normalizeApolloScheduleDate(req.query.dt) : null;
+    const { dtFrom, dtTo } = scheduleDate
+      ? { dtFrom: null, dtTo: null }
+      : getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
     
-    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo);
+    const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo, scheduleDate);
     
     if (data.error) {
       return res.status(503).json({
