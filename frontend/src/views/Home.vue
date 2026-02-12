@@ -211,12 +211,12 @@ export default {
       if (genre === null || genre === undefined) return '';
       const trimmed = String(genre).trim();
       if (!trimmed) return '';
-      if (trimmed === trimmed.toUpperCase()) {
+      if (/[A-Z]/.test(trimmed) && !/[a-z]/.test(trimmed)) {
         return trimmed;
       }
       return trimmed
         .toLowerCase()
-        .replace(/(^|[\s-])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
+        .replace(/(^|[\s-\/'])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
     },
     closeDropdown(event) {
       if (!event.target.closest('.custom-dropdown')) {
