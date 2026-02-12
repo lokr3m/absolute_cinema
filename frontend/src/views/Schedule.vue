@@ -70,7 +70,7 @@
                   :class="{ active: selectedGenre === genre }"
                   @click="selectGenre(genre)"
                 >
-                  {{ genre }}
+                  {{ formatGenreLabel(genre) }}
                 </div>
               </div>
             </div>
@@ -355,7 +355,7 @@ export default {
       this.sessions.forEach(session => {
         this.normalizeGenreList(session.genre).forEach(genre => genres.add(genre))
       })
-      return Array.from(genres).sort((a, b) => a.localeCompare(b))
+      return Array.from(genres).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
     },
     filteredSessions() {
       const aggregateGroup = AGGREGATE_CINEMA_GROUPS[this.selectedCinema]
@@ -521,6 +521,13 @@ export default {
         .split(',')
         .map(genre => genre.trim())
         .filter(Boolean)
+    },
+    formatGenreLabel(genre) {
+      if (!genre) return ''
+      return String(genre)
+        .split(' ')
+        .map(word => word ? word[0].toUpperCase() + word.slice(1) : '')
+        .join(' ')
     },
     formatApolloSubtitles(event, show) {
       const normalizeSubtitle = value => {
