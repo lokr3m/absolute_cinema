@@ -240,7 +240,6 @@ export default {
     this.allDates = this.generateDates()
     this.fetchCinemas()
     this.fetchSchedule()
-    this.currentTime = Date.now()
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
     }, CURRENT_TIME_UPDATE_INTERVAL)
@@ -427,11 +426,11 @@ export default {
           if (shows.length > 0) {
             const mappedSessions = shows.reduce((sessions, show, index) => {
               const startTime = new Date(show.dttmShowStart);
-              const startTimestamp = startTime.getTime();
-              if (Number.isNaN(startTimestamp)) {
+              if (Number.isNaN(startTime.getTime())) {
                 console.warn('Invalid show start time:', show.dttmShowStart);
                 return sessions;
               }
+              const startTimestamp = startTime.getTime();
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
