@@ -240,6 +240,49 @@ const normalizeCinemaName = value => (value ?? '')
  */
 const tokenizeCinemaName = value => (value ?? '').split(' ').filter(Boolean)
 
+/**
+ * Get cached token data for a session cinema name, creating it when missing.
+ * @param {string} sessionName - Normalized session cinema name.
+ * @param {Map<string, {tokens: string[], tokenSet: Set<string>}>} cache - Token cache for this filter run.
+ * @returns {{tokens: string[], tokenSet: Set<string>}} Cached token data.
+ */
+const getSessionTokenData = (sessionName, cache) => {
+  let cached = cache.get(sessionName)
+  if (!cached) {
+    const tokens = tokenizeCinemaName(sessionName)
+    cached = { tokens, tokenSet: new Set(tokens) }
+    cache.set(sessionName, cached)
+  }
+  return cached
+}
+
+/**
+ * Compare selected cinema tokens to a session token set using the shortest-name rule.
+ * @param {string[]} selectedTokens - Tokens from the selected cinema.
+ * @param {{tokens: string[], tokenSet: Set<string>}} sessionTokenData - Session token cache entry.
+ * @returns {boolean} True when the tokens match.
+ */
+const tokensMatchByShortestName = (selectedTokens, sessionTokenData) => {
+  // selectedTokens comes from the chosen cinema; sessionTokenData contains tokens for the session cinema name.
+  if (!sessionTokenData || selectedTokens.length === 0 || sessionTokenData.tokens.length === 0) {
+    return false
+  }
+  const minTokenCount = Math.min(selectedTokens.length, sessionTokenData.tokens.length)
+  let sharedTokenCount = 0
+  for (const token of selectedTokens) {
+    if (sessionTokenData.tokenSet.has(token)) {
+      sharedTokenCount += 1
+      if (sharedTokenCount >= minTokenCount) {
+        break
+      }
+    }
+  }
+  // Single-token names must match exactly to avoid false positives; multi-token names must share all tokens from the shorter name.
+  const isSingleTokenExactMatch = minTokenCount === 1 && sharedTokenCount === 1
+  const isMultiTokenSubsetMatch = minTokenCount > 1 && sharedTokenCount >= minTokenCount
+  return isSingleTokenExactMatch || isMultiTokenSubsetMatch
+}
+
 export default {
   name: 'Schedule',
   data() {
@@ -348,25 +391,21 @@ export default {
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const nameMatches = aggregateCinemaNames?.has(sessionName)
-            const sessionTokens = sessionTokenCache.get(sessionName) ?? tokenizeCinemaName(sessionName)
-            sessionTokenCache.set(sessionName, sessionTokens)
+            const sessionTokenData = getSessionTokenData(sessionName, sessionTokenCache)
             // Subset match: all tokens from an aggregate cinema name appear in the session name (e.g. "Apollo Kino" -> "Apollo Kino Solaris").
             const aggregateTokenMatch = aggregateNameTokens?.some(tokens =>
-              tokens.every(token => sessionTokens.includes(token))
+              tokens.every(token => sessionTokenData.tokenSet.has(token))
             )
             if (!idMatches && !nameMatches && !aggregateTokenMatch) {
               matches = false
             }
           } else {
             const sessionName = normalizeCinemaName(session.cinema)
-            const sessionTokens = sessionTokenCache.get(sessionName) ?? tokenizeCinemaName(sessionName)
-            sessionTokenCache.set(sessionName, sessionTokens)
+            const sessionTokenData = getSessionTokenData(sessionName, sessionTokenCache)
+            // For non-aggregate cinemas, compare directly with the selected cinema ID.
             const idMatches = session.cinemaId === this.selectedCinema
-            const nameMatches = selectedCinemaName && sessionName === selectedCinemaName
-            const sharedTokenCount = selectedCinemaTokens.filter(token => sessionTokens.includes(token)).length
-            const minTokenCount = Math.min(selectedCinemaTokens.length, sessionTokens.length)
-            const tokenMatch = selectedCinemaTokens.length > 0 && sessionTokens.length > 0
-              && (minTokenCount === 1 ? sharedTokenCount === 1 : sharedTokenCount >= minTokenCount)
+            const nameMatches = sessionName === selectedCinemaName
+            const tokenMatch = tokensMatchByShortestName(selectedCinemaTokens, sessionTokenData)
             if (!idMatches && !nameMatches && !tokenMatch) {
               matches = false
             }
