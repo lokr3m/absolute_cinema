@@ -425,9 +425,8 @@ export default {
         }
         
         if (this.selectedGenre) {
-          const selectedGenre = this.selectedGenre
           const sessionGenres = this.normalizeGenreList(session.genre)
-          const hasGenreMatch = sessionGenres.includes(selectedGenre)
+          const hasGenreMatch = sessionGenres.includes(this.selectedGenre)
           if (!hasGenreMatch) {
             matches = false
           }
@@ -527,16 +526,18 @@ export default {
     },
     formatGenreLabel(genre) {
       if (!genre) return ''
-      const words = String(genre).match(/\S+/g) ?? []
+      const trimmedGenre = String(genre).trim()
+      if (!trimmedGenre) return ''
+      const words = trimmedGenre.match(/\S+/g) ?? []
       const formatToken = token => {
         if (!token) return ''
         return token
           .split('-')
+          .filter(Boolean)
           .map(part => {
             const normalizedPart = part.toLowerCase()
-            return normalizedPart ? normalizedPart[0].toUpperCase() + normalizedPart.slice(1) : ''
+            return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
           })
-          .filter(Boolean)
           .join('-')
       }
       return words
