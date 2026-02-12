@@ -90,6 +90,7 @@ async function refreshDatabaseFromApollo() {
       try {
         // Create cinema from theatre area
         const cinemaData = {
+          apolloId: normalizeApolloId(area.ID),
           name: area.Name || `Apollo Kino ${area.ID}`,
           address: {
             street: area.Address || 'Unknown',
@@ -129,6 +130,7 @@ async function refreshDatabaseFromApollo() {
     if (theatreAreas.length === 0) {
       console.log('  ℹ️ No theatre areas from API, creating default cinema...');
       const defaultCinema = await Cinema.create({
+        apolloId: null,
         name: 'Apollo Kino Solaris',
         address: { street: 'Estonia pst 9', city: 'Tallinn', postalCode: '10143', country: 'Estonia' },
         phone: '+372 6273 500',
@@ -590,7 +592,7 @@ app.get('/api/sessions', async (req, res) => {
         select: 'name cinema screenType soundSystem capacity',
         populate: {
           path: 'cinema',
-          select: 'name address'
+          select: 'name address apolloId'
         }
       })
       .sort({ startTime: 1 });
@@ -688,8 +690,17 @@ app.get('/api/sessions/:id/seats', async (req, res) => {
  */
 app.get('/api/cinemas', async (req, res) => {
   try {
+    const theatreAreas = await apolloKinoService.fetchTheatreAreas();
+    if (theatreAreas.length > 0) {
+      return res.json({
+        success: true,
+        count: theatreAreas.length,
+        data: theatreAreas
+      });
+    }
+
     const cinemas = await Cinema.find().sort({ name: 1 });
-    
+
     res.json({
       success: true,
       count: cinemas.length,
@@ -697,10 +708,20 @@ app.get('/api/cinemas', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching cinemas:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch cinemas'
-    });
+    try {
+      const cinemas = await Cinema.find().sort({ name: 1 });
+      res.json({
+        success: true,
+        count: cinemas.length,
+        data: cinemas
+      });
+    } catch (dbError) {
+      console.error('Error fetching cinemas from database:', dbError);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch cinemas'
+      });
+    }
   }
 });
 
@@ -712,16 +733,17 @@ app.get('/api/cinemas/:id/halls', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid cinema ID'
-      });
+    let cinema = null;
+    let cinemaId = null;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      cinema = await Cinema.findById(id);
+      cinemaId = cinema?._id;
+    } else {
+      cinema = await Cinema.findOne({ apolloId: id });
+      cinemaId = cinema?._id;
     }
 
-    // Check if cinema exists
-    const cinema = await Cinema.findById(id);
     if (!cinema) {
       return res.status(404).json({
         success: false,
@@ -730,13 +752,14 @@ app.get('/api/cinemas/:id/halls', async (req, res) => {
     }
 
     // Get all halls for this cinema
-    const halls = await Hall.find({ cinema: id }).sort({ name: 1 });
+    const halls = await Hall.find({ cinema: cinemaId }).sort({ name: 1 });
 
     res.json({
       success: true,
       cinema: {
         id: cinema._id,
-        name: cinema.name
+        name: cinema.name,
+        apolloId: cinema.apolloId
       },
       count: halls.length,
       data: halls
@@ -1210,7 +1233,7 @@ app.get('/api/admin/sessions', async (req, res) => {
         select: 'name cinema screenType soundSystem capacity rows seatsPerRow',
         populate: {
           path: 'cinema',
-          select: 'name address'
+          select: 'name address apolloId'
         }
       })
       .sort({ startTime: -1 });
@@ -1523,7 +1546,7 @@ app.delete('/api/admin/sessions/:id', async (req, res) => {
 app.get('/api/admin/halls', async (req, res) => {
   try {
     const halls = await Hall.find()
-      .populate('cinema', 'name address')
+      .populate('cinema', 'name address apolloId')
       .sort({ 'cinema.name': 1, name: 1 });
 
     res.json({

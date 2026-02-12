@@ -409,7 +409,16 @@ export default {
       const response = await fetch(`${API_BASE_URL}/api/cinemas`);
       const data = await response.json();
       if (data.success) {
-        this.cinemas = data.data;
+        this.cinemas = (data.data || []).map(cinema => {
+          const cinemaId = cinema._id ?? cinema.ID ?? cinema.apolloId ?? cinema.id;
+          return {
+            _id: cinemaId ? String(cinemaId) : '',
+            name: cinema.name ?? cinema.Name ?? cinema.TheatreName ?? 'Unknown Cinema',
+            address: cinema.address ?? {
+              city: cinema.City ?? cinema.city ?? 'Unknown'
+            }
+          };
+        });
       } else {
         throw new Error(data.error || 'Failed to load cinemas');
       }

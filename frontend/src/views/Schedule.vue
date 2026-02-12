@@ -34,10 +34,10 @@
               </div>
               <div 
                 v-for="cinema in cinemas" 
-                :key="cinema._id" 
+                :key="cinema.id" 
                 class="dropdown-item"
-                :class="{ active: selectedCinema === cinema._id }"
-                @click="selectCinema(cinema._id)"
+                :class="{ active: selectedCinema === cinema.id }"
+                @click="selectCinema(cinema.id)"
               >
                 {{ cinema.name }}
               </div>
@@ -357,41 +357,19 @@ export default {
     async fetchCinemas() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        
-        // Fetch both local cinemas and Apollo Kino theatre areas
-        const [localCinemasResponse, theatreAreasResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/cinemas`).catch(() => null),
-          fetch(`${apiUrl}/api/apollo-kino/TheatreAreas`).catch(() => null)
-        ]);
-        
-        let allCinemas = [];
-        
-        // Process local cinemas
-        if (localCinemasResponse && localCinemasResponse.ok) {
-          const data = await localCinemasResponse.json();
-          if (data.success && data.data) {
-            allCinemas = data.data.map(cinema => ({
-              _id: cinema._id,
-              name: cinema.name
-            }));
-          }
+        const response = await fetch(`${apiUrl}/api/cinemas`);
+        const data = await response.json();
+        if (data.success && data.data) {
+          this.cinemas = data.data.map(cinema => {
+            const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id;
+            return {
+              id: cinemaId ? String(cinemaId) : '',
+              name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+            };
+          });
+        } else {
+          this.cinemas = [];
         }
-        
-        // Process Apollo Kino theatre areas
-        // Note: Apollo Kino API returns ID/Name fields vs local cinemas' _id/name
-        if (theatreAreasResponse && theatreAreasResponse.ok) {
-          const data = await theatreAreasResponse.json();
-          if (data.success && data.data) {
-            const theatreAreas = data.data.map(area => ({
-              _id: area.ID,
-              name: area.Name
-            }));
-            // Add theatre areas to cinemas list
-            allCinemas = [...allCinemas, ...theatreAreas];
-          }
-        }
-        
-        this.cinemas = allCinemas;
       } catch (err) {
         console.error('Error fetching cinemas:', err);
       }
@@ -458,13 +436,14 @@ export default {
                 || show.EventSmallImagePortrait
                 || 'https://via.placeholder.com/200x300/1a1a2e/e94560?text=' + encodeURIComponent(show.Title || 'No Image');
               
+              const cinemaId = show.TheatreID != null ? String(show.TheatreID) : '';
               return {
                 id: show.ID || index,
                 movieTitle: show.Title || 'Unknown',
                 genre: show.Genres || '',
                 time: `${hours}:${minutes}`,
                 cinema: show.TheatreName || show.Theatre || 'Unknown Cinema',
-                cinemaId: show.TheatreID || '',
+                cinemaId,
                 hall: show.TheatreAuditorium || 'Unknown Hall',
                 posterUrl: posterUrl,
                 language: spokenLang,
