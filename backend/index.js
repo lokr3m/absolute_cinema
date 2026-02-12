@@ -34,9 +34,10 @@ const normalizeApolloId = value => {
 };
 
 const mapCinemaToTheatreArea = cinema => {
-  const apolloId = cinema.apolloId ?? (cinema._id ? String(cinema._id) : null);
+  const apolloId = cinema.apolloId ?? null;
   return {
     ID: apolloId,
+    id: apolloId,
     Name: cinema.name,
     Address: cinema.address?.street,
     City: cinema.address?.city,
@@ -44,11 +45,10 @@ const mapCinemaToTheatreArea = cinema => {
     Phone: cinema.phone,
     Email: cinema.email,
     Facilities: cinema.facilities,
-    _id: apolloId,
-    mongoId: cinema._id,
+    _id: cinema._id,
     name: cinema.name,
     address: cinema.address,
-    apolloId: cinema.apolloId
+    apolloId
   };
 };
 
@@ -721,12 +721,10 @@ app.get('/api/cinemas', async (req, res) => {
       const cinemaData = theatreAreas.map(area => {
         const apolloId = normalizeApolloId(area.ID);
         const dbCinema = apolloId ? cinemaMap.get(apolloId) : null;
-        const mongoId = dbCinema?._id ?? null;
-        const responseId = apolloId ?? (mongoId ? String(mongoId) : null);
         return {
           ...area,
-          _id: responseId,
-          mongoId,
+          id: apolloId,
+          _id: dbCinema?._id ?? null,
           name: dbCinema?.name ?? area.Name ?? area.name,
           address: dbCinema?.address ?? {
             street: area.Address,

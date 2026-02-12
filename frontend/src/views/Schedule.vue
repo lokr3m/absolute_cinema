@@ -362,7 +362,7 @@ export default {
         if (data.success && data.data) {
           this.cinemas = data.data
             .map(cinema => {
-              const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id;
+              const cinemaId = cinema.id ?? cinema.ID ?? cinema.apolloId;
               if (!cinemaId) return null;
               return {
                 id: String(cinemaId),

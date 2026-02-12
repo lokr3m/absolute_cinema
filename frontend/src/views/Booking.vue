@@ -344,7 +344,7 @@ export default {
         const cinemas = response.data.data || []
         this.cinemas = cinemas
           .map(cinema => {
-            const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id
+            const cinemaId = cinema.id ?? cinema.ID ?? cinema.apolloId
             if (!cinemaId) return null
             return {
               id: String(cinemaId),
@@ -428,7 +428,7 @@ export default {
               .map(session => session.hall?.name)
               .filter(Boolean)
               .join(', ')
-            const message = `Multiple sessions matched by time only (${timeMatches.length}). Halls: ${hallNames || 'Unknown'}. Selecting the first match.`
+            const message = `Multiple showtimes found at ${normalizedTime}. Please verify the hall: ${hallNames || 'Unknown'}. The first option has been selected.`
             console.warn(message)
             this.error = message
             setTimeout(() => {
