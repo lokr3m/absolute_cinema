@@ -629,7 +629,8 @@ app.get('/api/sessions', async (req, res) => {
           select: 'name address apolloId'
         }
       })
-      .sort({ startTime: 1 });
+      .sort({ startTime: 1 })
+      .lean();
 
     if (sessions.length > 0) {
       const sessionIds = sessions.map(session => session._id);
