@@ -269,20 +269,21 @@ async function refreshDatabaseFromApollo() {
             const cinema = theatreId ? cinemaMap.get(theatreId) : null;
             if (cinema) {
               const seatCapacityRaw = [show.TotalSeats, show.SeatsAvailable, show.AvailableSeats]
-                .map(value => Number.parseInt(value, 10))
+                .map(value => Number(value))
                 .find(value => Number.isFinite(value) && value > 0);
               const baseCapacity = seatCapacityRaw || 120;
               const rows = Math.max(8, Math.round(Math.sqrt(baseCapacity)));
               const seatsPerRow = Math.max(8, Math.ceil(baseCapacity / rows));
               const capacity = rows * seatsPerRow;
+              const fallbackHallName = auditoriumName || (auditoriumId ? `Hall ${auditoriumId}` : `Hall ${uniqueHalls.size + 1}`);
               hall = await Hall.create({
                 cinema: cinema._id,
-                name: auditoriumName || `Hall ${uniqueHalls.size + 1}`,
+                name: fallbackHallName,
                 capacity,
                 rows,
                 seatsPerRow,
                 screenType: show.PresentationMethod?.includes('3D') ? '3D' : 'Standard',
-                soundSystem: 'Dolby Atmos'
+                soundSystem: 'Standard'
               });
               uniqueHalls.set(hall._id.toString(), hall);
               if (auditoriumKey) {
