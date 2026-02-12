@@ -482,20 +482,20 @@ export default {
       }
     },
     selectDate(dateValue) {
-      this.selectedDate = dateValue
-      this.fetchSchedule(dateValue)
+      this.selectedDate = dateValue;
+      this.fetchSchedule(dateValue);
     },
     formatApolloDate(dateValue) {
-      if (!dateValue) return null
+      if (!dateValue) return null;
       if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateValue)) {
-        return dateValue
+        return dateValue;
       }
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-        const [year, month, day] = dateValue.split('-')
-        return `${day}.${month}.${year}`
+        const [year, month, day] = dateValue.split('-');
+        return `${day}.${month}.${year}`;
       }
-      console.warn('Unexpected date format for schedule selection:', dateValue)
-      return null
+      console.warn('Unexpected date format for schedule selection:', dateValue);
+      return null;
     },
     goToBooking(session) {
       if (!session) return
