@@ -1,6 +1,46 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
 
+const APOLLO_DATE_REGEX = /^\d{2}\.\d{2}\.\d{4}$/;
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+const isValidDateParts = (year, month, day) => {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return false;
+  }
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day
+  );
+};
+
+const toApolloDate = value => {
+  if (!value) return null;
+  if (APOLLO_DATE_REGEX.test(value)) {
+    const [dayStr, monthStr, yearStr] = value.split('.');
+    const day = Number(dayStr);
+    const month = Number(monthStr);
+    const year = Number(yearStr);
+    if (!isValidDateParts(year, month, day)) {
+      throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+    }
+    return value;
+  }
+  if (ISO_DATE_REGEX.test(value)) {
+    const [yearStr, monthStr, dayStr] = value.split('-');
+    const day = Number(dayStr);
+    const month = Number(monthStr);
+    const year = Number(yearStr);
+    if (!isValidDateParts(year, month, day)) {
+      throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+    }
+    return `${dayStr}.${monthStr}.${yearStr}`;
+  }
+  throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
+};
+
 /**
  * Service for fetching and parsing Apollo Kino API data
  */
@@ -263,18 +303,6 @@ class ApolloKinoService {
       let schedulePath = "/Schedule";
       const params = [];
       
-      const toApolloDate = value => {
-        if (!value) return null;
-        if (/^\d{2}\.\d{2}\.\d{4}$/.test(value)) {
-          return value;
-        }
-        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-          const [year, month, day] = value.split('-');
-          return `${day}.${month}.${year}`;
-        }
-        throw new Error(`Invalid schedule date format: ${value}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
-      };
-
       const apolloDate = toApolloDate(date);
       const apolloDateFrom = toApolloDate(dateFrom);
       const apolloDateTo = toApolloDate(dateTo);
