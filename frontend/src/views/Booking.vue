@@ -284,7 +284,7 @@ export default {
       
       return this.sessions.filter(session => {
         const matchesFilm = !this.selectedFilm || session.film._id === this.selectedFilm
-        const sessionCinemaId = session.hall?.cinema?.apolloId || session.hall?.cinema?._id
+        const sessionCinemaId = session.hall?.cinema?.apolloId ?? session.hall?.cinema?._id
         const matchesCinema = !this.selectedCinema || sessionCinemaId === this.selectedCinema
         const matchesHall = !this.selectedHall || 
           (session.hall && session.hall._id === this.selectedHall)
