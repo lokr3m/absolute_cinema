@@ -426,9 +426,16 @@ export default {
               const cinemaIdentifier = session.hall?.cinema?.apolloId;
               const cinemaId = cinemaIdentifier ?? session.hall?.cinema?._id;
               const filmSubtitles = session.film?.subtitles;
-              const subtitles = Array.isArray(filmSubtitles)
-                ? (filmSubtitles.length > 0 ? filmSubtitles.join(', ') : (session.subtitles || 'Puudub'))
-                : (filmSubtitles || session.subtitles || 'Puudub');
+              let subtitles = 'Puudub';
+              if (Array.isArray(filmSubtitles)) {
+                subtitles = filmSubtitles.length > 0
+                  ? filmSubtitles.join(', ')
+                  : (session.subtitles || 'Puudub');
+              } else if (filmSubtitles) {
+                subtitles = filmSubtitles;
+              } else if (session.subtitles) {
+                subtitles = session.subtitles;
+              }
               sessions.push({
                 id: session._id || index,
                 movieTitle: session.film?.title || 'Unknown',
