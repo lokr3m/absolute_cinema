@@ -49,6 +49,12 @@ const normalizeApolloId = value => {
   return normalized.length > 0 ? normalized : null;
 };
 
+const extractShowEventId = show =>
+  show?.EventID ?? show?.EventId ?? show?.Event?.ID ?? show?.Event?.EventID ?? null;
+
+const extractShowTitle = show =>
+  show?.EventTitle ?? show?.Title ?? show?.OriginalTitle ?? show?.Event?.Title ?? show?.Event?.OriginalTitle ?? null;
+
 const mapCinemaToTheatreArea = cinema => {
   const apolloId = cinema.apolloId ?? null;
   return {
@@ -243,15 +249,10 @@ async function refreshDatabaseFromApollo() {
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          const eventId = show.EventID ?? show.EventId ?? show.Event?.ID ?? show.Event?.EventID ?? null;
+          const eventId = extractShowEventId(show);
           const apolloId = normalizeApolloId(eventId);
           let film = apolloId ? filmMap.get(apolloId) : null;
-          const showTitle = show.EventTitle
-            ?? show.Title
-            ?? show.OriginalTitle
-            ?? show.Event?.Title
-            ?? show.Event?.OriginalTitle
-            ?? null;
+          const showTitle = extractShowTitle(show);
           
           // If film not found in events, create it from show data
           if (!film && showTitle) {
@@ -272,7 +273,7 @@ async function refreshDatabaseFromApollo() {
               
               const filmData = {
                 title: showTitle,
-                originalTitle: show.OriginalTitle || showTitle,
+                originalTitle: show.OriginalTitle ?? showTitle,
                 description: show.Synopsis ?? show.EventDescription ?? 'No description available',
                 duration: parseInt(show.LengthInMinutes) || 90,
                 genre: genres,
