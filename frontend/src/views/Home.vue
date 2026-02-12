@@ -48,69 +48,71 @@
           <h2>Top Films</h2>
         </div>
         
-        <div v-if="loading" class="loading">
-          <div class="loading-spinner"></div>
-          <p>Loading featured movies...</p>
-        </div>
+        <div class="section-box">
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading featured movies...</p>
+          </div>
 
-        <div v-else-if="error" class="error">
-          <span class="error-icon">⚠️</span>
-          {{ error }}
-        </div>
+          <div v-else-if="error" class="error">
+            <span class="error-icon">⚠️</span>
+            {{ error }}
+          </div>
 
-        <div v-else class="movie-grid">
-          <div class="movie-card" v-for="movie in filteredMovies" :key="movie._id || movie.title">
-            <div class="movie-poster">
-              <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
-              <div class="poster-overlay">
-                <div class="rating-badge" v-if="movie.rating">
-                  <span class="star">★</span>
-                  <span class="score">{{ movie.rating }}</span>
-                </div>
-                <div class="overlay-content">
-                  <router-link 
-                    v-if="movie._id"
-                    :to="`/movies/${movie._id}`" 
-                    class="btn-view"
-                  >
-                    View Details
-                  </router-link>
-                  <a 
-                    v-else
-                    :href="movie.EventURL || '#'" 
-                    target="_blank"
-                    class="btn-view"
-                  >
-                    View Details
-                  </a>
+          <div v-else class="movie-grid">
+            <div class="movie-card" v-for="movie in filteredMovies" :key="movie._id || movie.title">
+              <div class="movie-poster">
+                <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
+                <div class="poster-overlay">
+                  <div class="rating-badge" v-if="movie.rating">
+                    <span class="star">★</span>
+                    <span class="score">{{ movie.rating }}</span>
+                  </div>
+                  <div class="overlay-content">
+                    <router-link 
+                      v-if="movie._id"
+                      :to="`/movies/${movie._id}`" 
+                      class="btn-view"
+                    >
+                      View Details
+                    </router-link>
+                    <a 
+                      v-else
+                      :href="movie.EventURL || '#'" 
+                      target="_blank"
+                      class="btn-view"
+                    >
+                      View Details
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="movie-info">
-              <h3>{{ movie.title }}</h3>
-              <div class="genre-tags">
-                <span 
-                  v-for="(genre, idx) in (Array.isArray(movie.genre) ? movie.genre.slice(0, 2) : [movie.genre])" 
-                  :key="idx" 
-                  class="genre-tag"
-                >
-                  {{ genre }}
-                </span>
-              </div>
-              <div class="meta">
-                <span class="duration">🕐 {{ movie.duration || 'N/A' }} min</span>
-                <span class="age-badge" :class="getAgeRatingClass(movie.ageRating)">
-                  {{ movie.ageRating || 'NR' }}
-                </span>
+              <div class="movie-info">
+                <h3>{{ movie.title }}</h3>
+                <div class="genre-tags">
+                  <span 
+                    v-for="(genre, idx) in (Array.isArray(movie.genre) ? movie.genre.slice(0, 2) : [movie.genre])" 
+                    :key="idx" 
+                    class="genre-tag"
+                  >
+                    {{ genre }}
+                  </span>
+                </div>
+                <div class="meta">
+                  <span class="duration">🕐 {{ movie.duration || 'N/A' }} min</span>
+                  <span class="age-badge" :class="getAgeRatingClass(movie.ageRating)">
+                    {{ movie.ageRating || 'NR' }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="view-all-container">
-          <router-link to="/movies" class="btn-view-all">
-            View All Movies →
-          </router-link>
+          <div class="view-all-container">
+            <router-link to="/movies" class="btn-view-all">
+              View All Movies →
+            </router-link>
+          </div>
         </div>
       </div>
     </section>
@@ -121,22 +123,27 @@
           <h2>Genres</h2>
         </div>
 
-        <div v-if="loading" class="loading">
-          <div class="loading-spinner"></div>
-          <p>Loading genres...</p>
-        </div>
+        <div class="section-box">
+          <div v-if="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading genres...</p>
+          </div>
 
-        <div v-else-if="error" class="error">
-          <span class="error-icon">⚠️</span>
-          {{ error }}
-        </div>
+          <div v-else-if="error" class="error">
+            <span class="error-icon">⚠️</span>
+            {{ error }}
+          </div>
 
-        <div v-else class="genre-grid">
-          <div class="genre-card" v-for="genre in featuredGenres" :key="genre.key">
-            <div class="genre-card-content">
-              <span class="genre-icon">🎞️</span>
-              <h3>{{ genre.name }}</h3>
-              <p class="genre-count">{{ genre.count }} movie{{ genre.count !== 1 ? 's' : '' }}</p>
+          <div v-else class="genre-grid">
+            <div class="genre-card" v-for="genre in featuredGenres" :key="genre.key">
+              <div class="genre-image">
+                <img :src="genre.imageUrl" :alt="`${genre.name} genre`">
+              </div>
+              <div class="genre-card-content">
+                <span class="genre-icon">🎞️</span>
+                <h3>{{ genre.name }}</h3>
+                <p class="genre-count">{{ genre.count }} movie{{ genre.count !== 1 ? 's' : '' }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -152,6 +159,8 @@ const HAS_UPPERCASE_REGEX = /[A-Z]/;
 const HAS_LOWERCASE_REGEX = /[a-z]/;
 // Matches word boundaries: start of string, spaces, hyphens, slashes, or apostrophes.
 const TITLE_CASE_BOUNDARY_REGEX = /(^|[\s-\/'])([a-z])/g;
+const GENRE_PLACEHOLDER_BASE = 'https://via.placeholder.com/320x180/1a1a2e/e94560?text=';
+const TOP_MOVIE_COUNT = 5;
 
 export default {
   name: 'Home',
@@ -192,6 +201,7 @@ export default {
           : typeof movie.genre === 'string'
             ? movie.genre.split(',')
             : [];
+        const posterUrl = this.getMoviePoster(movie);
 
         movieGenres.forEach(genre => {
           const displayName = this.normalizeGenreName(genre);
@@ -200,18 +210,35 @@ export default {
           const existing = genres.get(key);
           if (existing) {
             existing.count += 1;
+            if (!existing.imageUrl && posterUrl) {
+              existing.imageUrl = posterUrl;
+            }
           } else {
-            genres.set(key, { key, name: displayName, count: 1 });
+            genres.set(key, { key, name: displayName, count: 1, imageUrl: posterUrl });
           }
         });
       });
 
-      return Array.from(genres.values()).sort((a, b) =>
-        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-      );
+      return Array.from(genres.values())
+        .map(genre => ({
+          ...genre,
+          imageUrl: genre.imageUrl || `${GENRE_PLACEHOLDER_BASE}${encodeURIComponent(genre.name)}`
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     }
   },
   methods: {
+    getMoviePoster(movie) {
+      return movie?.posterUrl || movie?.PosterUrl || movie?.Images?.EventMediumImagePortrait || '';
+    },
+    getRandomMovies(movies, count) {
+      const pool = Array.isArray(movies) ? [...movies] : [];
+      for (let i = pool.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return pool.slice(0, count);
+    },
     normalizeGenreName(genre) {
       if (genre === null || genre === undefined) return '';
       const trimmed = String(genre).trim();
@@ -271,7 +298,7 @@ export default {
         const response = await axios.get(`${apiUrl}/api/apollo-kino/events`);
         
         if (response.data.success) {
-          this.topMovies = (response.data.movies || []).slice(0, 12);
+          this.topMovies = this.getRandomMovies(response.data.movies || [], TOP_MOVIE_COUNT);
         } else {
           this.error = 'Failed to load featured movies';
         }
@@ -474,6 +501,14 @@ export default {
   margin-bottom: 3rem;
 }
 
+.section-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+}
+
 .section-header h2 {
   font-size: 2.5rem;
   color: #2c3e50;
@@ -483,8 +518,8 @@ export default {
 
 .movie-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
 }
 
 .genre-section {
@@ -493,18 +528,18 @@ export default {
 
 .genre-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.25rem;
 }
 
 .genre-card {
   background: #fff;
   border-radius: 12px;
-  padding: 1.5rem;
   text-align: center;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   border: 1px solid #e8e8e8;
+  overflow: hidden;
 }
 
 .genre-card:hover {
@@ -517,6 +552,20 @@ export default {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  padding: 1rem 1.25rem 1.5rem;
+}
+
+.genre-image {
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+}
+
+.genre-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .genre-icon {
@@ -637,7 +686,7 @@ export default {
 }
 
 .movie-info {
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 .movie-info h3 {
@@ -709,7 +758,7 @@ export default {
 
 .view-all-container {
   text-align: center;
-  margin-top: 3rem;
+  margin-top: 2.5rem;
 }
 
 .btn-view-all {
@@ -792,13 +841,13 @@ export default {
   }
   
   .movie-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.9rem;
   }
 
   .genre-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.9rem;
   }
   
   .movie-info {
