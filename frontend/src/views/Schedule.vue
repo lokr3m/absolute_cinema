@@ -232,9 +232,13 @@ const normalizeCinemaName = value => (value ?? '')
   .filter(Boolean)
   .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
   .join(' ')
-const tokenizeCinemaName = value => normalizeCinemaName(value)
-  .split(' ')
-  .filter(Boolean)
+
+/**
+ * Split a normalized cinema name into an array of space-separated tokens, removing empty segments.
+ * @param {string} value - Normalized cinema name.
+ * @returns {string[]} Tokens for aggregate name matching.
+ */
+const tokenizeCinemaName = value => (value ?? '').split(' ').filter(Boolean)
 
 export default {
   name: 'Schedule',
@@ -250,6 +254,7 @@ export default {
       allDates: [],
       sessions: [],
       scheduleCache: {},
+      sessionTokenCache: new Map(),
       cinemas: [],
       loading: false,
       error: null,
@@ -305,19 +310,24 @@ export default {
       const aggregateCinemas = aggregateGroup
         ? this.cinemas.filter(cinema => cinema.city?.toLowerCase() === aggregateGroupCity)
         : []
-      const aggregateGroupNames = aggregateGroup
-        ? aggregateGroup.names.map(name => normalizeCinemaName(name)).filter(Boolean)
-        : []
-      const aggregateGroupTokens = aggregateGroup
-        ? aggregateGroup.names.map(name => tokenizeCinemaName(name)).filter(tokens => tokens.length > 0)
-        : []
+      const normalizedAggregateNames = []
+      const aggregateNameTokens = []
+      if (aggregateGroup) {
+        aggregateGroup.names.forEach(name => {
+          const normalized = normalizeCinemaName(name)
+          if (normalized) {
+            normalizedAggregateNames.push(normalized)
+            aggregateNameTokens.push(tokenizeCinemaName(normalized))
+          }
+        })
+      }
       const aggregateCinemaIds = aggregateGroup
         ? new Set(aggregateCinemas.map(cinema => cinema.id))
         : null
       const aggregateCinemaNames = aggregateGroup
         ? new Set([
           ...aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean),
-          ...aggregateGroupNames
+          ...normalizedAggregateNames
         ])
         : null
       return this.upcomingSessions.filter(session => {
@@ -329,11 +339,16 @@ export default {
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
             const nameMatches = aggregateCinemaNames?.has(sessionName)
-            const sessionTokens = tokenizeCinemaName(session.cinema)
-            const tokenMatches = aggregateGroupTokens?.some(tokens =>
-              tokens.every(token => sessionTokens.includes(token))
+            let sessionTokenSet = this.sessionTokenCache.get(sessionName)
+            if (!sessionTokenSet) {
+              sessionTokenSet = new Set(tokenizeCinemaName(sessionName))
+              this.sessionTokenCache.set(sessionName, sessionTokenSet)
+            }
+            // Subset match: all tokens from an aggregate cinema name appear in the session name (e.g. "Apollo Kino" -> "Apollo Kino Solaris").
+            const aggregateTokenMatch = aggregateNameTokens?.some(tokens =>
+              tokens.every(token => sessionTokenSet.has(token))
             )
-            if (!idMatches && !nameMatches && !tokenMatches) {
+            if (!idMatches && !nameMatches && !aggregateTokenMatch) {
               matches = false
             }
           } else if (session.cinemaId !== this.selectedCinema) {
@@ -383,6 +398,12 @@ export default {
       this.formatDropdownOpen = !this.formatDropdownOpen
       this.cinemaDropdownOpen = false
       this.genreDropdownOpen = false
+    },
+    /**
+     * Reset cached session name tokens when schedules refresh.
+     */
+    resetSessionTokenCache() {
+      this.sessionTokenCache.clear()
     },
     selectCinema(value) {
       this.selectedCinema = value
@@ -557,6 +578,7 @@ export default {
 
       if (Object.prototype.hasOwnProperty.call(this.scheduleCache, date)) {
         this.sessions = this.scheduleCache[date]
+        this.resetSessionTokenCache()
         this.loading = false
         return
       }
@@ -574,6 +596,7 @@ export default {
         }
 
         const mappedSessions = this.mapApolloScheduleToSessions(response.data.schedule, response.data.events)
+        this.resetSessionTokenCache()
         this.sessions = mappedSessions
         this.scheduleCache = {
           ...this.scheduleCache,
