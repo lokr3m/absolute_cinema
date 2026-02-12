@@ -425,9 +425,10 @@ export default {
                 || `https://via.placeholder.com/200x300/1a1a2e/e94560?text=${encodeURIComponent(session.film?.title || 'No Image')}`;
               const cinemaIdentifier = session.hall?.cinema?.apolloId;
               const cinemaId = cinemaIdentifier ?? session.hall?.cinema?._id;
-              const subtitles = Array.isArray(session.film?.subtitles)
-                ? session.film.subtitles.join(', ')
-                : (session.film?.subtitles || 'Puudub');
+              const filmSubtitles = session.film?.subtitles;
+              const subtitles = Array.isArray(filmSubtitles) && filmSubtitles.length > 0
+                ? filmSubtitles.join(', ')
+                : (session.subtitles || filmSubtitles || 'Puudub');
               sessions.push({
                 id: session._id || index,
                 movieTitle: session.film?.title || 'Unknown',
@@ -437,7 +438,7 @@ export default {
                 cinemaId: cinemaId != null ? String(cinemaId) : '',
                 hall: session.hall?.name || 'Unknown Hall',
                 posterUrl,
-                language: session.film?.language || 'Unknown',
+                language: session.film?.language || session.language || 'Unknown',
                 subtitles,
                 format: session.is3D ? '3D' : '2D',
                 availability: availabilityPercent,
