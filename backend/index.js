@@ -1061,10 +1061,21 @@ app.get('/api/apollo-kino/events', async (req, res) => {
  */
 app.get('/api/apollo-kino/schedule', async (req, res) => {
   try {
-    const scheduleDate = req.query.dt ? normalizeApolloScheduleDate(req.query.dt) : null;
-    const { dtFrom, dtTo } = scheduleDate
-      ? { dtFrom: null, dtTo: null }
-      : getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
+    let scheduleDate = null;
+    let dtFrom = null;
+    let dtTo = null;
+    try {
+      scheduleDate = req.query.dt ? normalizeApolloScheduleDate(req.query.dt) : null;
+      ({ dtFrom, dtTo } = scheduleDate
+        ? { dtFrom: null, dtTo: null }
+        : getDefaultDateRange(req.query.dtFrom, req.query.dtTo));
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid date parameter',
+        message: error.message
+      });
+    }
     
     const data = await apolloKinoService.fetchSchedule(dtFrom, dtTo, scheduleDate);
     

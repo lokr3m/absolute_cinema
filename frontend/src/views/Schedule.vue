@@ -104,7 +104,7 @@
                 v-for="(date, index) in displayedDates"
                 :key="index"
                 @click="selectedDate = date.value"
-                :class="['date-btn-inline', { active: selectedDate === date.value, 'no-schedule': !date.hasSchedule }]"
+                :class="['date-btn-inline', { active: selectedDate === date.value, 'no-schedule': date.hasSchedule === false }]"
                 :title="date.hasSchedule ? '' : 'Sellel kuupäeval pole seanssi'"
               >
                 <div class="date-day">{{ date.day }}</div>
@@ -272,7 +272,7 @@ export default {
         const cachedSessions = hasCachedDate ? (this.scheduleCache[date.value] || []) : []
         return {
           ...date,
-          hasSchedule: hasCachedDate ? cachedSessions.length > 0 : true
+          hasSchedule: hasCachedDate ? cachedSessions.length > 0 : null
         }
       })
     },
