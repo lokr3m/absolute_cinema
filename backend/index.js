@@ -191,9 +191,6 @@ async function refreshDatabaseFromApollo() {
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
 
-      // Get all halls as array for random assignment
-      const allHalls = Array.from(hallMap.values());
-
       for (const show of shows) {
         try {
           // Find or create the film by event ID
@@ -247,8 +244,62 @@ async function refreshDatabaseFromApollo() {
           
           if (!film) continue;
           
-          // Assign a hall (use TheatreAuditoriumID if available, otherwise random)
-          const hall = allHalls.length > 0 ? allHalls[Math.floor(Math.random() * allHalls.length)] : null;
+          const auditoriumId = normalizeApolloId(show.TheatreAuditoriumID);
+          const theatreId = normalizeApolloId(show.TheatreID);
+          const auditoriumName = show.TheatreAuditorium || show.TheatreAndAuditorium || null;
+          const auditoriumKey = auditoriumId ? `auditorium-${auditoriumId}` : null;
+          const normalizedAuditoriumName = auditoriumName ? auditoriumName.trim().toLowerCase() : null;
+          const nameKey = theatreId && normalizedAuditoriumName
+            ? `name-${theatreId}-${normalizedAuditoriumName}`
+            : null;
+
+          let hall = auditoriumKey ? hallMap.get(auditoriumKey) : null;
+          if (!hall && nameKey) {
+            hall = hallMap.get(nameKey) || null;
+            if (hall && auditoriumKey) {
+              hallMap.set(auditoriumKey, hall);
+            }
+          }
+
+          if (!hall && (auditoriumKey || nameKey)) {
+            const cinema = theatreId ? cinemaMap.get(theatreId) : null;
+            if (cinema) {
+              const seatCapacityRaw = Number.parseInt(
+                show.TotalSeats ?? show.SeatsAvailable ?? show.AvailableSeats,
+                10
+              );
+              const baseCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0
+                ? seatCapacityRaw
+                : 120;
+              const rows = Math.max(8, Math.round(Math.sqrt(baseCapacity)));
+              const seatsPerRow = Math.max(8, Math.ceil(baseCapacity / rows));
+              const capacity = rows * seatsPerRow;
+              hall = await Hall.create({
+                cinema: cinema._id,
+                name: auditoriumName || `Hall ${hallMap.size + 1}`,
+                capacity,
+                rows,
+                seatsPerRow,
+                screenType: show.PresentationMethod?.includes('3D') ? '3D' : 'Standard',
+                soundSystem: 'Dolby Atmos'
+              });
+              if (auditoriumKey) {
+                hallMap.set(auditoriumKey, hall);
+              }
+              if (nameKey) {
+                hallMap.set(nameKey, hall);
+              }
+            }
+          }
+
+          if (!hall) {
+            const uniqueHalls = Array.from(
+              new Map(Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])).values()
+            );
+            hall = uniqueHalls.length > 0
+              ? uniqueHalls[Math.floor(Math.random() * uniqueHalls.length)]
+              : null;
+          }
           if (!hall) continue;
           
           const startTime = new Date(show.dttmShowStart);
