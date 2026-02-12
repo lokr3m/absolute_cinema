@@ -14,6 +14,8 @@ app.use(express.json());
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 const BOOKING_ID_BYTES = 6;
+const DEFAULT_HALL_CAPACITY = 120;
+const MIN_HALL_DIMENSION = 8;
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
@@ -271,14 +273,14 @@ async function refreshDatabaseFromApollo() {
               const seatCapacityRaw = [show.TotalSeats, show.SeatsAvailable, show.AvailableSeats]
                 .map(value => Number(value))
                 .find(value => Number.isFinite(value) && value > 0);
-              const baseCapacity = seatCapacityRaw || 120;
-              const rows = Math.max(8, Math.round(Math.sqrt(baseCapacity)));
-              const seatsPerRow = Math.max(8, Math.ceil(baseCapacity / rows));
+              const baseCapacity = seatCapacityRaw || DEFAULT_HALL_CAPACITY;
+              const rows = Math.max(MIN_HALL_DIMENSION, Math.round(Math.sqrt(baseCapacity)));
+              const seatsPerRow = Math.max(MIN_HALL_DIMENSION, Math.ceil(baseCapacity / rows));
               const capacity = rows * seatsPerRow;
-              const fallbackHallName = auditoriumName || (auditoriumId ? `Hall ${auditoriumId}` : `Hall ${uniqueHalls.size + 1}`);
+              const hallName = auditoriumName || (auditoriumId ? `Hall ${auditoriumId}` : `Hall ${uniqueHalls.size + 1}`);
               hall = await Hall.create({
                 cinema: cinema._id,
-                name: fallbackHallName,
+                name: hallName,
                 capacity,
                 rows,
                 seatsPerRow,
