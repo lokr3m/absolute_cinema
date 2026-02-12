@@ -208,6 +208,7 @@ async function refreshDatabaseFromApollo() {
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         // Use normalized Apollo IDs for consistent schedule lookups.
         cinemaMap.set(cinemaKey, cinema);
+        // Preserve raw IDs when Apollo returns non-normalized values (e.g., padded or numeric variants).
         if (area.ID !== null && area.ID !== undefined && String(area.ID) !== cinemaKey) {
           cinemaMap.set(area.ID, cinema);
         }
@@ -340,7 +341,7 @@ async function refreshDatabaseFromApollo() {
               const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
               film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
-              const eventTitle = scheduleEvent?.Title ?? scheduleEvent?.OriginalTitle ?? scheduleEvent?.EventTitle ?? 'Unknown';
+              const eventTitle = scheduleEvent?.Title ?? scheduleEvent?.OriginalTitle ?? scheduleEvent?.EventTitle ?? 'Untitled Event';
               console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
