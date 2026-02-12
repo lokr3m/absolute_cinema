@@ -114,6 +114,34 @@
         </div>
       </div>
     </section>
+
+    <section class="featured genre-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Genres</h2>
+        </div>
+
+        <div v-if="loading" class="loading">
+          <div class="loading-spinner"></div>
+          <p>Loading genres...</p>
+        </div>
+
+        <div v-else-if="error" class="error">
+          <span class="error-icon">⚠️</span>
+          {{ error }}
+        </div>
+
+        <div v-else class="genre-grid">
+          <div class="genre-card" v-for="genre in featuredGenres" :key="genre.name">
+            <div class="genre-card-content">
+              <span class="genre-icon">🎞️</span>
+              <h3>{{ genre.name }}</h3>
+              <p class="genre-count">{{ genre.count }} movie{{ genre.count !== 1 ? 's' : '' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -149,6 +177,31 @@ export default {
       return this.topMovies.filter(movie => 
         movie.cinemaId === this.selectedCinema
       );
+    },
+    featuredGenres() {
+      const genres = new Map();
+
+      this.topMovies.forEach(movie => {
+        const movieGenres = Array.isArray(movie.genre)
+          ? movie.genre
+          : typeof movie.genre === 'string'
+            ? movie.genre.split(',')
+            : [];
+
+        movieGenres.forEach(genre => {
+          const trimmed = String(genre).trim();
+          if (!trimmed) return;
+          const key = trimmed.toLowerCase();
+          const existing = genres.get(key);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            genres.set(key, { name: trimmed, count: 1 });
+          }
+        });
+      });
+
+      return Array.from(genres.values()).sort((a, b) => a.name.localeCompare(b.name));
     }
   },
   methods: {
@@ -414,6 +467,55 @@ export default {
   gap: 2rem;
 }
 
+.genre-section {
+  padding-bottom: 3rem;
+}
+
+.genre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+}
+
+.genre-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid #e8e8e8;
+}
+
+.genre-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.genre-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.genre-icon {
+  font-size: 2rem;
+}
+
+.genre-card-content h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.genre-count {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
 .movie-card {
   background: #fff;
   border-radius: 12px;
@@ -670,6 +772,11 @@ export default {
   }
   
   .movie-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .genre-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1rem;
   }
