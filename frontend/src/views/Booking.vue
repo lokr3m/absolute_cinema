@@ -342,13 +342,16 @@ export default {
         this.loading = true
         const response = await axios.get(`${API_BASE_URL}/cinemas`)
         const cinemas = response.data.data || []
-        this.cinemas = cinemas.map(cinema => {
-          const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id
-          return {
-            id: cinemaId ? String(cinemaId) : '',
-            name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
-          }
-        })
+        this.cinemas = cinemas
+          .map(cinema => {
+            const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id
+            if (!cinemaId) return null
+            return {
+              id: String(cinemaId),
+              name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+            }
+          })
+          .filter(Boolean)
       } catch (error) {
         console.error('Error loading cinemas:', error)
         this.error = 'Failed to load cinemas'
@@ -361,7 +364,7 @@ export default {
       const filmName = Array.isArray(film) ? film[0] : film
       const cinemaName = Array.isArray(cinema) ? cinema[0] : cinema
       const cinemaKey = Array.isArray(cinemaId) ? cinemaId[0] : cinemaId
-      const normalizedCinemaKey = cinemaKey ? String(cinemaKey) : ''
+      const normalizedCinemaKey = cinemaKey ? String(cinemaKey) : null
       const dateValue = Array.isArray(date) ? date[0] : date
       const timeValue = Array.isArray(time) ? time[0] : time
       const hallName = Array.isArray(hall) ? hall[0] : hall
@@ -425,9 +428,14 @@ export default {
               .map(session => session.hall?.name)
               .filter(Boolean)
               .join(', ')
-            console.warn(
-              `Multiple sessions matched by time only (${timeMatches.length}). Halls: ${hallNames || 'Unknown'}. Selecting the first match.`
-            )
+            const message = `Multiple sessions matched by time only (${timeMatches.length}). Halls: ${hallNames || 'Unknown'}. Selecting the first match.`
+            console.warn(message)
+            this.error = message
+            setTimeout(() => {
+              if (this.error === message) {
+                this.error = null
+              }
+            }, 5000)
           }
           if (timeMatches.length > 0) {
             sessionMatch = timeMatches[0]

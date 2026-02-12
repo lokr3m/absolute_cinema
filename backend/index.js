@@ -33,20 +33,24 @@ const normalizeApolloId = value => {
   return normalized.length > 0 ? normalized : null;
 };
 
-const mapCinemaToTheatreArea = cinema => ({
-  ID: cinema.apolloId ?? (cinema._id ? String(cinema._id) : null),
-  Name: cinema.name,
-  Address: cinema.address?.street,
-  City: cinema.address?.city,
-  PostalCode: cinema.address?.postalCode,
-  Phone: cinema.phone,
-  Email: cinema.email,
-  Facilities: cinema.facilities,
-  _id: cinema._id,
-  name: cinema.name,
-  address: cinema.address,
-  apolloId: cinema.apolloId
-});
+const mapCinemaToTheatreArea = cinema => {
+  const apolloId = cinema.apolloId ?? (cinema._id ? String(cinema._id) : null);
+  return {
+    ID: apolloId,
+    Name: cinema.name,
+    Address: cinema.address?.street,
+    City: cinema.address?.city,
+    PostalCode: cinema.address?.postalCode,
+    Phone: cinema.phone,
+    Email: cinema.email,
+    Facilities: cinema.facilities,
+    _id: apolloId,
+    mongoId: cinema._id,
+    name: cinema.name,
+    address: cinema.address,
+    apolloId: cinema.apolloId
+  };
+};
 
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
 
@@ -717,9 +721,12 @@ app.get('/api/cinemas', async (req, res) => {
       const cinemaData = theatreAreas.map(area => {
         const apolloId = normalizeApolloId(area.ID);
         const dbCinema = apolloId ? cinemaMap.get(apolloId) : null;
+        const mongoId = dbCinema?._id ?? null;
+        const responseId = apolloId ?? (mongoId ? String(mongoId) : null);
         return {
           ...area,
-          _id: dbCinema?._id ?? area._id ?? null,
+          _id: responseId,
+          mongoId,
           name: dbCinema?.name ?? area.Name ?? area.name,
           address: dbCinema?.address ?? {
             street: area.Address,
@@ -773,16 +780,12 @@ app.get('/api/cinemas/:id/halls', async (req, res) => {
   try {
     const { id } = req.params;
 
-    let cinema = null;
-    let cinemaId = null;
-
+    const cinemaQuery = [{ apolloId: id }];
     if (mongoose.Types.ObjectId.isValid(id)) {
-      cinema = await Cinema.findById(id);
-      cinemaId = cinema?._id;
-    } else {
-      cinema = await Cinema.findOne({ apolloId: id });
-      cinemaId = cinema?._id;
+      cinemaQuery.unshift({ _id: id });
     }
+    const cinema = await Cinema.findOne({ $or: cinemaQuery });
+    const cinemaId = cinema?._id;
 
     if (!cinema) {
       return res.status(404).json({

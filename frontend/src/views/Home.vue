@@ -172,13 +172,16 @@ export default {
         const response = await fetch(`${apiUrl}/api/cinemas`);
         const data = await response.json();
         if (data.success && data.data) {
-          this.cinemas = data.data.map(cinema => {
-            const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id;
-            return {
-              id: cinemaId ? String(cinemaId) : '',
-              name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
-            };
-          });
+          this.cinemas = data.data
+            .map(cinema => {
+              const cinemaId = cinema.ID ?? cinema.apolloId ?? cinema._id ?? cinema.id;
+              if (!cinemaId) return null;
+              return {
+                id: String(cinemaId),
+                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
+              };
+            })
+            .filter(Boolean);
         } else {
           this.cinemas = [];
         }
