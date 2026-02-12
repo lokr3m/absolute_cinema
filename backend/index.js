@@ -190,19 +190,19 @@ async function refreshDatabaseFromApollo() {
     
     // Process schedule shows if available
     const shows = extractShowsFromSchedule(scheduleData.schedule);
+    const uniqueHalls = new Map(
+      Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])
+    );
+    // Keep hall lookup keys and unique hall tracking aligned.
+    const registerHallKey = (key, hall) => {
+      if (!key || !hall) return;
+      hallMap.set(key, hall);
+      uniqueHalls.set(hall._id.toString(), hall);
+    };
+    let generatedHallCount = 0;
 
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
-
-      const uniqueHalls = new Map(
-        Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])
-      );
-      // Keep hall lookup keys and unique hall tracking aligned.
-      const registerHallKey = (key, hall) => {
-        if (!key || !hall) return;
-        hallMap.set(key, hall);
-        uniqueHalls.set(hall._id.toString(), hall);
-      };
 
       for (const show of shows) {
         try {
@@ -282,16 +282,21 @@ async function refreshDatabaseFromApollo() {
               const seatCapacityRaw = Number(show.TotalSeats);
               const hasSeatCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0;
               const baseCapacity = hasSeatCapacity ? seatCapacityRaw : DEFAULT_HALL_CAPACITY;
+              // Estimate row count assuming a rectangular hall with ~1.2:1 width-to-height ratio.
               const rows = Math.max(
                 MIN_HALL_DIMENSION,
                 Math.round(Math.sqrt(baseCapacity / DEFAULT_HALL_ASPECT_RATIO))
               );
               const seatsPerRow = Math.max(MIN_HALL_DIMENSION, Math.ceil(baseCapacity / rows));
               const capacity = rows * seatsPerRow;
-              const hallName = auditoriumName
-                || (auditoriumId
-                  ? `Hall ${auditoriumId}`
-                  : `Hall ${theatreId || 'Unknown'}-${uniqueHalls.size + 1}`);
+              let hallName = auditoriumName;
+              if (!hallName && auditoriumId) {
+                hallName = `Hall ${auditoriumId}`;
+              }
+              if (!hallName) {
+                generatedHallCount += 1;
+                hallName = `Hall ${theatreId || 'Unknown'}-${generatedHallCount}`;
+              }
               hall = await Hall.create({
                 cinema: cinema._id,
                 name: hallName,
