@@ -528,7 +528,7 @@ export default {
       if (!genre) return ''
       const trimmedGenre = String(genre).trim()
       if (!trimmedGenre) return ''
-      const words = trimmedGenre.match(/\S+/g) ?? []
+      const words = trimmedGenre.split(/\s+/).filter(Boolean)
       const formatToken = token => {
         if (!token) return ''
         return token
@@ -536,8 +536,12 @@ export default {
           .filter(Boolean)
           .map(part => {
             const normalizedPart = part.toLowerCase()
+            if (!normalizedPart) {
+              return ''
+            }
             return normalizedPart[0].toUpperCase() + normalizedPart.slice(1)
           })
+          .filter(Boolean)
           .join('-')
       }
       return words
