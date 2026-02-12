@@ -606,12 +606,15 @@ app.get('/api/films/:id', async (req, res) => {
  * List all scheduled sessions
  * Query parameters:
  *   - filmId: Filter by film ID
- *   - date: Filter by date (YYYY-MM-DD)
+ *   - date: Filter by date (YYYY-MM-DD or DD.MM.YYYY)
+ *   - dt: Start date (YYYY-MM-DD or DD.MM.YYYY) - alias for dtFrom when dtFrom is omitted
+ *   - dtFrom: Start date (YYYY-MM-DD or DD.MM.YYYY)
+ *   - dtTo: End date (YYYY-MM-DD or DD.MM.YYYY)
  *   - hallId: Filter by hall ID
  */
 app.get('/api/sessions', async (req, res) => {
   try {
-    const { filmId, date, hallId } = req.query;
+    const { filmId, date, hallId, dtFrom, dtTo, dt } = req.query;
     
     // Build query filter
     const filter = { status: 'scheduled' };
@@ -638,14 +641,21 @@ app.get('/api/sessions', async (req, res) => {
     
     if (date) {
       // Filter sessions for the specified date
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      const normalizedDate = normalizeScheduleDate(date, 'date');
+      const startOfDay = new Date(`${normalizedDate}T00:00:00`);
+      const endOfDay = new Date(`${normalizedDate}T23:59:59.999`);
       
       filter.startTime = {
         $gte: startOfDay,
         $lte: endOfDay
+      };
+    } else if (dtFrom || dtTo || dt) {
+      const { dtFrom: normalizedFrom, dtTo: normalizedTo } = getDefaultDateRange(dtFrom, dtTo, dt);
+      const startOfRange = new Date(`${normalizedFrom}T00:00:00`);
+      const endOfRange = new Date(`${normalizedTo}T23:59:59.999`);
+      filter.startTime = {
+        $gte: startOfRange,
+        $lte: endOfRange
       };
     } else {
       // By default, only show future sessions

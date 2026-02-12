@@ -395,8 +395,16 @@ export default {
       this.error = null;
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const dateRange = this.allDates.length > 0
+        ? { from: this.allDates[0].value, to: this.allDates[this.allDates.length - 1].value }
+        : null;
+      const params = {};
+      if (dateRange) {
+        params.dtFrom = dateRange.from;
+        params.dtTo = dateRange.to;
+      }
       
-      axios.get(`${apiUrl}/api/sessions`)
+      axios.get(`${apiUrl}/api/sessions`, { params })
         .then(res => {
           const sessionsData = res.data.data || [];
           
