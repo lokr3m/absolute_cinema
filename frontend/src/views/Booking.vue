@@ -428,7 +428,7 @@ export default {
               .map(session => session.hall?.name)
               .filter(Boolean)
               .join(', ')
-            const message = `Multiple showtimes found at ${normalizedTime}. Please verify the hall: ${hallNames || 'Unknown'}. The first option has been selected.`
+            const message = `Multiple showtimes found at ${normalizedTime}. Please verify the hall: ${hallNames || 'Unknown hall'}. The first option has been selected.`
             console.warn(message)
             this.error = message
             setTimeout(() => {

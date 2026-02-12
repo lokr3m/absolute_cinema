@@ -14,6 +14,7 @@ app.use(express.json());
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
 const BOOKING_ID_BYTES = 6;
+const DEFAULT_COUNTRY = 'Estonia';
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
@@ -115,7 +116,7 @@ async function refreshDatabaseFromApollo() {
             street: area.Address || 'Unknown',
             city: area.City || 'Tallinn',
             postalCode: area.PostalCode || '10000',
-            country: 'Estonia'
+            country: DEFAULT_COUNTRY
           },
           phone: area.Phone || '',
           email: area.Email || 'info@apollokino.ee',
@@ -151,7 +152,7 @@ async function refreshDatabaseFromApollo() {
       const defaultCinema = await Cinema.create({
         apolloId: null,
         name: 'Apollo Kino Solaris',
-        address: { street: 'Estonia pst 9', city: 'Tallinn', postalCode: '10143', country: 'Estonia' },
+        address: { street: 'Estonia pst 9', city: 'Tallinn', postalCode: '10143', country: DEFAULT_COUNTRY },
         phone: '+372 6273 500',
         email: 'info@apollokino.ee',
         facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
@@ -730,7 +731,7 @@ app.get('/api/cinemas', async (req, res) => {
             street: area.Address,
             city: area.City,
             postalCode: area.PostalCode,
-            country: area.Country ?? 'Estonia'
+            country: area.Country ?? DEFAULT_COUNTRY
           },
           apolloId: apolloId ?? dbCinema?.apolloId ?? null
         };
