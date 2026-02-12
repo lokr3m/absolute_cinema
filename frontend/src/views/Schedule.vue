@@ -222,10 +222,17 @@ const AGGREGATE_CINEMA_GROUPS = {
     names: ['Lõunakeskus', 'Eeden', 'Tasku']
   }
 }
-const normalizeCinemaName = value => (value ?? '')
-  .toLowerCase()
-  .trim()
-  .replace(/\bkristine\b/g, 'kristiine')
+const CINEMA_NAME_NORMALIZATIONS = {
+  kristine: 'kristiine'
+}
+const normalizeCinemaName = value => {
+  const normalized = (value ?? '').toLowerCase().trim()
+  if (!normalized) return ''
+  return normalized
+    .split(/\s+/)
+    .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
+    .join(' ')
+}
 
 export default {
   name: 'Schedule',
@@ -301,6 +308,9 @@ export default {
       const aggregateCinemaNames = aggregateGroup
         ? new Set(aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean))
         : null
+      const aggregateGroupNames = aggregateGroup
+        ? aggregateGroup.names.map(name => normalizeCinemaName(name))
+        : []
       return this.upcomingSessions.filter(session => {
         let matches = true
         
@@ -309,7 +319,7 @@ export default {
             const sessionCinemaId = session.cinemaId
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
-            const fallbackNameMatches = aggregateGroup.names.some(name => sessionName.includes(normalizeCinemaName(name)))
+            const fallbackNameMatches = aggregateGroupNames.some(name => sessionName.includes(name))
             const nameMatches = aggregateCinemaNames?.has(sessionName) || fallbackNameMatches
             if (!idMatches && !nameMatches) {
               matches = false
