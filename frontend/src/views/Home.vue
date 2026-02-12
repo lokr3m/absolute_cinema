@@ -189,13 +189,8 @@ export default {
             : [];
 
         movieGenres.forEach(genre => {
-          const trimmed = String(genre).trim();
-          if (!trimmed) return;
-          const displayName = trimmed === trimmed.toUpperCase()
-            ? trimmed
-            : trimmed
-              .toLowerCase()
-              .replace(/(^|[\s-])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
+          const displayName = this.normalizeGenreName(genre);
+          if (!displayName) return;
           const key = displayName.toLowerCase();
           const existing = genres.get(key);
           if (existing) {
@@ -206,10 +201,23 @@ export default {
         });
       });
 
-      return Array.from(genres.values()).sort((a, b) => a.name.localeCompare(b.name));
+      return Array.from(genres.values()).sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      );
     }
   },
   methods: {
+    normalizeGenreName(genre) {
+      if (genre === null || genre === undefined) return '';
+      const trimmed = String(genre).trim();
+      if (!trimmed) return '';
+      if (trimmed === trimmed.toUpperCase()) {
+        return trimmed;
+      }
+      return trimmed
+        .toLowerCase()
+        .replace(/(^|[\s-])([a-z])/g, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
+    },
     closeDropdown(event) {
       if (!event.target.closest('.custom-dropdown')) {
         this.cinemaDropdownOpen = false
