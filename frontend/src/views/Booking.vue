@@ -409,15 +409,33 @@ export default {
     normalizeFilmTitle(value) {
       return String(value ?? '')
         .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
         .replace(/\s+/g, ' ')
         .trim()
+    },
+    titleTokensMatch(normalizedTitle, normalizedFilmName) {
+      if (!normalizedTitle || !normalizedFilmName) return false
+      if (normalizedTitle === normalizedFilmName) return true
+
+      const titleTokens = normalizedTitle.split(' ').filter(Boolean)
+      const filmTokens = normalizedFilmName.split(' ').filter(Boolean)
+      if (!titleTokens.length || !filmTokens.length) return false
+
+      const [shorterTokens, longerTokens] = titleTokens.length <= filmTokens.length
+        ? [titleTokens, filmTokens]
+        : [filmTokens, titleTokens]
+      if (shorterTokens.length === 1) {
+        return titleTokens.length === 1 && filmTokens.length === 1 && shorterTokens[0] === longerTokens[0]
+      }
+      const longerTokenSet = new Set(longerTokens)
+      return shorterTokens.every(token => longerTokenSet.has(token))
     },
     sessionMatchesFilmTitle(session, normalizedFilmName) {
       if (!normalizedFilmName) return true
       const filmTitle = this.normalizeFilmTitle(session?.film?.title)
       const originalTitle = this.normalizeFilmTitle(session?.film?.originalTitle)
       return [filmTitle, originalTitle].some(title =>
-        title && (title === normalizedFilmName || title.includes(normalizedFilmName) || normalizedFilmName.includes(title))
+        this.titleTokensMatch(title, normalizedFilmName)
       )
     },
     getTodayDate() {
@@ -483,7 +501,7 @@ export default {
           const normalizedTitle = this.normalizeFilmTitle(item.title)
           const normalizedOriginalTitle = this.normalizeFilmTitle(item.originalTitle)
           return [normalizedTitle, normalizedOriginalTitle].some(title =>
-            title && (title === normalizedFilmName || title.includes(normalizedFilmName) || normalizedFilmName.includes(title))
+            this.titleTokensMatch(title, normalizedFilmName)
           )
         })
         if (filmMatch) {

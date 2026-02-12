@@ -300,12 +300,24 @@ async function refreshDatabaseFromApollo() {
             : null;
           if (!hall) continue;
 
-          const startValue = show.dttmShowStart || show.dttmShowStartUTC || show.dttmShowStartLocal;
+          // Prefer API-provided local start time when available, fall back to UTC/local variants from older payloads.
+          const startField = show.dttmShowStart
+            ? 'dttmShowStart'
+            : show.dttmShowStartUTC
+              ? 'dttmShowStartUTC'
+              : show.dttmShowStartLocal
+                ? 'dttmShowStartLocal'
+                : null;
+          const startValue = startField ? show[startField] : null;
           const startTime = startValue ? new Date(startValue) : null;
           if (!startTime || Number.isNaN(startTime.getTime())) {
             continue;
           }
-          const endValue = show.dttmShowEnd || show.dttmShowEndUTC || show.dttmShowEndLocal;
+          const endValue = startField === 'dttmShowStartUTC'
+            ? (show.dttmShowEndUTC || show.dttmShowEnd || show.dttmShowEndLocal)
+            : startField === 'dttmShowStartLocal'
+              ? (show.dttmShowEndLocal || show.dttmShowEnd || show.dttmShowEndUTC)
+              : (show.dttmShowEnd || show.dttmShowEndLocal || show.dttmShowEndUTC);
           let endTime = endValue ? new Date(endValue) : null;
           if (!endTime || Number.isNaN(endTime.getTime())) {
             endTime = new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000);
