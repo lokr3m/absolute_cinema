@@ -40,7 +40,7 @@ const normalizeApolloId = value => {
 };
 
 const normalizeToArray = value => (Array.isArray(value) ? value : [value]);
-const normalizeAuditoriumName = value => (
+const normalizeTextValue = value => (
   value ? value.trim().replace(/\s+/g, ' ').toLowerCase() : null
 );
 const is3DPresentation = value => value?.toString().toLowerCase().includes('3d');
@@ -273,7 +273,7 @@ async function refreshDatabaseFromApollo() {
           const theatreId = normalizeApolloId(show.TheatreID);
           const auditoriumName = show.TheatreAuditorium || show.TheatreAndAuditorium || null;
           const auditoriumKey = auditoriumId ? `auditorium-${auditoriumId}` : null;
-          const normalizedAuditoriumName = normalizeAuditoriumName(auditoriumName);
+          const normalizedAuditoriumName = normalizeTextValue(auditoriumName);
           const nameKey = theatreId && normalizedAuditoriumName
             ? `name-${theatreId}-${normalizedAuditoriumName}`
             : null;
@@ -289,11 +289,11 @@ async function refreshDatabaseFromApollo() {
           if (!hall && (auditoriumKey || nameKey)) {
             const cinema = theatreId ? cinemaMap.get(theatreId) : null;
             if (cinema) {
-              const seatCapacityRaw = Number(show.TotalSeats);
-              const baseCapacity = (Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0)
-                ? seatCapacityRaw
+              const totalSeats = Number(show.TotalSeats);
+              const baseCapacity = (Number.isFinite(totalSeats) && totalSeats > 0)
+                ? totalSeats
                 : DEFAULT_HALL_CAPACITY;
-              // Estimate row count assuming a rectangular hall: rows ≈ sqrt(capacity / ratio).
+              // Estimate row count assuming seats-per-row to rows ratio ≈ DEFAULT_HALL_ASPECT_RATIO.
               const rows = Math.max(
                 MIN_HALL_DIMENSION,
                 Math.round(Math.sqrt(baseCapacity / DEFAULT_HALL_ASPECT_RATIO))
@@ -306,7 +306,7 @@ async function refreshDatabaseFromApollo() {
               }
               if (!hallName) {
                 const hallCounterKey = theatreId || cinema._id.toString();
-                const hallCounterLabel = cinema.name || theatreId || 'Unknown';
+                const hallCounterLabel = cinema.name || (theatreId ? `Theatre-${theatreId}` : 'Unknown');
                 const nextCount = (generatedHallCounts.get(hallCounterKey) || 0) + 1;
                 generatedHallCounts.set(hallCounterKey, nextCount);
                 hallName = `Hall ${hallCounterLabel}-${nextCount}`;
