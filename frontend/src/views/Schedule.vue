@@ -230,25 +230,33 @@ export default {
       error: null,
       cinemaDropdownOpen: false,
       genreDropdownOpen: false,
-      formatDropdownOpen: false
+      formatDropdownOpen: false,
+      currentTime: Date.now(),
+      currentTimeInterval: null
     }
   },
   created() {
     this.allDates = this.generateDates()
     this.fetchCinemas()
     this.fetchSchedule()
+    this.currentTimeInterval = setInterval(() => {
+      this.currentTime = Date.now()
+    }, 60000)
     // Close dropdowns when clicking outside
     document.addEventListener('click', this.closeAllDropdowns)
   },
   beforeUnmount() {
     document.removeEventListener('click', this.closeAllDropdowns)
+    if (this.currentTimeInterval) {
+      clearInterval(this.currentTimeInterval)
+    }
   },
   watch: {
     selectedDate(newDate) {
       // When a date is selected, check if it has sessions
       // If not, find the nearest date with sessions
       if (this.sessions.length > 0) {
-        const sessionsForDate = this.sessions.filter(s => s.date === newDate)
+        const sessionsForDate = this.upcomingSessions.filter(s => s.date === newDate)
         if (sessionsForDate.length === 0 && this.availableDates.length > 0) {
           // Find the closest available date
           const selectedDateObj = new Date(newDate)
@@ -274,12 +282,15 @@ export default {
     }
   },
   computed: {
+    upcomingSessions() {
+      return this.sessions.filter(session => session.startTimestamp > this.currentTime)
+    },
     displayedDates() {
       const startIndex = this.currentWeekIndex * 7
       const dates = this.allDates.slice(startIndex, startIndex + 7)
       
       // Get all available dates from sessions
-      const availableDates = new Set(this.sessions.map(s => s.date))
+      const availableDates = new Set(this.upcomingSessions.map(s => s.date))
       
       // Mark dates that have sessions
       return dates.map(date => ({
@@ -288,7 +299,7 @@ export default {
       }))
     },
     filteredSessions() {
-      return this.sessions.filter(session => {
+      return this.upcomingSessions.filter(session => {
         let matches = true
         
         if (this.selectedCinema && session.cinemaId !== this.selectedCinema) {
@@ -313,7 +324,7 @@ export default {
     },
     availableDates() {
       // Get unique dates that have sessions, sorted
-      return [...new Set(this.sessions.map(s => s.date))].sort()
+      return [...new Set(this.upcomingSessions.map(s => s.date))].sort()
     }
   },
   methods: {
@@ -455,14 +466,15 @@ export default {
                 availability: availabilityPercent,
                 availableSeats: seatsAvailable,
                 date: showDate,
+                startTimestamp: startTime.getTime(),
                 showUrl: show.ShowURL || '#'
               };
             });
             
             // Auto-select first available date if no sessions for selected date
-            const sessionsForSelectedDate = this.sessions.filter(s => s.date === this.selectedDate);
-            if (sessionsForSelectedDate.length === 0 && this.sessions.length > 0) {
-              const availableDates = [...new Set(this.sessions.map(s => s.date))].sort();
+            const sessionsForSelectedDate = this.upcomingSessions.filter(s => s.date === this.selectedDate);
+            if (sessionsForSelectedDate.length === 0 && this.upcomingSessions.length > 0) {
+              const availableDates = [...new Set(this.upcomingSessions.map(s => s.date))].sort();
               if (availableDates.length > 0) {
                 this.selectedDate = availableDates[0];
               }
