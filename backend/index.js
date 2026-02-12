@@ -61,6 +61,17 @@ const extractShowTitle = show =>
 const extractShowDescription = show =>
   show?.Synopsis ?? show?.EventDescription ?? null;
 
+const normalizeHallName = value => String(value ?? '').trim().toLowerCase();
+
+const extractShowHallName = show => {
+  const hallValue = show?.TheatreAuditorium ?? show?.Auditorium ?? show?.AuditoriumName ?? show?.TheatreAuditoriumName;
+  if (!hallValue) return null;
+  if (typeof hallValue === 'object') {
+    return hallValue.Name ?? hallValue.name ?? null;
+  }
+  return hallValue;
+};
+
 const mapCinemaToTheatreArea = cinema => {
   const apolloId = cinema.apolloId ?? null;
   return {
@@ -105,6 +116,23 @@ const extractShowsFromSchedule = schedulePayload => {
   return [];
 };
 
+const extractEventsFromPayload = eventsPayload => {
+  if (!eventsPayload) return [];
+  if (eventsPayload.Events?.Event) {
+    return normalizeToArray(eventsPayload.Events.Event);
+  }
+  if (Array.isArray(eventsPayload.Events)) {
+    return eventsPayload.Events;
+  }
+  if (Array.isArray(eventsPayload)) {
+    return eventsPayload;
+  }
+  if (eventsPayload.Event) {
+    return normalizeToArray(eventsPayload.Event);
+  }
+  return [];
+};
+
 /**
  * Refresh database with fresh data from Apollo Kino API
  * Clears all existing data and populates from API
@@ -133,6 +161,15 @@ async function refreshDatabaseFromApollo() {
     const cinemaMap = new Map(); // Map Apollo cinema ID to MongoDB cinema
     const hallMap = new Map(); // Map Apollo hall/auditorium ID to MongoDB hall
     const hallsByCinemaId = new Map();
+    const hallsByCinemaName = new Map();
+
+    const registerHallName = (cinemaKey, hall) => {
+      const hallKey = normalizeHallName(hall?.name);
+      if (!hallKey) return;
+      const hallNameMap = hallsByCinemaName.get(cinemaKey) ?? new Map();
+      hallNameMap.set(hallKey, hall);
+      hallsByCinemaName.set(cinemaKey, hallNameMap);
+    };
 
     for (const area of theatreAreas) {
       try {
@@ -153,7 +190,7 @@ async function refreshDatabaseFromApollo() {
 
         const cinema = await Cinema.create(cinemaData);
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
-        cinemaMap.set(area.ID, cinema);
+        cinemaMap.set(cinemaKey, cinema);
         console.log(`  ✓ Created cinema: ${cinema.name}`);
 
         // Create default halls for each cinema (3 halls per cinema)
@@ -172,6 +209,7 @@ async function refreshDatabaseFromApollo() {
           const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
           hallsForCinema.push(hall);
           hallsByCinemaId.set(cinemaKey, hallsForCinema);
+          registerHallName(cinemaKey, hall);
         }
       } catch (err) {
         console.error(`  ⚠️ Error creating cinema for area ${area.ID}:`, err.message);
@@ -189,8 +227,8 @@ async function refreshDatabaseFromApollo() {
         email: 'info@apollokino.ee',
         facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
       });
-      cinemaMap.set('default', defaultCinema);
       const defaultCinemaKey = normalizeApolloId(defaultCinema.apolloId) ?? 'default';
+      cinemaMap.set(defaultCinemaKey, defaultCinema);
       
       for (let i = 1; i <= 3; i++) {
         const hall = await Hall.create({
@@ -206,6 +244,7 @@ async function refreshDatabaseFromApollo() {
         const hallsForCinema = hallsByCinemaId.get(defaultCinemaKey) ?? [];
         hallsForCinema.push(hall);
         hallsByCinemaId.set(defaultCinemaKey, hallsForCinema);
+        registerHallName(defaultCinemaKey, hall);
       }
     }
 
@@ -245,6 +284,12 @@ async function refreshDatabaseFromApollo() {
     
     // Process schedule shows if available
     const shows = extractShowsFromSchedule(scheduleData.schedule);
+    const scheduleEvents = extractEventsFromPayload(scheduleData.events);
+    const scheduleEventMap = new Map(
+      scheduleEvents
+        .map(event => [normalizeApolloId(event.ID), event])
+        .filter(([id]) => id)
+    );
 
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
@@ -259,7 +304,19 @@ async function refreshDatabaseFromApollo() {
           const apolloId = normalizeApolloId(eventId);
           let film = apolloId ? filmMap.get(apolloId) : null;
           const showTitle = extractShowTitle(show);
-          
+
+          if (!film && apolloId && scheduleEventMap.has(apolloId)) {
+            const scheduleEvent = scheduleEventMap.get(apolloId);
+            try {
+              const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
+              film = await Film.create(filmData);
+              filmMap.set(apolloId, film);
+            } catch (filmErr) {
+              // Skip if film creation fails
+              continue;
+            }
+          }
+
           // If film not found in events, create it from show data
           if (!film && showTitle) {
             try {
@@ -308,10 +365,34 @@ async function refreshDatabaseFromApollo() {
           if (!film) continue;
           
           const cinemaKey = normalizeApolloId(show.TheatreID ?? show.Theatre?.ID ?? show.TheatreId) ?? 'default';
+          const hallName = extractShowHallName(show);
+          const hallNameKey = normalizeHallName(hallName);
+          const hallNameMap = hallNameKey ? hallsByCinemaName.get(cinemaKey) : null;
+          let hall = hallNameKey && hallNameMap?.has(hallNameKey) ? hallNameMap.get(hallNameKey) : null;
           const candidateHalls = hallsByCinemaId.get(cinemaKey) ?? allHalls;
-          const hall = candidateHalls.length > 0
-            ? candidateHalls[Math.floor(Math.random() * candidateHalls.length)]
-            : null;
+          if (!hall && hallNameKey) {
+            const cinema = cinemaMap.get(cinemaKey);
+            if (cinema) {
+              hall = await Hall.create({
+                cinema: cinema._id,
+                name: hallName,
+                capacity: 150,
+                rows: 10,
+                seatsPerRow: 15,
+                screenType: 'Standard',
+                soundSystem: 'Digital 5.1'
+              });
+              const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
+              hallsForCinema.push(hall);
+              hallsByCinemaId.set(cinemaKey, hallsForCinema);
+              registerHallName(cinemaKey, hall);
+            }
+          }
+          if (!hall) {
+            hall = candidateHalls.length > 0
+              ? candidateHalls[Math.floor(Math.random() * candidateHalls.length)]
+              : null;
+          }
           if (!hall) continue;
 
           // Prefer API-provided local start time when available, fall back to UTC/local variants from older payloads.
