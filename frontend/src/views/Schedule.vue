@@ -306,11 +306,11 @@ export default {
         ? new Set(aggregateCinemas.map(cinema => cinema.id))
         : null
       const aggregateCinemaNames = aggregateGroup
-        ? new Set(aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean))
+        ? new Set([
+          ...aggregateCinemas.map(cinema => normalizeCinemaName(cinema.name)).filter(Boolean),
+          ...aggregateGroup.names.map(name => normalizeCinemaName(name))
+        ])
         : null
-      const aggregateGroupNames = aggregateGroup
-        ? aggregateGroup.names.map(name => normalizeCinemaName(name))
-        : []
       return this.upcomingSessions.filter(session => {
         let matches = true
         
@@ -319,8 +319,7 @@ export default {
             const sessionCinemaId = session.cinemaId
             const sessionName = normalizeCinemaName(session.cinema)
             const idMatches = aggregateCinemaIds?.has(sessionCinemaId)
-            const fallbackNameMatches = aggregateGroupNames.some(name => sessionName.includes(name))
-            const nameMatches = aggregateCinemaNames?.has(sessionName) || fallbackNameMatches
+            const nameMatches = aggregateCinemaNames?.has(sessionName)
             if (!idMatches && !nameMatches) {
               matches = false
             }
