@@ -140,6 +140,12 @@ export default {
         return
       }
 
+      if (this.$route.query.demo === 'true') {
+        this.booking = this.getDemoBooking()
+        await this.generateQrCode()
+        return
+      }
+
       try {
         this.loading = true
         const response = await axios.get(`${API_BASE_URL}/bookings/${bookingNumber}`)
@@ -167,6 +173,42 @@ export default {
       if (!this.booking) return
       const payload = JSON.stringify(this.buildQrPayload())
       this.qrCodeDataUrl = await QRCode.toDataURL(payload, { width: 220, margin: 2 })
+    },
+    getDemoBooking() {
+      const posterUrl = `data:image/svg+xml,${encodeURIComponent(
+        `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='450'>
+          <rect width='100%' height='100%' fill='%231a1a2e'/>
+          <text x='50%' y='50%' fill='%23e94560' font-size='24' font-family='Arial' text-anchor='middle' dominant-baseline='middle'>
+            Demo Film
+          </text>
+        </svg>`
+      )}`
+
+      const demoStartTime = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+
+      return {
+        bookingNumber: 'BK-DEMO-2026',
+        contactEmail: 'demo@absolutecinema.com',
+        totalPrice: 19,
+        paymentStatus: 'paid',
+        session: {
+          startTime: demoStartTime,
+          film: {
+            title: 'Demo Film',
+            posterUrl
+          },
+          hall: {
+            name: 'Hall 1',
+            cinema: {
+              name: 'Absolute Cinema'
+            }
+          }
+        },
+        seats: [
+          { row: 3, number: 7 },
+          { row: 3, number: 8 }
+        ]
+      }
     },
     downloadTicket() {
       if (!this.booking || !this.qrCodeDataUrl) return
