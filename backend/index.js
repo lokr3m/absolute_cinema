@@ -19,6 +19,11 @@ const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
 const PAYMENT_METHODS = ['card', 'cash', 'online'];
+const DEFAULT_SCHEDULE_HALL_CAPACITY = 150;
+const DEFAULT_SCHEDULE_HALL_ROWS = 10;
+const DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW = 15;
+const DEFAULT_SCHEDULE_HALL_SCREEN_TYPE = 'Standard';
+const DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM = 'Digital 5.1';
 
 const cinemaRateLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -61,15 +66,25 @@ const extractShowTitle = show =>
 const extractShowDescription = show =>
   show?.Synopsis ?? show?.EventDescription ?? null;
 
-const normalizeHallName = value => String(value ?? '').trim().toLowerCase();
+const normalizeHallName = value => {
+  if (!value) return '';
+  return String(value).trim().toLowerCase();
+};
+
+const SCHEDULE_HALL_FIELDS = ['TheatreAuditorium', 'Auditorium', 'AuditoriumName', 'TheatreAuditoriumName'];
 
 const extractShowHallName = show => {
-  const hallValue = show?.TheatreAuditorium ?? show?.Auditorium ?? show?.AuditoriumName ?? show?.TheatreAuditoriumName;
-  if (!hallValue) return null;
-  if (typeof hallValue === 'object') {
-    return hallValue.Name ?? hallValue.name ?? null;
+  for (const field of SCHEDULE_HALL_FIELDS) {
+    const hallValue = show?.[field];
+    if (!hallValue) continue;
+    if (typeof hallValue === 'object') {
+      const name = hallValue.Name ?? hallValue.name;
+      if (name) return name;
+      continue;
+    }
+    return hallValue;
   }
-  return hallValue;
+  return null;
 };
 
 const mapCinemaToTheatreArea = cinema => {
@@ -312,6 +327,7 @@ async function refreshDatabaseFromApollo() {
               film = await Film.create(filmData);
               filmMap.set(apolloId, film);
             } catch (filmErr) {
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId}:`, filmErr.message);
               // Skip if film creation fails
               continue;
             }
@@ -376,11 +392,11 @@ async function refreshDatabaseFromApollo() {
               hall = await Hall.create({
                 cinema: cinema._id,
                 name: hallName,
-                capacity: 150,
-                rows: 10,
-                seatsPerRow: 15,
-                screenType: 'Standard',
-                soundSystem: 'Digital 5.1'
+                capacity: DEFAULT_SCHEDULE_HALL_CAPACITY,
+                rows: DEFAULT_SCHEDULE_HALL_ROWS,
+                seatsPerRow: DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW,
+                screenType: DEFAULT_SCHEDULE_HALL_SCREEN_TYPE,
+                soundSystem: DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM
               });
               const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
               hallsForCinema.push(hall);
