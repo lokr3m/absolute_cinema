@@ -411,11 +411,10 @@ export default {
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
               const showDate = startTime.toISOString().split('T')[0];
-              const hallCapacity = session.hall?.capacity ?? session.availableSeats ?? 0;
               const seatsAvailable = Number.isFinite(session.availableSeats)
                 ? session.availableSeats
-                : hallCapacity;
-              const totalSeats = hallCapacity || seatsAvailable || 0;
+                : 0;
+              const totalSeats = session.hall?.capacity ?? (seatsAvailable || 0);
               const availabilityPercent = totalSeats > 0 
                 ? Math.round((seatsAvailable / totalSeats) * 100) 
                 : DEFAULT_AVAILABILITY_PERCENT;
