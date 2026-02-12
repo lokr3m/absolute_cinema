@@ -459,16 +459,13 @@ function normalizeScheduleDate(dateStr, label = 'date') {
     const year = Number(yearStr);
     const date = new Date(year, month - 1, day);
     if (
-      !Number.isInteger(day)
-      || !Number.isInteger(month)
-      || !Number.isInteger(year)
-      || date.getFullYear() !== year
+      date.getFullYear() !== year
       || date.getMonth() !== month - 1
       || date.getDate() !== day
     ) {
       throw new Error(`Invalid ${label}: ${dateStr}`);
     }
-    return `${yearStr}-${monthStr}-${dayStr}`;
+    return `${yearStr}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
   }
   throw new Error(`Invalid ${label} format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
 }
@@ -476,7 +473,7 @@ function normalizeScheduleDate(dateStr, label = 'date') {
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo, dt) {
   if (dtFrom && dt) {
-    throw new Error('Cannot specify both dtFrom and dt. Use dtFrom for explicit start date or dt as an alias.');
+    throw new Error('Cannot specify both dtFrom and dt parameters. Please use only one.');
   }
   let fromDate = dtFrom || dt;
   let toDate = dtTo;
