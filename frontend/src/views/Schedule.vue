@@ -240,6 +240,7 @@ export default {
     this.allDates = this.generateDates()
     this.fetchCinemas()
     this.fetchSchedule()
+    this.currentTime = Date.now()
     this.currentTimeInterval = setInterval(() => {
       this.currentTime = Date.now()
     }, CURRENT_TIME_UPDATE_INTERVAL)
@@ -424,13 +425,12 @@ export default {
           }
           
           if (shows.length > 0) {
-            const mappedSessions = [];
-            shows.forEach((show, index) => {
+            const mappedSessions = shows.reduce((sessions, show, index) => {
               const startTime = new Date(show.dttmShowStart);
               const startTimestamp = startTime.getTime();
               if (Number.isNaN(startTimestamp)) {
                 console.warn('Invalid show start time:', show.dttmShowStart);
-                return;
+                return sessions;
               }
               const hours = startTime.getHours().toString().padStart(2, '0');
               const minutes = startTime.getMinutes().toString().padStart(2, '0');
@@ -459,7 +459,7 @@ export default {
                 || 'https://via.placeholder.com/200x300/1a1a2e/e94560?text=' + encodeURIComponent(show.Title || 'No Image');
               
               const cinemaId = show.TheatreID != null ? String(show.TheatreID) : '';
-              mappedSessions.push({
+              sessions.push({
                 id: show.ID || index,
                 movieTitle: show.Title || 'Unknown',
                 genre: show.Genres || '',
@@ -477,7 +477,8 @@ export default {
                 startTimestamp,
                 showUrl: show.ShowURL || '#'
               });
-            });
+              return sessions;
+            }, []);
             this.sessions = mappedSessions;
             
             // Auto-select first available date if no sessions for selected date
