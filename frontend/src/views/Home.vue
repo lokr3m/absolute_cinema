@@ -191,12 +191,15 @@ export default {
         movieGenres.forEach(genre => {
           const trimmed = String(genre).trim();
           if (!trimmed) return;
-          const key = trimmed.toLowerCase();
+          const displayName = trimmed
+            .toLowerCase()
+            .replace(/\b\w/g, char => char.toUpperCase());
+          const key = displayName.toLowerCase();
           const existing = genres.get(key);
           if (existing) {
             existing.count += 1;
           } else {
-            genres.set(key, { name: trimmed, count: 1 });
+            genres.set(key, { name: displayName, count: 1 });
           }
         });
       });
