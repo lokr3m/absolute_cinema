@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 const BOOKING_ID_BYTES = 6;
 const DEFAULT_HALL_CAPACITY = 120;
 const MIN_HALL_DIMENSION = 8;
+const DEFAULT_HALL_ASPECT_RATIO = 1.2;
 
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
@@ -196,6 +197,11 @@ async function refreshDatabaseFromApollo() {
       const uniqueHalls = new Map(
         Array.from(hallMap.values()).map(hallItem => [hallItem._id.toString(), hallItem])
       );
+      const registerHallKey = (key, hall) => {
+        if (!key || !hall) return;
+        hallMap.set(key, hall);
+        uniqueHalls.set(hall._id.toString(), hall);
+      };
 
       for (const show of shows) {
         try {
@@ -265,7 +271,7 @@ async function refreshDatabaseFromApollo() {
           if (!hall && nameKey) {
             hall = hallMap.get(nameKey) || null;
             if (hall && auditoriumKey) {
-              hallMap.set(auditoriumKey, hall);
+              registerHallKey(auditoriumKey, hall);
             }
           }
 
@@ -275,7 +281,10 @@ async function refreshDatabaseFromApollo() {
               const seatCapacityRaw = Number(show.TotalSeats);
               const hasSeatCapacity = Number.isFinite(seatCapacityRaw) && seatCapacityRaw > 0;
               const baseCapacity = hasSeatCapacity ? seatCapacityRaw : DEFAULT_HALL_CAPACITY;
-              const rows = Math.max(MIN_HALL_DIMENSION, Math.round(Math.sqrt(baseCapacity)));
+              const rows = Math.max(
+                MIN_HALL_DIMENSION,
+                Math.round(Math.sqrt(baseCapacity / DEFAULT_HALL_ASPECT_RATIO))
+              );
               const seatsPerRow = Math.max(MIN_HALL_DIMENSION, Math.ceil(baseCapacity / rows));
               const capacity = rows * seatsPerRow;
               const hallName = auditoriumName
@@ -291,13 +300,8 @@ async function refreshDatabaseFromApollo() {
                 screenType: show.PresentationMethod?.includes('3D') ? '3D' : 'Standard',
                 soundSystem: 'Standard'
               });
-              uniqueHalls.set(hall._id.toString(), hall);
-              if (auditoriumKey) {
-                hallMap.set(auditoriumKey, hall);
-              }
-              if (nameKey) {
-                hallMap.set(nameKey, hall);
-              }
+              registerHallKey(auditoriumKey, hall);
+              registerHallKey(nameKey, hall);
             }
           }
 
