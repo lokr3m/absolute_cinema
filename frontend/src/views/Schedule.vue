@@ -250,6 +250,14 @@ const normalizeCinemaName = value => (value ?? '')
   .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
   .join(' ')
 
+const formatLocalDate = date => {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 /**
  * Split a normalized cinema name into an array of space-separated tokens, removing empty segments.
  * @param {string} value - Normalized cinema name.
@@ -303,7 +311,7 @@ const tokensMatchByShortestName = (selectedTokens, sessionTokenData) => {
 export default {
   name: 'Schedule',
   data() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = formatLocalDate(new Date())
     
     return {
       selectedCinema: '',
@@ -620,7 +628,7 @@ export default {
           : DEFAULT_AVAILABILITY_PERCENT
         const hours = startTime.getHours().toString().padStart(2, '0')
         const minutes = startTime.getMinutes().toString().padStart(2, '0')
-        const showDate = startTime.toISOString().split('T')[0]
+        const showDate = formatLocalDate(startTime)
         const cinemaName = show.Theatre?.Name || show.Theatre || show.TheatreName || 'Unknown Cinema'
         const hallName = show.TheatreAuditorium || show.Auditorium || show.AuditoriumName || 'Unknown Hall'
         const cinemaId = show.TheatreID ?? show.Theatre?.ID
@@ -719,7 +727,7 @@ export default {
         dates.push({
           day: days[date.getDay()],
           number: date.getDate(),
-          value: date.toISOString().split('T')[0]
+          value: formatLocalDate(date)
         })
       }
       
