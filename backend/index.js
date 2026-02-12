@@ -654,9 +654,9 @@ app.get('/api/sessions', async (req, res) => {
           }
         }
       ]);
-      const seatCountBySession = bookedSeatCounts.reduce((bookingMap, item) => {
-        bookingMap[String(item._id)] = item.bookedSeats;
-        return bookingMap;
+      const seatCountBySession = bookedSeatCounts.reduce((seatCountMap, item) => {
+        seatCountMap[String(item._id)] = item.bookedSeats;
+        return seatCountMap;
       }, {});
 
       sessions.forEach(session => {

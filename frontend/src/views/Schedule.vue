@@ -423,7 +423,8 @@ export default {
                 : (session.film?.genre || '');
               const posterUrl = session.film?.posterUrl
                 || `https://via.placeholder.com/200x300/1a1a2e/e94560?text=${encodeURIComponent(session.film?.title || 'No Image')}`;
-              const cinemaId = session.hall?.cinema?.apolloId ?? session.hall?.cinema?._id;
+              const cinemaIdentifier = session.hall?.cinema?.apolloId;
+              const cinemaId = cinemaIdentifier ?? session.hall?.cinema?._id;
               const subtitles = Array.isArray(session.film?.subtitles)
                 ? session.film.subtitles.join(', ')
                 : (session.film?.subtitles || 'Puudub');
