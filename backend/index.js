@@ -131,7 +131,7 @@ const extractShowsFromSchedule = schedulePayload => {
   return [];
 };
 
-const extractEventsFromPayload = eventsPayload => {
+const extractScheduleEvents = eventsPayload => {
   if (!eventsPayload) return [];
   if (eventsPayload.Events?.Event) {
     return normalizeToArray(eventsPayload.Events.Event);
@@ -206,6 +206,9 @@ async function refreshDatabaseFromApollo() {
         const cinema = await Cinema.create(cinemaData);
         const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
         cinemaMap.set(cinemaKey, cinema);
+        if (area.ID !== null && area.ID !== undefined) {
+          cinemaMap.set(area.ID, cinema);
+        }
         console.log(`  ✓ Created cinema: ${cinema.name}`);
 
         // Create default halls for each cinema (3 halls per cinema)
@@ -244,6 +247,7 @@ async function refreshDatabaseFromApollo() {
       });
       const defaultCinemaKey = normalizeApolloId(defaultCinema.apolloId) ?? 'default';
       cinemaMap.set(defaultCinemaKey, defaultCinema);
+      cinemaMap.set('default', defaultCinema);
       
       for (let i = 1; i <= 3; i++) {
         const hall = await Hall.create({
@@ -299,7 +303,7 @@ async function refreshDatabaseFromApollo() {
     
     // Process schedule shows if available
     const shows = extractShowsFromSchedule(scheduleData.schedule);
-    const scheduleEvents = extractEventsFromPayload(scheduleData.events);
+    const scheduleEvents = extractScheduleEvents(scheduleData.events);
     const scheduleEventMap = new Map(
       scheduleEvents
         .map(event => [normalizeApolloId(event.ID), event])
@@ -327,7 +331,8 @@ async function refreshDatabaseFromApollo() {
               film = await Film.create(filmData);
               filmMap.set(apolloId, film);
             } catch (filmErr) {
-              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId}:`, filmErr.message);
+              const eventTitle = scheduleEvent?.Title || scheduleEvent?.OriginalTitle || scheduleEvent?.EventTitle || 'Unknown';
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${eventTitle}):`, filmErr.message);
               // Skip if film creation fails
               continue;
             }
