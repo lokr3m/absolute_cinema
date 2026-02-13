@@ -101,6 +101,24 @@ const parseApolloGenres = value => {
   const genres = String(value).split(',').map(genre => genre.trim()).filter(Boolean);
   return genres.length > 0 ? genres : [FALLBACK_GENRE];
 };
+const roundPrice = value => Math.round(value * 100) / 100;
+const buildFilmDataFromShow = (show, showTitle) => ({
+  title: showTitle,
+  originalTitle: show.OriginalTitle ?? showTitle,
+  description: extractShowDescription(show) ?? 'No description available',
+  duration: parseInt(show.LengthInMinutes) || 90,
+  genre: parseApolloGenres(show.Genres),
+  director: 'Unknown',
+  cast: [],
+  releaseDate: show.dtLocalRelease ? new Date(show.dtLocalRelease) : new Date(),
+  language: show.SpokenLanguage?.Name || 'Unknown',
+  subtitles: show.SubtitleLanguage1?.Name ? [show.SubtitleLanguage1.Name] : [],
+  ageRating: AGE_RATING_MAP[show.RatingLabel ?? ''] ?? 'G',
+  posterUrl: show.Images?.EventMediumImagePortrait || '',
+  trailerUrl: '',
+  rating: 0,
+  isActive: true
+});
 
 // Prioritize fields in the order Apollo schedule payloads commonly expose hall names.
 const SCHEDULE_HALL_FIELDS = [
@@ -632,7 +650,10 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
   for (const event of scheduleEvents) {
     try {
       const filmData = apolloKinoService.transformEventToFilm(event);
-      const existingFilm = await Film.findOne({ originalTitle: filmData.originalTitle });
+      const lookupTitle = normalizeFilmKey(filmData.title);
+      const lookupOriginal = normalizeFilmKey(filmData.originalTitle);
+      const existingFilm = (lookupOriginal && filmLookup.get(lookupOriginal))
+        || (lookupTitle && filmLookup.get(lookupTitle));
       const film = existingFilm
         ? await Film.findByIdAndUpdate(existingFilm._id, filmData, { new: true })
         : await Film.create(filmData);
@@ -687,25 +708,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         film = normalizedShowTitle ? filmLookup.get(normalizedShowTitle) : null;
       }
       if (!film && showTitle) {
-        const genres = parseApolloGenres(show.Genres);
-        const filmData = {
-          title: showTitle,
-          originalTitle: show.OriginalTitle ?? showTitle,
-          description: extractShowDescription(show) ?? 'No description available',
-          duration: parseInt(show.LengthInMinutes) || 90,
-          genre: genres,
-          director: 'Unknown',
-          cast: [],
-          releaseDate: show.dtLocalRelease ? new Date(show.dtLocalRelease) : new Date(),
-          language: show.SpokenLanguage?.Name || 'Unknown',
-          subtitles: show.SubtitleLanguage1?.Name ? [show.SubtitleLanguage1.Name] : [],
-          ageRating: AGE_RATING_MAP[show.RatingLabel ?? ''] ?? 'G',
-          posterUrl: show.Images?.EventMediumImagePortrait || '',
-          trailerUrl: '',
-          rating: 0,
-          isActive: true
-        };
-        film = await Film.create(filmData);
+        film = await Film.create(buildFilmDataFromShow(show, showTitle));
         const normalizedTitle = normalizeFilmKey(film.title);
         if (normalizedTitle) {
           filmLookup.set(normalizedTitle, film);
@@ -778,11 +781,12 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         );
       }
 
-      const priceInCentsValue = Number.parseFloat(show.PriceInCents);
-      const priceValue = Number.isFinite(priceInCentsValue)
-        ? priceInCentsValue / 100
+      const priceInCents = Number.parseFloat(show.PriceInCents);
+      const priceValue = Number.isFinite(priceInCents)
+        ? priceInCents / 100
         : Number.parseFloat(show.Price);
       const standardPrice = Number.isFinite(priceValue) && priceValue > 0 ? priceValue : DEFAULT_SESSION_PRICE;
+      const roundedStandardPrice = roundPrice(standardPrice);
 
       const sessionKey = `${hall._id.toString()}-${startTime.toISOString()}`;
       if (existingSessionKeys.has(sessionKey)) {
@@ -796,10 +800,10 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         startTime,
         endTime,
         price: {
-          standard: standardPrice,
-          student: standardPrice * STUDENT_PRICE_MULTIPLIER,
-          child: standardPrice * CHILD_PRICE_MULTIPLIER,
-          vip: standardPrice * VIP_PRICE_MULTIPLIER
+          standard: roundedStandardPrice,
+          student: roundPrice(roundedStandardPrice * STUDENT_PRICE_MULTIPLIER),
+          child: roundPrice(roundedStandardPrice * CHILD_PRICE_MULTIPLIER),
+          vip: roundPrice(roundedStandardPrice * VIP_PRICE_MULTIPLIER)
         },
         is3D: show.PresentationMethod?.includes('3D') || false,
         subtitles: show.SubtitleLanguage1?.Name || DEFAULT_SESSION_SUBTITLE,
