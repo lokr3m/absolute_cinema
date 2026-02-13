@@ -3,9 +3,9 @@ const xml2js = require('xml2js');
 
 const normalizeApolloArray = value => (Array.isArray(value) ? value : value ? [value] : []);
 const DEFAULT_SCHEDULE_REQUEST_DELAY_MS = 50;
-const scheduleDelayFromEnv = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
-const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(scheduleDelayFromEnv) && scheduleDelayFromEnv >= 0
-  ? scheduleDelayFromEnv
+const envDelay = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
+const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(envDelay) && envDelay >= 0
+  ? envDelay
   : DEFAULT_SCHEDULE_REQUEST_DELAY_MS;
 const MIN_REQUESTS_FOR_THROTTLING = 3;
 const scheduleRequestDelay = ms => new Promise(resolve => setTimeout(resolve, ms));

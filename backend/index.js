@@ -822,7 +822,7 @@ app.get('/api/sessions', async (req, res) => {
       if (!normalizedDate) {
         return res.status(400).json({
           success: false,
-          error: 'Invalid date format'
+          error: 'Invalid date format. Expected YYYY-MM-DD or DD.MM.YYYY'
         });
       }
       const startOfDay = new Date(`${normalizedDate}T00:00:00`);
