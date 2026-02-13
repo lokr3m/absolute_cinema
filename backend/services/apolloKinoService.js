@@ -341,13 +341,15 @@ class ApolloKinoService {
       const areasToFetch = uniqueAreaIds.length > 0 ? uniqueAreaIds : [null];
       const schedulePayloads = [];
       const shouldThrottleRequests = scheduleDates.length * areasToFetch.length > 1;
+      let hasRequestedSchedule = false;
       for (const scheduleDate of scheduleDates) {
         for (const areaId of areasToFetch) {
-          const schedulePayload = await this.fetchJSON(buildSchedulePath(scheduleDate, areaId));
-          schedulePayloads.push(schedulePayload);
-          if (shouldThrottleRequests) {
+          if (shouldThrottleRequests && hasRequestedSchedule) {
             await scheduleRequestDelay(SCHEDULE_REQUEST_DELAY_MS);
           }
+          const schedulePayload = await this.fetchJSON(buildSchedulePath(scheduleDate, areaId));
+          schedulePayloads.push(schedulePayload);
+          hasRequestedSchedule = true;
         }
       }
       const scheduleMap = new Map();
@@ -358,7 +360,7 @@ class ApolloKinoService {
           const eventId = show?.EventID ?? show?.EventId ?? '';
           const showTime = show?.dttmShowStart ?? show?.dttmShowStartUTC ?? show?.dttmShowStartLocal ?? '';
           const theatreId = show?.TheatreID ?? show?.Theatre?.ID ?? show?.TheatreId ?? '';
-          const compositeKey = JSON.stringify([eventId, showTime, theatreId]);
+          const compositeKey = `${eventId}|${showTime}|${theatreId}`;
           const normalizedKey = showId != null ? `id:${showId}` : `fallback:${compositeKey}`;
           if (!scheduleMap.has(normalizedKey)) {
             scheduleMap.set(normalizedKey, show);
