@@ -594,7 +594,7 @@ async function initializeServer() {
       if (!hasCoreData) {
         await refreshDatabaseFromApollo();
       } else {
-        console.log('ℹ️  Existing data detected; skipping full refresh to preserve bookings.');
+        console.log('ℹ️  Existing core data detected; skipping full refresh to preserve current records.');
       }
     }
     
