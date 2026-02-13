@@ -3,11 +3,11 @@ const xml2js = require('xml2js');
 
 const normalizeApolloArray = value => (Array.isArray(value) ? value : value ? [value] : []);
 const DEFAULT_SCHEDULE_REQUEST_DELAY_MS = 50;
-const envScheduleDelayMs = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
-const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(envScheduleDelayMs) && envScheduleDelayMs >= 0
-  ? envScheduleDelayMs
+const scheduleDelayFromEnv = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
+const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(scheduleDelayFromEnv) && scheduleDelayFromEnv >= 0
+  ? scheduleDelayFromEnv
   : DEFAULT_SCHEDULE_REQUEST_DELAY_MS;
-const MIN_REQUESTS_FOR_THROTTLING = 2;
+const MIN_REQUESTS_FOR_THROTTLING = 3;
 const scheduleRequestDelay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const extractScheduleShows = schedulePayload => {

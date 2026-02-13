@@ -819,6 +819,12 @@ app.get('/api/sessions', async (req, res) => {
     if (date) {
       // Filter sessions for the specified date
       const normalizedDate = normalizeSessionDate(date);
+      if (!normalizedDate) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid date format'
+        });
+      }
       const startOfDay = new Date(`${normalizedDate}T00:00:00`);
       const endOfDay = new Date(`${normalizedDate}T23:59:59.999`);
       
