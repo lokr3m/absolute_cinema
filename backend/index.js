@@ -24,10 +24,15 @@ const DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW = 13;
 const DEFAULT_SCHEDULE_HALL_CAPACITY = 150;
 const DEFAULT_SCHEDULE_HALL_SCREEN_TYPE = 'Standard';
 const DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM = 'Digital 5.1';
+const DEFAULT_SCHEDULE_RANGE_DAYS = 14;
 const DEFAULT_SESSION_BUFFER_MINUTES = 15;
 const DEFAULT_SESSION_PRICE = 9.50;
 const DEFAULT_SESSION_SUBTITLE = 'Estonian';
-const DEFAULT_FALLBACK_GENRE = 'Unknown';
+const FALLBACK_GENRE = 'Unknown';
+const MILLISECONDS_PER_MINUTE = 60000;
+const STUDENT_PRICE_MULTIPLIER = 0.8;
+const CHILD_PRICE_MULTIPLIER = 0.6;
+const VIP_PRICE_MULTIPLIER = 1.5;
 const AGE_RATING_MAP = {
   'MS-6': 'MS-6',
   'MS-12': 'MS-12',
@@ -640,7 +645,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         });
       }
       if (!film && showTitle) {
-        const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : [DEFAULT_FALLBACK_GENRE];
+        const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : [FALLBACK_GENRE];
         const filmData = {
           title: showTitle,
           originalTitle: show.OriginalTitle ?? showTitle,
@@ -652,7 +657,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
           releaseDate: show.dtLocalRelease ? new Date(show.dtLocalRelease) : new Date(),
           language: show.SpokenLanguage?.Name || 'Unknown',
           subtitles: show.SubtitleLanguage1?.Name ? [show.SubtitleLanguage1.Name] : [],
-          ageRating: AGE_RATING_MAP[show.RatingLabel] || 'G',
+          ageRating: AGE_RATING_MAP[show.RatingLabel ?? ''] ?? 'G',
           posterUrl: show.Images?.EventMediumImagePortrait || '',
           trailerUrl: '',
           rating: 0,
@@ -711,7 +716,11 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         .find(value => value);
       let endTime = endValue ? new Date(endValue) : null;
       if (!endTime || Number.isNaN(endTime.getTime())) {
-        endTime = new Date(startTime.getTime() + film.duration * 60000 + DEFAULT_SESSION_BUFFER_MINUTES * 60000);
+        endTime = new Date(
+          startTime.getTime()
+          + film.duration * MILLISECONDS_PER_MINUTE
+          + DEFAULT_SESSION_BUFFER_MINUTES * MILLISECONDS_PER_MINUTE
+        );
       }
 
       const priceInCents = Number.parseFloat(show.PriceInCents);
@@ -733,9 +742,9 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         endTime,
         price: {
           standard: standardPrice,
-          student: standardPrice * 0.8,
-          child: standardPrice * 0.6,
-          vip: standardPrice * 1.5
+          student: standardPrice * STUDENT_PRICE_MULTIPLIER,
+          child: standardPrice * CHILD_PRICE_MULTIPLIER,
+          vip: standardPrice * VIP_PRICE_MULTIPLIER
         },
         is3D: show.PresentationMethod?.includes('3D') || false,
         subtitles: show.SubtitleLanguage1?.Name || DEFAULT_SESSION_SUBTITLE,
@@ -807,13 +816,14 @@ async function initializeServer() {
       } else {
         console.log('ℹ️  Existing core data detected; skipping full refresh to preserve current records.');
         const { dtFrom, dtTo } = getDefaultDateRange();
-        const rangeEnd = new Date(`${dtTo}T23:59:59.999`);
+        const validatedTo = validateDate(dtTo);
+        const rangeEnd = new Date(`${validatedTo}T23:59:59.999`);
         const latestSession = await Session.findOne({ status: 'scheduled' }).sort({ startTime: -1 });
         if (!latestSession || latestSession.startTime < rangeEnd) {
           console.log('🔄 Syncing upcoming sessions from Apollo schedule...');
           await syncUpcomingSessionsFromApollo({ dtFrom, dtTo });
         } else {
-          console.log('ℹ️  Upcoming sessions already extend through the next 14 days.');
+          console.log(`ℹ️  Upcoming sessions already extend through the next ${DEFAULT_SCHEDULE_RANGE_DAYS} days.`);
         }
       }
     }
@@ -884,7 +894,7 @@ function getDefaultDateRange(dtFrom, dtTo) {
   // Default to 14 days from dtFrom if not provided
   if (!toDate) {
     const fromDateObj = new Date(fromDate + 'T00:00:00');
-    fromDateObj.setDate(fromDateObj.getDate() + 14);
+    fromDateObj.setDate(fromDateObj.getDate() + DEFAULT_SCHEDULE_RANGE_DAYS);
     toDate = formatDateLocal(fromDateObj);
   } else {
     toDate = validateDate(toDate);
