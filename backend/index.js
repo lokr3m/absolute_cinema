@@ -41,8 +41,7 @@ const AGE_RATING_MAP = {
   'K-16': 'K-16',
   'PERE': 'G',
   'L': 'G',
-  '-': 'G',
-  '': 'G'
+  '-': 'G'
 };
 
 const cinemaRateLimiter = rateLimit({
@@ -97,6 +96,11 @@ const addDays = (date, days) => {
   next.setDate(next.getDate() + days);
   return next;
 };
+/**
+ * Normalize Apollo genre data into an array of strings.
+ * @param {string|string[]|null} value - Genres from Apollo schedule/event payloads.
+ * @returns {string[]} Normalized genre list.
+ */
 const parseApolloGenres = value => {
   if (!value) return [FALLBACK_GENRE];
   if (Array.isArray(value)) {
@@ -794,9 +798,10 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
       const priceInCents = show.PriceInCents != null
         ? Number.parseInt(show.PriceInCents, 10)
         : Number.NaN;
+      const rawPrice = Number.parseFloat(show.Price);
       const priceValue = Number.isFinite(priceInCents)
         ? priceInCents / 100
-        : Number.parseFloat(show.Price);
+        : rawPrice;
       const standardPrice = Number.isFinite(priceValue) && priceValue > 0 ? priceValue : DEFAULT_SESSION_PRICE;
       const roundedStandardPrice = roundPrice(standardPrice);
 
@@ -891,7 +896,7 @@ async function initializeServer() {
         const validatedTo = validateDate(dtTo);
         const rangeEnd = parseValidatedDateEnd(validatedTo);
         if (!rangeEnd) {
-          throw new Error('Invalid schedule range end date');
+          throw new Error(`Invalid schedule range end date: ${dtTo}`);
         }
         const latestSession = await Session.findOne({ status: 'scheduled' }).sort({ startTime: -1 });
         if (!latestSession || latestSession.startTime < rangeEnd) {
@@ -930,6 +935,11 @@ function validateDate(dateStr) {
   return dateStr;
 }
 
+/**
+ * Convert a validated YYYY-MM-DD date string to a UTC end-of-day Date.
+ * @param {string} dateStr - Validated date string (YYYY-MM-DD).
+ * @returns {Date|null} Date at 23:59:59.999 UTC or null if invalid.
+ */
 function parseValidatedDateEnd(dateStr) {
   if (!dateStr) return null;
   const [year, month, day] = dateStr.split('-').map(Number);
