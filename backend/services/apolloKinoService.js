@@ -2,6 +2,7 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 
 const normalizeApolloArray = value => (Array.isArray(value) ? value : value ? [value] : []);
+const scheduleRequestDelay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const extractScheduleShows = schedulePayload => {
   if (!schedulePayload) return [];
@@ -334,10 +335,14 @@ class ApolloKinoService {
       const uniqueAreaIds = [...new Set(areaIds)];
       const areasToFetch = uniqueAreaIds.length > 0 ? uniqueAreaIds : [null];
       const schedulePayloads = [];
+      const shouldThrottleRequests = scheduleDates.length * areasToFetch.length > 1;
       for (const scheduleDate of scheduleDates) {
         for (const areaId of areasToFetch) {
           const schedulePayload = await this.fetchJSON(buildSchedulePath(scheduleDate, areaId));
           schedulePayloads.push(schedulePayload);
+          if (shouldThrottleRequests) {
+            await scheduleRequestDelay(50);
+          }
         }
       }
       const scheduleMap = new Map();
