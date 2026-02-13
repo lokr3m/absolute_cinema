@@ -215,7 +215,7 @@ export default {
   },
   computed: {
     activeBanner() {
-      return this.newsBanners[this.activeBannerIndex] || this.newsBanners[0] || {};
+      return this.newsBanners[this.activeBannerIndex] || {};
     },
     featuredGenres() {
       const genres = new Map();
@@ -279,7 +279,9 @@ export default {
         .replace(TITLE_CASE_BOUNDARY_REGEX, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
     },
     selectBanner(index) {
-      this.activeBannerIndex = index;
+      if (index >= 0 && index < this.newsBanners.length) {
+        this.activeBannerIndex = index;
+      }
     },
     async fetchFeaturedMovies() {
       this.loading = true;
