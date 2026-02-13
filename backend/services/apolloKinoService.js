@@ -37,13 +37,27 @@ const formatApolloScheduleDate = value => {
   return trimmed;
 };
 
+const normalizeDateForRange = value => {
+  if (!value) return null;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(trimmed)) {
+    const [day, month, year] = trimmed.split('.');
+    return `${year}-${month}-${day}`;
+  }
+  return trimmed;
+};
+
 const buildScheduleDateRange = (dateFrom, dateTo, date) => {
   const directDate = formatApolloScheduleDate(date);
   if (directDate) return [directDate];
   if (!dateFrom && !dateTo) return [null];
 
-  const startValue = dateFrom || dateTo;
-  const endValue = dateTo || dateFrom;
+  const startValue = normalizeDateForRange(dateFrom || dateTo);
+  const endValue = normalizeDateForRange(dateTo || dateFrom);
+  if (!startValue || !endValue) {
+    return [null];
+  }
   const startDate = new Date(`${startValue}T00:00:00`);
   const endDate = new Date(`${endValue}T00:00:00`);
   if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {

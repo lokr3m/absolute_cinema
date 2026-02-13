@@ -808,8 +808,14 @@ app.get('/api/sessions', async (req, res) => {
     
     if (date) {
       // Filter sessions for the specified date
-      const startOfDay = new Date(`${date}T00:00:00`);
-      const endOfDay = new Date(`${date}T23:59:59.999`);
+      const normalizedDate = /^\d{2}\.\d{2}\.\d{4}$/.test(date)
+        ? (() => {
+          const [day, month, year] = date.split('.');
+          return `${year}-${month}-${day}`;
+        })()
+        : date;
+      const startOfDay = new Date(`${normalizedDate}T00:00:00`);
+      const endOfDay = new Date(`${normalizedDate}T23:59:59.999`);
       
       filter.startTime = {
         $gte: startOfDay,
