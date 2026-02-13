@@ -247,6 +247,7 @@
 
 <script>
 import axios from 'axios'
+import { formatLocalDate } from '../utils/date'
 
 const API_BASE_URL = 'http://localhost:3000/api'
 const SEAT_HOLD_DURATION_MINUTES = 15
@@ -405,9 +406,43 @@ export default {
 
       return `${match[1].padStart(2, '0')}:${match[2]}`
     },
+    normalizeFilmTitle(value) {
+      return String(value ?? '')
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    },
+    titleTokensMatch(normalizedTitle, normalizedFilmName) {
+      if (!normalizedTitle || !normalizedFilmName) return false
+      if (normalizedTitle === normalizedFilmName) return true
+
+      const titleTokens = normalizedTitle.split(' ').filter(Boolean)
+      const filmTokens = normalizedFilmName.split(' ').filter(Boolean)
+      if (!titleTokens.length || !filmTokens.length) return false
+
+      const [shorterTokens, longerTokens] = titleTokens.length <= filmTokens.length
+        ? [titleTokens, filmTokens]
+        : [filmTokens, titleTokens]
+      if (shorterTokens.length === 1) {
+        if (titleTokens.length !== 1 || filmTokens.length !== 1) {
+          return false
+        }
+        return shorterTokens[0] === longerTokens[0]
+      }
+      const longerTokenSet = new Set(longerTokens)
+      return shorterTokens.every(token => longerTokenSet.has(token))
+    },
+    sessionMatchesFilmTitle(session, normalizedFilmName) {
+      if (!normalizedFilmName) return true
+      const filmTitle = this.normalizeFilmTitle(session?.film?.title)
+      const originalTitle = this.normalizeFilmTitle(session?.film?.originalTitle)
+      return [filmTitle, originalTitle].some(title =>
+        this.titleTokensMatch(title, normalizedFilmName)
+      )
+    },
     getTodayDate() {
-      const today = new Date()
-      return today.toISOString().split('T')[0]
+      return formatLocalDate(new Date())
     },
     async loadFilms() {
       try {
@@ -464,7 +499,14 @@ export default {
       }
 
       if (filmName) {
-        const filmMatch = this.films.find(item => item.title?.toLowerCase() === filmName.toLowerCase())
+        const normalizedFilmName = this.normalizeFilmTitle(filmName)
+        const filmMatch = this.films.find(item => {
+          const normalizedTitle = this.normalizeFilmTitle(item.title)
+          const normalizedOriginalTitle = this.normalizeFilmTitle(item.originalTitle)
+          return [normalizedTitle, normalizedOriginalTitle].some(title =>
+            this.titleTokensMatch(title, normalizedFilmName)
+          )
+        })
         if (filmMatch) {
           this.selectedFilm = filmMatch._id
         }
@@ -488,18 +530,20 @@ export default {
         await this.loadHalls()
       }
 
-      if (this.selectedFilm) {
+      if (this.selectedFilm || this.prefillFilmTitle) {
         await this.loadSessions()
       }
 
       const normalizedTime = this.normalizeTime(timeValue)
       if (normalizedTime) {
         const sessionsToSearch = this.filteredSessions.length ? this.filteredSessions : this.sessions
+        const normalizedFilmName = this.normalizeFilmTitle(filmName)
         let sessionMatch = sessionsToSearch.find(
           session => {
             const matchesTime = this.formatSessionTime(session) === normalizedTime
             const matchesHall = !hallName || session.hall?.name?.toLowerCase() === hallName.toLowerCase()
-            return matchesTime && matchesHall
+            const matchesFilm = this.sessionMatchesFilmTitle(session, normalizedFilmName)
+            return matchesTime && matchesHall && matchesFilm
           }
         )
 
@@ -522,7 +566,8 @@ export default {
             }, 5000)
           }
           if (timeMatches.length > 0) {
-            sessionMatch = timeMatches[0]
+            const filmMatch = timeMatches.find(session => this.sessionMatchesFilmTitle(session, normalizedFilmName))
+            sessionMatch = filmMatch || timeMatches[0]
           }
         }
 
@@ -554,7 +599,7 @@ export default {
       }
     },
     async loadSessions() {
-      if (!this.selectedFilm || !this.selectedDate) {
+      if (!this.selectedDate) {
         this.sessions = []
         return
       }
@@ -562,8 +607,11 @@ export default {
       try {
         this.loading = true
         const params = {
-          filmId: this.selectedFilm,
           date: this.selectedDate
+        }
+
+        if (this.selectedFilm) {
+          params.filmId = this.selectedFilm
         }
         
         if (this.selectedHall) {
@@ -572,6 +620,15 @@ export default {
         
         const response = await axios.get(`${API_BASE_URL}/sessions`, { params })
         this.sessions = response.data.data || []
+        if (!this.selectedFilm && this.prefillFilmTitle) {
+          const normalizedFilmName = this.normalizeFilmTitle(this.prefillFilmTitle)
+          const matchingSession = this.sessions.find(session =>
+            this.sessionMatchesFilmTitle(session, normalizedFilmName)
+          )
+          if (matchingSession?.film?._id) {
+            this.selectedFilm = matchingSession.film._id
+          }
+        }
       } catch (error) {
         console.error('Error loading sessions:', error)
         this.error = 'Failed to load sessions'

@@ -213,6 +213,7 @@
 
 <script>
 import axios from 'axios'
+import { formatLocalDate } from '../utils/date'
 
 const DEFAULT_AVAILABILITY_PERCENT = 70
 const CURRENT_TIME_UPDATE_INTERVAL = 30000 // 30 seconds in milliseconds
@@ -303,7 +304,7 @@ const tokensMatchByShortestName = (selectedTokens, sessionTokenData) => {
 export default {
   name: 'Schedule',
   data() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = formatLocalDate(new Date())
     
     return {
       selectedCinema: '',
@@ -620,7 +621,7 @@ export default {
           : DEFAULT_AVAILABILITY_PERCENT
         const hours = startTime.getHours().toString().padStart(2, '0')
         const minutes = startTime.getMinutes().toString().padStart(2, '0')
-        const showDate = startTime.toISOString().split('T')[0]
+        const showDate = formatLocalDate(startTime)
         const cinemaName = show.Theatre?.Name || show.Theatre || show.TheatreName || 'Unknown Cinema'
         const hallName = show.TheatreAuditorium || show.Auditorium || show.AuditoriumName || 'Unknown Hall'
         const cinemaId = show.TheatreID ?? show.Theatre?.ID
@@ -719,7 +720,7 @@ export default {
         dates.push({
           day: days[date.getDay()],
           number: date.getDate(),
-          value: date.toISOString().split('T')[0]
+          value: formatLocalDate(date)
         })
       }
       

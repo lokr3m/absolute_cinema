@@ -19,6 +19,11 @@ const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 60;
 const PAYMENT_METHODS = ['card', 'cash', 'online'];
+const DEFAULT_SCHEDULE_HALL_ROWS = 9;
+const DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW = 13;
+const DEFAULT_SCHEDULE_HALL_CAPACITY = 150;
+const DEFAULT_SCHEDULE_HALL_SCREEN_TYPE = 'Standard';
+const DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM = 'Digital 5.1';
 
 const cinemaRateLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -47,6 +52,40 @@ const normalizeApolloId = value => {
   }
   const normalized = String(value).trim();
   return normalized.length > 0 ? normalized : null;
+};
+
+// Apollo payloads vary between EventID/EventId casing depending on source/version.
+const extractShowEventId = show =>
+  show?.EventID ?? show?.EventId ?? show?.Event?.ID ?? show?.Event?.EventID ?? null;
+
+// Prefer explicit show titles (EventTitle/Title) and fall back to original titles when needed.
+const extractShowTitle = show =>
+  show?.EventTitle ?? show?.Title ?? show?.OriginalTitle ?? show?.Event?.Title ?? show?.Event?.OriginalTitle ?? null;
+
+// Prefer the schedule synopsis but fall back to event-level description when needed.
+const extractShowDescription = show =>
+  show?.Synopsis ?? show?.EventDescription ?? null;
+
+const normalizeHallName = value => {
+  if (!value) return '';
+  return String(value).trim().toLowerCase();
+};
+
+// Prioritize fields in the order Apollo schedule payloads commonly expose hall names.
+const SCHEDULE_HALL_FIELDS = ['TheatreAuditorium', 'Auditorium', 'AuditoriumName', 'TheatreAuditoriumName'];
+
+const extractShowHallName = show => {
+  for (const field of SCHEDULE_HALL_FIELDS) {
+    const hallValue = show?.[field];
+    if (!hallValue) continue;
+    if (typeof hallValue === 'object') {
+      const name = hallValue.Name ?? hallValue.name;
+      if (name) return name;
+      continue;
+    }
+    return hallValue;
+  }
+  return null;
 };
 
 const mapCinemaToTheatreArea = cinema => {
@@ -93,6 +132,23 @@ const extractShowsFromSchedule = schedulePayload => {
   return [];
 };
 
+const extractScheduleEvents = eventsPayload => {
+  if (!eventsPayload) return [];
+  if (eventsPayload.Events?.Event) {
+    return normalizeToArray(eventsPayload.Events.Event);
+  }
+  if (Array.isArray(eventsPayload.Events)) {
+    return eventsPayload.Events;
+  }
+  if (Array.isArray(eventsPayload)) {
+    return eventsPayload;
+  }
+  if (eventsPayload.Event) {
+    return normalizeToArray(eventsPayload.Event);
+  }
+  return [];
+};
+
 /**
  * Refresh database with fresh data from Apollo Kino API
  * Clears all existing data and populates from API
@@ -120,6 +176,16 @@ async function refreshDatabaseFromApollo() {
 
     const cinemaMap = new Map(); // Map Apollo cinema ID to MongoDB cinema
     const hallMap = new Map(); // Map Apollo hall/auditorium ID to MongoDB hall
+    const hallsByCinemaId = new Map();
+    const hallsByCinemaName = new Map();
+
+    const registerHallName = (cinemaKey, hall) => {
+      const hallKey = normalizeHallName(hall?.name);
+      if (!hallKey) return;
+      const hallNameMap = hallsByCinemaName.get(cinemaKey) ?? new Map();
+      hallNameMap.set(hallKey, hall);
+      hallsByCinemaName.set(cinemaKey, hallNameMap);
+    };
 
     for (const area of theatreAreas) {
       try {
@@ -139,7 +205,13 @@ async function refreshDatabaseFromApollo() {
         };
 
         const cinema = await Cinema.create(cinemaData);
-        cinemaMap.set(area.ID, cinema);
+        const cinemaKey = normalizeApolloId(area.ID) ?? 'default';
+        // Use normalized Apollo IDs for consistent schedule lookups.
+        cinemaMap.set(cinemaKey, cinema);
+        // Preserve raw IDs when Apollo returns non-normalized values (e.g., padded or numeric variants).
+        if (area.ID !== null && area.ID !== undefined && String(area.ID) !== cinemaKey) {
+          cinemaMap.set(area.ID, cinema);
+        }
         console.log(`  ✓ Created cinema: ${cinema.name}`);
 
         // Create default halls for each cinema (3 halls per cinema)
@@ -155,6 +227,10 @@ async function refreshDatabaseFromApollo() {
           };
           const hall = await Hall.create(hallData);
           hallMap.set(`${area.ID}-${i}`, hall);
+          const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
+          hallsForCinema.push(hall);
+          hallsByCinemaId.set(cinemaKey, hallsForCinema);
+          registerHallName(cinemaKey, hall);
         }
       } catch (err) {
         console.error(`  ⚠️ Error creating cinema for area ${area.ID}:`, err.message);
@@ -173,6 +249,8 @@ async function refreshDatabaseFromApollo() {
         facilities: ['IMAX', '3D', 'Dolby Atmos', 'Parking']
       });
       cinemaMap.set('default', defaultCinema);
+      const defaultCinemaKey = normalizeApolloId(defaultCinema.apolloId) ?? 'default';
+      cinemaMap.set(defaultCinemaKey, defaultCinema);
       
       for (let i = 1; i <= 3; i++) {
         const hall = await Hall.create({
@@ -185,6 +263,10 @@ async function refreshDatabaseFromApollo() {
           soundSystem: i <= 2 ? 'Dolby Atmos' : 'Digital 5.1'
         });
         hallMap.set(`default-${i}`, hall);
+        const hallsForCinema = hallsByCinemaId.get(defaultCinemaKey) ?? [];
+        hallsForCinema.push(hall);
+        hallsByCinemaId.set(defaultCinemaKey, hallsForCinema);
+        registerHallName(defaultCinemaKey, hall);
       }
     }
 
@@ -194,6 +276,13 @@ async function refreshDatabaseFromApollo() {
     console.log(`✓ Found ${events.length} events`);
 
     const filmMap = new Map(); // Map Apollo event ID to MongoDB film
+    const createFilmRecord = async (filmData, apolloId) => {
+      const film = await Film.create(filmData);
+      if (apolloId) {
+        filmMap.set(apolloId, film);
+      }
+      return film;
+    };
 
     for (const event of events) {
       try {
@@ -224,6 +313,13 @@ async function refreshDatabaseFromApollo() {
     
     // Process schedule shows if available
     const shows = extractShowsFromSchedule(scheduleData.schedule);
+    const scheduleEvents = extractScheduleEvents(scheduleData.events);
+    // Schedule events come from the same Apollo feed as films, so normalized IDs are sufficient.
+    const scheduleEventMap = new Map(
+      scheduleEvents
+        .map(event => [normalizeApolloId(event.ID), event])
+        .filter(([id]) => id)
+    );
 
     if (shows.length > 0) {
       console.log(`✓ Found ${shows.length} shows in schedule`);
@@ -234,11 +330,26 @@ async function refreshDatabaseFromApollo() {
       for (const show of shows) {
         try {
           // Find or create the film by event ID
-          const apolloId = normalizeApolloId(show.EventID);
+          const eventId = extractShowEventId(show);
+          const apolloId = normalizeApolloId(eventId);
           let film = apolloId ? filmMap.get(apolloId) : null;
-          
+          const showTitle = extractShowTitle(show);
+
+          if (!film && apolloId && scheduleEventMap.has(apolloId)) {
+            const scheduleEvent = scheduleEventMap.get(apolloId);
+            try {
+              const filmData = apolloKinoService.transformEventToFilm(scheduleEvent);
+              film = await createFilmRecord(filmData, apolloId);
+            } catch (filmErr) {
+              const scheduleEventTitle = scheduleEvent?.Title ?? scheduleEvent?.OriginalTitle ?? scheduleEvent?.EventTitle ?? 'Untitled Event';
+              console.warn(`  ⚠️ Error creating film for schedule event ${apolloId} (${scheduleEventTitle}):`, filmErr.message);
+              // Skip if film creation fails
+              continue;
+            }
+          }
+
           // If film not found in events, create it from show data
-          if (!film && show.Title) {
+          if (!film && showTitle) {
             try {
               const ageRatingMap = {
                 'MS-6': 'MS-6',
@@ -255,9 +366,9 @@ async function refreshDatabaseFromApollo() {
               const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : ['General'];
               
               const filmData = {
-                title: show.Title,
-                originalTitle: show.OriginalTitle || show.Title,
-                description: show.Synopsis || 'No description available',
+                title: showTitle,
+                originalTitle: show.OriginalTitle ?? showTitle,
+                description: extractShowDescription(show) ?? 'No description available',
                 duration: parseInt(show.LengthInMinutes) || 90,
                 genre: genres,
                 director: 'Unknown',
@@ -272,10 +383,7 @@ async function refreshDatabaseFromApollo() {
                 isActive: true
               };
               
-              film = await Film.create(filmData);
-              if (apolloId) {
-                filmMap.set(apolloId, film);
-              }
+              film = await createFilmRecord(filmData, apolloId);
             } catch (filmErr) {
               // Skip if film creation fails
               continue;
@@ -284,12 +392,68 @@ async function refreshDatabaseFromApollo() {
           
           if (!film) continue;
           
-          // Assign a hall (use TheatreAuditoriumID if available, otherwise random)
-          const hall = allHalls.length > 0 ? allHalls[Math.floor(Math.random() * allHalls.length)] : null;
+          const cinemaKey = normalizeApolloId(show.TheatreID ?? show.Theatre?.ID ?? show.TheatreId) ?? 'default';
+          const hallName = extractShowHallName(show);
+          const hallNameKey = normalizeHallName(hallName);
+          let hall = null;
+          if (hallNameKey) {
+            const hallNameMap = hallsByCinemaName.get(cinemaKey);
+            if (hallNameMap?.has(hallNameKey)) {
+              hall = hallNameMap.get(hallNameKey);
+            }
+          }
+          const candidateHalls = hallsByCinemaId.get(cinemaKey) ?? allHalls;
+          if (!hall && hallNameKey) {
+            const cinema = cinemaMap.get(cinemaKey);
+            if (cinema) {
+              hall = await Hall.create({
+                cinema: cinema._id,
+                name: hallName,
+                capacity: DEFAULT_SCHEDULE_HALL_CAPACITY,
+                rows: DEFAULT_SCHEDULE_HALL_ROWS,
+                seatsPerRow: DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW,
+                screenType: DEFAULT_SCHEDULE_HALL_SCREEN_TYPE,
+                soundSystem: DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM
+              });
+              const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
+              hallsForCinema.push(hall);
+              hallsByCinemaId.set(cinemaKey, hallsForCinema);
+              registerHallName(cinemaKey, hall);
+            }
+          }
+          if (!hall) {
+            hall = candidateHalls.length > 0
+              ? candidateHalls[Math.floor(Math.random() * candidateHalls.length)]
+              : null;
+          }
           if (!hall) continue;
-          
-          const startTime = new Date(show.dttmShowStart);
-          const endTime = new Date(show.dttmShowEnd || new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000));
+
+          // Prefer API-provided local start time when available, fall back to UTC/local variants from older payloads.
+          let startField = null;
+          if (show.dttmShowStart) {
+            startField = 'dttmShowStart';
+          } else if (show.dttmShowStartUTC) {
+            startField = 'dttmShowStartUTC';
+          } else if (show.dttmShowStartLocal) {
+            startField = 'dttmShowStartLocal';
+          }
+          const startValue = startField ? show[startField] : null;
+          const startTime = startValue ? new Date(startValue) : null;
+          if (!startTime || Number.isNaN(startTime.getTime())) {
+            continue;
+          }
+          const endFieldPriority = startField === 'dttmShowStartUTC'
+            ? ['dttmShowEndUTC', 'dttmShowEnd', 'dttmShowEndLocal']
+            : startField === 'dttmShowStartLocal'
+              ? ['dttmShowEndLocal', 'dttmShowEnd', 'dttmShowEndUTC']
+              : ['dttmShowEnd', 'dttmShowEndLocal', 'dttmShowEndUTC'];
+          const endValue = endFieldPriority
+            .map(field => show[field])
+            .find(value => value);
+          let endTime = endValue ? new Date(endValue) : null;
+          if (!endTime || Number.isNaN(endTime.getTime())) {
+            endTime = new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000);
+          }
           
           // Skip past sessions
           if (startTime < new Date()) continue;
