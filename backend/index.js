@@ -92,6 +92,11 @@ const normalizeHallName = value => {
 };
 
 const normalizeFilmKey = value => String(value ?? '').trim().toLowerCase();
+const addDays = (date, days) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+};
 const parseApolloGenres = value => {
   if (!value) return [FALLBACK_GENRE];
   if (Array.isArray(value)) {
@@ -646,8 +651,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
   });
 
   const sessionRangeStart = new Date();
-  const sessionRangeEnd = new Date(sessionRangeStart);
-  sessionRangeEnd.setDate(sessionRangeEnd.getDate() + DEFAULT_SCHEDULE_RANGE_DAYS);
+  const sessionRangeEnd = addDays(sessionRangeStart, DEFAULT_SCHEDULE_RANGE_DAYS);
   const existingSessions = await Session.find({
     startTime: { $gte: sessionRangeStart, $lte: sessionRangeEnd }
   }).select('hall startTime');
@@ -707,6 +711,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
 
   let sessionsAdded = 0;
   let sessionsSkipped = 0;
+  const now = new Date();
   for (const show of shows) {
     try {
       const eventId = normalizeApolloId(extractShowEventId(show));
@@ -771,7 +776,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
       const startValue = startField ? show[startField] : null;
       const startTime = startValue ? new Date(startValue) : null;
       if (!startTime || Number.isNaN(startTime.getTime())) continue;
-      if (startTime < new Date()) continue;
+      if (startTime < now) continue;
 
       const endFieldPriority = getEndFieldPriority(startField);
       const endValue = endFieldPriority
@@ -786,7 +791,9 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         );
       }
 
-      const priceInCents = Number.parseInt(show.PriceInCents, 10);
+      const priceInCents = show.PriceInCents != null
+        ? Number.parseInt(show.PriceInCents, 10)
+        : Number.NaN;
       const priceValue = Number.isFinite(priceInCents)
         ? priceInCents / 100
         : Number.parseFloat(show.Price);
@@ -970,8 +977,7 @@ function getDefaultDateRange(dtFrom, dtTo) {
   
   // Default to 14 days from dtFrom if not provided
   if (!toDate) {
-    const fromDateObj = new Date(fromDate + 'T00:00:00');
-    fromDateObj.setDate(fromDateObj.getDate() + DEFAULT_SCHEDULE_RANGE_DAYS);
+    const fromDateObj = addDays(new Date(fromDate + 'T00:00:00'), DEFAULT_SCHEDULE_RANGE_DAYS);
     toDate = formatDateLocal(fromDateObj);
   } else {
     toDate = validateDate(toDate);
