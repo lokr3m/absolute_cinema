@@ -261,11 +261,11 @@ const extractApolloHallName = show => {
     ?? show?.Auditorium
     ?? show?.TheatreAuditoriumID
     ?? show?.AuditoriumID
-  if (!hallValue) return 'Unknown Hall'
+  if (!hallValue) return 'Unknown Hall';
   if (typeof hallValue === 'object') {
-    return hallValue.Name ?? hallValue.name ?? 'Unknown Hall'
+    return hallValue.Name ?? hallValue.name ?? 'Unknown Hall';
   }
-  return String(hallValue)
+  return String(hallValue);
 }
 
 /**

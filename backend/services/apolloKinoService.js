@@ -2,6 +2,11 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 
 const normalizeApolloArray = value => (Array.isArray(value) ? value : value ? [value] : []);
+const DEFAULT_SCHEDULE_REQUEST_DELAY_MS = 50;
+const scheduleRequestDelayMs = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
+const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(scheduleRequestDelayMs) && scheduleRequestDelayMs >= 0
+  ? scheduleRequestDelayMs
+  : DEFAULT_SCHEDULE_REQUEST_DELAY_MS;
 const scheduleRequestDelay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const extractScheduleShows = schedulePayload => {
@@ -341,7 +346,7 @@ class ApolloKinoService {
           const schedulePayload = await this.fetchJSON(buildSchedulePath(scheduleDate, areaId));
           schedulePayloads.push(schedulePayload);
           if (shouldThrottleRequests) {
-            await scheduleRequestDelay(50);
+            await scheduleRequestDelay(SCHEDULE_REQUEST_DELAY_MS);
           }
         }
       }
@@ -353,7 +358,7 @@ class ApolloKinoService {
           const eventId = show?.EventID ?? show?.EventId ?? '';
           const showTime = show?.dttmShowStart ?? show?.dttmShowStartUTC ?? show?.dttmShowStartLocal ?? '';
           const theatreId = show?.TheatreID ?? show?.Theatre?.ID ?? show?.TheatreId ?? '';
-          const compositeKey = `${eventId}-${showTime}-${theatreId}`;
+          const compositeKey = JSON.stringify([eventId, showTime, theatreId]);
           const normalizedKey = showId != null ? `id:${showId}` : `fallback:${compositeKey}`;
           if (!scheduleMap.has(normalizedKey)) {
             scheduleMap.set(normalizedKey, show);
