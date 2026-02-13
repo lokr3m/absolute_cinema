@@ -571,6 +571,203 @@ async function refreshDatabaseFromApollo() {
   }
 }
 
+async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }) {
+  const shows = extractShowsFromSchedule(schedulePayload);
+  const scheduleEvents = extractScheduleEvents(eventsPayload);
+  const filmMap = new Map();
+  for (const event of scheduleEvents) {
+    try {
+      const filmData = apolloKinoService.transformEventToFilm(event);
+      const existingFilm = await Film.findOne({ originalTitle: filmData.originalTitle });
+      const film = existingFilm
+        ? await Film.findByIdAndUpdate(existingFilm._id, filmData, { new: true })
+        : await Film.create(filmData);
+      const apolloId = normalizeApolloId(event.ID);
+      if (apolloId) {
+        filmMap.set(apolloId, film);
+      }
+    } catch (error) {
+      console.warn('  ⚠️ Failed to sync film for event:', error.message);
+    }
+  }
+
+  const cinemas = await Cinema.find();
+  const cinemaMap = new Map(
+    cinemas
+      .map(cinema => [normalizeApolloId(cinema.apolloId) ?? 'default', cinema])
+  );
+  const halls = await Hall.find().populate('cinema', 'apolloId');
+  const hallsByCinemaId = new Map();
+  const hallsByCinemaName = new Map();
+  halls.forEach(hall => {
+    const cinemaKey = normalizeApolloId(hall.cinema?.apolloId) ?? 'default';
+    const hallKey = normalizeHallName(hall?.name);
+    if (hallKey) {
+      const hallNameMap = hallsByCinemaName.get(cinemaKey) ?? new Map();
+      hallNameMap.set(hallKey, hall);
+      hallsByCinemaName.set(cinemaKey, hallNameMap);
+    }
+    const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
+    hallsForCinema.push(hall);
+    hallsByCinemaId.set(cinemaKey, hallsForCinema);
+  });
+
+  let sessionsAdded = 0;
+  let sessionsSkipped = 0;
+  for (const show of shows) {
+    try {
+      const eventId = normalizeApolloId(extractShowEventId(show));
+      const showTitle = extractShowTitle(show);
+      let film = eventId ? filmMap.get(eventId) : null;
+      if (!film && showTitle) {
+        film = await Film.findOne({
+          $or: [{ title: showTitle }, { originalTitle: showTitle }]
+        });
+      }
+      if (!film && showTitle) {
+        const ageRatingMap = {
+          'MS-6': 'MS-6',
+          'MS-12': 'MS-12',
+          'K-12': 'K-12',
+          'K-14': 'K-14',
+          'K-16': 'K-16',
+          'PERE': 'G',
+          'L': 'G',
+          '-': 'G',
+          '': 'G'
+        };
+        const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : ['General'];
+        const filmData = {
+          title: showTitle,
+          originalTitle: show.OriginalTitle ?? showTitle,
+          description: extractShowDescription(show) ?? 'No description available',
+          duration: parseInt(show.LengthInMinutes) || 90,
+          genre: genres,
+          director: 'Unknown',
+          cast: [],
+          releaseDate: show.dtLocalRelease ? new Date(show.dtLocalRelease) : new Date(),
+          language: show.SpokenLanguage?.Name || 'Unknown',
+          subtitles: show.SubtitleLanguage1?.Name ? [show.SubtitleLanguage1.Name] : [],
+          ageRating: ageRatingMap[show.RatingLabel] || 'G',
+          posterUrl: show.Images?.EventMediumImagePortrait || '',
+          trailerUrl: '',
+          rating: 0,
+          isActive: true
+        };
+        film = await Film.create(filmData);
+      }
+      if (!film) continue;
+
+      const cinemaKey = normalizeApolloId(extractShowCinemaId(show)) ?? 'default';
+      const hallName = extractShowHallName(show);
+      const hallKey = normalizeHallName(hallName);
+      let hall = hallKey ? hallsByCinemaName.get(cinemaKey)?.get(hallKey) : null;
+      if (!hall && hallName) {
+        const cinema = cinemaMap.get(cinemaKey);
+        if (cinema) {
+          hall = await Hall.create({
+            cinema: cinema._id,
+            name: hallName,
+            capacity: DEFAULT_SCHEDULE_HALL_CAPACITY,
+            rows: DEFAULT_SCHEDULE_HALL_ROWS,
+            seatsPerRow: DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW,
+            screenType: DEFAULT_SCHEDULE_HALL_SCREEN_TYPE,
+            soundSystem: DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM
+          });
+          const hallNameMap = hallsByCinemaName.get(cinemaKey) ?? new Map();
+          hallNameMap.set(normalizeHallName(hall.name), hall);
+          hallsByCinemaName.set(cinemaKey, hallNameMap);
+          const hallsForCinema = hallsByCinemaId.get(cinemaKey) ?? [];
+          hallsForCinema.push(hall);
+          hallsByCinemaId.set(cinemaKey, hallsForCinema);
+        }
+      }
+      if (!hall) continue;
+
+      let startField = null;
+      if (show.dttmShowStart) {
+        startField = 'dttmShowStart';
+      } else if (show.dttmShowStartUTC) {
+        startField = 'dttmShowStartUTC';
+      } else if (show.dttmShowStartLocal) {
+        startField = 'dttmShowStartLocal';
+      }
+      const startValue = startField ? show[startField] : null;
+      const startTime = startValue ? new Date(startValue) : null;
+      if (!startTime || Number.isNaN(startTime.getTime())) continue;
+      if (startTime < new Date()) continue;
+
+      const endFieldPriority = startField === 'dttmShowStartUTC'
+        ? ['dttmShowEndUTC', 'dttmShowEnd', 'dttmShowEndLocal']
+        : startField === 'dttmShowStartLocal'
+          ? ['dttmShowEndLocal', 'dttmShowEnd', 'dttmShowEndUTC']
+          : ['dttmShowEnd', 'dttmShowEndLocal', 'dttmShowEndUTC'];
+      const endValue = endFieldPriority
+        .map(field => show[field])
+        .find(value => value);
+      let endTime = endValue ? new Date(endValue) : null;
+      if (!endTime || Number.isNaN(endTime.getTime())) {
+        endTime = new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000);
+      }
+
+      const priceInCents = Number.parseFloat(show.PriceInCents);
+      const priceValue = Number.isFinite(priceInCents)
+        ? priceInCents / 100
+        : Number.parseFloat(show.Price);
+      const standardPrice = Number.isFinite(priceValue) && priceValue > 0 ? priceValue : 9.50;
+
+      const existingSession = await Session.findOne({ hall: hall._id, startTime });
+      if (existingSession) {
+        sessionsSkipped++;
+        continue;
+      }
+
+      await Session.create({
+        film: film._id,
+        hall: hall._id,
+        startTime,
+        endTime,
+        price: {
+          standard: standardPrice,
+          student: standardPrice * 0.8,
+          child: standardPrice * 0.6,
+          vip: standardPrice * 1.5
+        },
+        is3D: show.PresentationMethod?.includes('3D') || false,
+        subtitles: show.SubtitleLanguage1?.Name || 'Estonian',
+        availableSeats: hall.capacity,
+        status: 'scheduled'
+      });
+      sessionsAdded++;
+    } catch (error) {
+      console.warn('  ⚠️ Failed to sync session:', error.message);
+    }
+  }
+
+  return {
+    totalShows: shows.length,
+    sessionsAdded,
+    sessionsSkipped
+  };
+}
+
+async function syncUpcomingSessionsFromApollo({ dtFrom, dtTo } = {}) {
+  const { dtFrom: rangeFrom, dtTo: rangeTo } = getDefaultDateRange(dtFrom, dtTo);
+  const scheduleData = await apolloKinoService.fetchSchedule(rangeFrom, rangeTo);
+  if (scheduleData.error) {
+    throw new Error(scheduleData.error);
+  }
+  const sessionResults = await syncSessionsFromApolloSchedule({
+    schedulePayload: scheduleData.schedule,
+    eventsPayload: scheduleData.events
+  });
+  return {
+    ...sessionResults,
+    dtFrom: rangeFrom,
+    dtTo: rangeTo
+  };
+}
+
 // Helper function to format date in YYYY-MM-DD format (local timezone)
 function formatDateLocal(date) {
   const year = date.getFullYear();
@@ -605,6 +802,15 @@ async function initializeServer() {
         await refreshDatabaseFromApollo();
       } else {
         console.log('ℹ️  Existing core data detected; skipping full refresh to preserve current records.');
+        const { dtFrom, dtTo } = getDefaultDateRange();
+        const rangeEnd = new Date(`${dtTo}T23:59:59.999`);
+        const latestSession = await Session.findOne({ status: 'scheduled' }).sort({ startTime: -1 });
+        if (!latestSession || latestSession.startTime < rangeEnd) {
+          console.log('🔄 Syncing upcoming sessions from Apollo schedule...');
+          await syncUpcomingSessionsFromApollo({ dtFrom, dtTo });
+        } else {
+          console.log('ℹ️  Upcoming sessions already extend through the next 14 days.');
+        }
       }
     }
     
@@ -1165,43 +1371,51 @@ app.get('/api/apollo-kino/sync', async (req, res) => {
 
     const syncResults = {
       movies: { added: 0, updated: 0, errors: [] },
-      sessions: { added: 0, errors: [] }
+      sessions: { added: 0, skipped: 0, errors: [] }
     };
 
-    // Process movies
-    for (const movie of data.movies) {
+    const scheduleEvents = extractScheduleEvents(data.events);
+    for (const event of scheduleEvents) {
       try {
-        const filmData = apolloKinoService.transformMovieToFilm(movie);
-        
-        // Check if film already exists by title
-        const existingFilm = await Film.findOne({ 
-          originalTitle: filmData.originalTitle 
+        const filmData = apolloKinoService.transformEventToFilm(event);
+        const existingFilm = await Film.findOne({
+          originalTitle: filmData.originalTitle
         });
 
         if (existingFilm) {
-          // Update existing film
           await Film.findByIdAndUpdate(existingFilm._id, filmData);
           syncResults.movies.updated++;
         } else {
-          // Create new film
           await Film.create(filmData);
           syncResults.movies.added++;
         }
       } catch (error) {
-        console.error('Error processing movie:', error);
+        console.error('Error processing event:', error);
         syncResults.movies.errors.push({
-          title: movie.Title || movie.OriginalTitle,
+          title: event.Title || event.OriginalTitle,
           error: error.message
         });
       }
+    }
+
+    try {
+      const sessionResults = await syncSessionsFromApolloSchedule({
+        schedulePayload: data.schedule,
+        eventsPayload: data.events
+      });
+      syncResults.sessions.added = sessionResults.sessionsAdded;
+      syncResults.sessions.skipped = sessionResults.sessionsSkipped;
+    } catch (error) {
+      console.error('Error syncing sessions:', error);
+      syncResults.sessions.errors.push({ error: error.message });
     }
 
     res.json({
       success: true,
       message: 'Apollo Kino data sync completed',
       results: syncResults,
-      totalMovies: data.movies.length,
-      totalShows: data.shows.length
+      totalMovies: scheduleEvents.length,
+      totalShows: extractShowsFromSchedule(data.schedule).length
     });
   } catch (error) {
     console.error('Error syncing Apollo Kino data:', error);
