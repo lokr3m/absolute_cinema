@@ -1461,7 +1461,7 @@ app.get('/api/films/:id/sessions', async (req, res) => {
  *   - dtFrom: Start date (YYYY-MM-DD) - defaults to today
  *   - dtTo: End date (YYYY-MM-DD) - defaults to 14 days from dtFrom
  */
-app.get('/api/apollo-kino/sync', async (req, res) => {
+app.get('/api/apollo-kino/sync', cinemaRateLimiter, async (req, res) => {
   try {
     // Get and validate date parameters
     const { dtFrom, dtTo } = getDefaultDateRange(req.query.dtFrom, req.query.dtTo);
