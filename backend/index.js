@@ -24,6 +24,21 @@ const DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW = 13;
 const DEFAULT_SCHEDULE_HALL_CAPACITY = 150;
 const DEFAULT_SCHEDULE_HALL_SCREEN_TYPE = 'Standard';
 const DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM = 'Digital 5.1';
+const DEFAULT_SESSION_BUFFER_MINUTES = 15;
+const DEFAULT_SESSION_PRICE = 9.50;
+const DEFAULT_SESSION_SUBTITLE = 'Estonian';
+const DEFAULT_FALLBACK_GENRE = 'Unknown';
+const AGE_RATING_MAP = {
+  'MS-6': 'MS-6',
+  'MS-12': 'MS-12',
+  'K-12': 'K-12',
+  'K-14': 'K-14',
+  'K-16': 'K-16',
+  'PERE': 'G',
+  'L': 'G',
+  '-': 'G',
+  '': 'G'
+};
 
 const cinemaRateLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -625,18 +640,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         });
       }
       if (!film && showTitle) {
-        const ageRatingMap = {
-          'MS-6': 'MS-6',
-          'MS-12': 'MS-12',
-          'K-12': 'K-12',
-          'K-14': 'K-14',
-          'K-16': 'K-16',
-          'PERE': 'G',
-          'L': 'G',
-          '-': 'G',
-          '': 'G'
-        };
-        const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : ['General'];
+        const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : [DEFAULT_FALLBACK_GENRE];
         const filmData = {
           title: showTitle,
           originalTitle: show.OriginalTitle ?? showTitle,
@@ -648,7 +652,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
           releaseDate: show.dtLocalRelease ? new Date(show.dtLocalRelease) : new Date(),
           language: show.SpokenLanguage?.Name || 'Unknown',
           subtitles: show.SubtitleLanguage1?.Name ? [show.SubtitleLanguage1.Name] : [],
-          ageRating: ageRatingMap[show.RatingLabel] || 'G',
+          ageRating: AGE_RATING_MAP[show.RatingLabel] || 'G',
           posterUrl: show.Images?.EventMediumImagePortrait || '',
           trailerUrl: '',
           rating: 0,
@@ -707,14 +711,14 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         .find(value => value);
       let endTime = endValue ? new Date(endValue) : null;
       if (!endTime || Number.isNaN(endTime.getTime())) {
-        endTime = new Date(startTime.getTime() + film.duration * 60000 + 15 * 60000);
+        endTime = new Date(startTime.getTime() + film.duration * 60000 + DEFAULT_SESSION_BUFFER_MINUTES * 60000);
       }
 
       const priceInCents = Number.parseFloat(show.PriceInCents);
       const priceValue = Number.isFinite(priceInCents)
         ? priceInCents / 100
         : Number.parseFloat(show.Price);
-      const standardPrice = Number.isFinite(priceValue) && priceValue > 0 ? priceValue : 9.50;
+      const standardPrice = Number.isFinite(priceValue) && priceValue > 0 ? priceValue : DEFAULT_SESSION_PRICE;
 
       const existingSession = await Session.findOne({ hall: hall._id, startTime });
       if (existingSession) {
@@ -734,7 +738,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
           vip: standardPrice * 1.5
         },
         is3D: show.PresentationMethod?.includes('3D') || false,
-        subtitles: show.SubtitleLanguage1?.Name || 'Estonian',
+        subtitles: show.SubtitleLanguage1?.Name || DEFAULT_SESSION_SUBTITLE,
         availableSeats: hall.capacity,
         status: 'scheduled'
       });
