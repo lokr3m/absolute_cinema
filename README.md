@@ -209,6 +209,14 @@ npm run seed
 
 **Warning:** This will delete all existing films, sessions, halls, and cinemas. Use this only for initial setup or testing.
 
+### Startup Refresh Behavior
+
+On server startup, the database refresh from the Apollo Kino API now runs **only** when the core collections are empty. This preserves existing bookings between restarts. If you explicitly want to refresh everything (and clear existing data, including bookings), set:
+
+```bash
+export REFRESH_DB_ON_STARTUP=true
+```
+
 ### Refreshing Sessions
 
 If your booking page shows "No sessions available", it likely means the sessions in your database are outdated. To add fresh sessions for the next 7 days without deleting existing bookings:

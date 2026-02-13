@@ -580,8 +580,23 @@ async function initializeServer() {
     const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
     console.log(`✓ ${dbName} connected successfully`);
     
-    // Refresh database from Apollo API
-    await refreshDatabaseFromApollo();
+    const forceRefresh = process.env.REFRESH_DB_ON_STARTUP === 'true';
+    if (forceRefresh) {
+      await refreshDatabaseFromApollo();
+    } else {
+      const [cinemaCount, hallCount, filmCount, sessionCount] = await Promise.all([
+        Cinema.countDocuments(),
+        Hall.countDocuments(),
+        Film.countDocuments(),
+        Session.countDocuments()
+      ]);
+      const hasCoreData = cinemaCount > 0 && hallCount > 0 && filmCount > 0 && sessionCount > 0;
+      if (!hasCoreData) {
+        await refreshDatabaseFromApollo();
+      } else {
+        console.log('ℹ️  Existing core data detected; skipping full refresh to preserve current records.');
+      }
+    }
     
     // Start server
     app.listen(PORT, () => {
