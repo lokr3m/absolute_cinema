@@ -1,64 +1,92 @@
 <template>
   <div class="movie-detail">
     <div class="container">
-      <div class="movie-header">
-        <div class="movie-poster">
-          <img src="https://via.placeholder.com/400x600" alt="Movie Poster">
-        </div>
-        <div class="movie-info">
-          <h1>Movie Title {{ $route.params.id }}</h1>
-          <div class="meta">
-            <span class="rating">⭐ 8.5/10</span>
-            <span class="year">2024</span>
-            <span class="duration">120 min</span>
-            <span class="age-rating">PG-13</span>
-          </div>
-          <div class="genres">
-            <span class="genre-tag">Action</span>
-            <span class="genre-tag">Adventure</span>
-            <span class="genre-tag">Sci-Fi</span>
-          </div>
-          <p class="description">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-          </p>
-          <div class="cast">
-            <h3>Cast:</h3>
-            <p>Actor 1, Actor 2, Actor 3</p>
-          </div>
-          <div class="director">
-            <h3>Director:</h3>
-            <p>Famous Director</p>
-          </div>
-          <router-link to="/booking" class="btn btn-primary">Book Tickets</router-link>
-        </div>
+      <div v-if="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading movie details...</p>
       </div>
 
-      <div class="showtimes">
-        <h2>Showtimes</h2>
-        <div class="date-selector">
-          <button class="date-btn active">Today</button>
-          <button class="date-btn">Tomorrow</button>
-          <button class="date-btn">Wed</button>
-          <button class="date-btn">Thu</button>
-          <button class="date-btn">Fri</button>
+      <div v-else-if="error" class="error">
+        <span class="error-icon">⚠️</span>
+        {{ error }}
+      </div>
+
+      <div v-else>
+        <div class="movie-header">
+          <div class="movie-poster">
+            <img :src="movie.posterUrl || 'https://via.placeholder.com/400x600'" :alt="movie.title">
+          </div>
+          <div class="movie-info">
+            <h1>{{ movie.title }}</h1>
+            <p v-if="showOriginalTitle" class="original-title">{{ movie.originalTitle }}</p>
+            <div class="meta">
+              <span v-if="movie.rating" class="rating">⭐ {{ movie.rating }}/10</span>
+              <span v-if="releaseYear" class="year">{{ releaseYear }}</span>
+              <span class="duration">{{ movie.duration || 'N/A' }} min</span>
+              <span class="age-rating">{{ movie.ageRating || 'NR' }}</span>
+            </div>
+            <div class="genres" v-if="genres.length">
+              <span class="genre-tag" v-for="genre in genres" :key="genre">{{ genre }}</span>
+            </div>
+            <p class="description">{{ movie.description || 'No description available.' }}</p>
+            <div class="cast">
+              <h3>Cast:</h3>
+              <p>{{ castText }}</p>
+            </div>
+            <div class="director">
+              <h3>Director:</h3>
+              <p>{{ movie.director || 'Unknown' }}</p>
+            </div>
+            <router-link to="/schedule" class="btn btn-primary">View Schedule</router-link>
+          </div>
         </div>
-        <div class="cinema-showtimes">
-          <div class="cinema" v-for="cinema in 3" :key="cinema">
-            <h3>Cinema {{ cinema }}</h3>
-            <div class="times">
-              <button class="time-btn" v-for="time in ['10:00', '13:30', '16:45', '19:00', '21:30']" :key="time">
-                {{ time }}
-              </button>
+
+        <div class="showtimes">
+          <h2>Movie details</h2>
+          <div class="details-grid">
+            <div v-if="movie.originalTitle" class="detail-item">
+              <span class="detail-label">Original title</span>
+              <span class="detail-value">{{ movie.originalTitle }}</span>
+            </div>
+            <div v-if="releaseYear" class="detail-item">
+              <span class="detail-label">Release year</span>
+              <span class="detail-value">{{ releaseYear }}</span>
+            </div>
+            <div v-if="movie.language" class="detail-item">
+              <span class="detail-label">Language</span>
+              <span class="detail-value">{{ movie.language }}</span>
+            </div>
+            <div v-if="subtitlesText" class="detail-item">
+              <span class="detail-label">Subtitles</span>
+              <span class="detail-value">{{ subtitlesText }}</span>
+            </div>
+            <div v-if="movie.duration" class="detail-item">
+              <span class="detail-label">Duration</span>
+              <span class="detail-value">{{ movie.duration }} min</span>
+            </div>
+            <div v-if="movie.ageRating" class="detail-item">
+              <span class="detail-label">Age rating</span>
+              <span class="detail-value">{{ movie.ageRating }}</span>
+            </div>
+            <div v-if="movie.EventURL" class="detail-item">
+              <span class="detail-label">Event link</span>
+              <a class="detail-link" :href="movie.EventURL" target="_blank" rel="noopener">Open Apollo Kino</a>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="trailer">
-        <h2>Trailer</h2>
-        <div class="video-placeholder">
-          <p>Trailer video would be embedded here</p>
+        <div class="trailer" v-if="movie.trailerUrl || movie.EventURL">
+          <h2>Trailer</h2>
+          <div class="video-placeholder">
+            <a
+              :href="movie.trailerUrl || movie.EventURL"
+              target="_blank"
+              rel="noopener"
+              class="video-link"
+            >
+              {{ movie.trailerUrl ? 'Watch trailer on YouTube' : 'View on Apollo Kino' }}
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -66,8 +94,113 @@
 </template>
 
 <script>
+import axios from 'axios'
+
+const sampleMovies = [
+  {
+    _id: 'sample1',
+    title: 'The Matrix',
+    originalTitle: 'The Matrix',
+    description: 'A computer hacker learns about the true nature of reality and his role in the war against its controllers.',
+    duration: 136,
+    genre: ['Action', 'Sci-Fi'],
+    director: 'The Wachowskis',
+    cast: ['Keanu Reeves', 'Carrie-Anne Moss', 'Laurence Fishburne'],
+    releaseDate: '1999-03-31',
+    language: 'English',
+    subtitles: ['Estonian'],
+    ageRating: 'R',
+    posterUrl: 'https://via.placeholder.com/400x600/1a1a2e/e94560?text=The+Matrix',
+    trailerUrl: 'https://www.youtube.com/watch?v=vKQi3bBA1y8'
+  }
+]
+
 export default {
-  name: 'MovieDetail'
+  name: 'MovieDetail',
+  data() {
+    return {
+      movie: null,
+      loading: true,
+      error: null
+    }
+  },
+  computed: {
+    genres() {
+      if (!this.movie?.genre) return []
+      return Array.isArray(this.movie.genre) ? this.movie.genre : [this.movie.genre]
+    },
+    castText() {
+      if (!this.movie?.cast || this.movie.cast.length === 0) return 'No cast information available.'
+      return Array.isArray(this.movie.cast) ? this.movie.cast.join(', ') : this.movie.cast
+    },
+    releaseYear() {
+      if (!this.movie) return ''
+      if (this.movie.productionYear) return this.movie.productionYear
+      if (!this.movie.releaseDate) return ''
+      const date = new Date(this.movie.releaseDate)
+      return Number.isNaN(date.getTime()) ? '' : date.getFullYear()
+    },
+    subtitlesText() {
+      if (!this.movie?.subtitles || this.movie.subtitles.length === 0) return ''
+      return Array.isArray(this.movie.subtitles) ? this.movie.subtitles.join(', ') : this.movie.subtitles
+    },
+    showOriginalTitle() {
+      return this.movie?.originalTitle && this.movie.originalTitle !== this.movie?.title
+    }
+  },
+  watch: {
+    '$route.params.id': {
+      immediate: true,
+      handler() {
+        this.fetchMovie()
+      }
+    }
+  },
+  methods: {
+    normalizeMovieId(movie) {
+      return movie?.apolloKinoId ?? movie?._id ?? movie?.id
+    },
+    findMovie(movies) {
+      const targetId = String(this.$route.params.id || '')
+      return movies.find(movie => {
+        const idValue = this.normalizeMovieId(movie)
+        if (idValue === undefined || idValue === null) return false
+        return String(idValue) === targetId
+      })
+    },
+    getSampleMovie() {
+      return this.findMovie(sampleMovies)
+    },
+    setFallbackMovie(message) {
+      this.movie = this.getSampleMovie()
+      if (!this.movie) {
+        this.error = message
+      }
+    },
+    async fetchMovie() {
+      this.loading = true
+      this.error = null
+      this.movie = null
+
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+      try {
+        const response = await axios.get(`${apiUrl}/api/apollo-kino/events`)
+        const movies = Array.isArray(response.data?.movies) ? response.data.movies : []
+        const matchedMovie = this.findMovie(movies)
+        if (matchedMovie) {
+          this.movie = matchedMovie
+        } else {
+          this.setFallbackMovie('Movie not found.')
+        }
+      } catch (error) {
+        console.error('Error fetching movie details:', error)
+        this.setFallbackMovie('Failed to load movie details.')
+      } finally {
+        this.loading = false
+      }
+    }
+  }
 }
 </script>
 
@@ -81,6 +214,24 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 2rem;
+}
+
+.loading-spinner {
+  margin: 0 auto 1rem;
+}
+
+.error {
+  color: #b00020;
+}
+
+.error-icon {
+  margin-right: 0.5rem;
 }
 
 .movie-header {
@@ -98,8 +249,14 @@ export default {
 
 .movie-info h1 {
   font-size: 2.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   color: #333;
+}
+
+.original-title {
+  font-size: 1.1rem;
+  color: #666;
+  margin-bottom: 1rem;
 }
 
 .meta {
@@ -124,6 +281,7 @@ export default {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .genre-tag {
@@ -187,58 +345,30 @@ export default {
   color: #333;
 }
 
-.date-selector {
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem 2rem;
+}
+
+.detail-item {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  flex-direction: column;
 }
 
-.date-btn {
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.date-btn.active,
-.date-btn:hover {
-  background-color: #e50914;
-  color: #fff;
-  border-color: #e50914;
-}
-
-.cinema {
-  margin-bottom: 1.5rem;
-}
-
-.cinema h3 {
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
-  color: #333;
-}
-
-.times {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.time-btn {
-  padding: 0.75rem 1.5rem;
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 4px;
-  cursor: pointer;
+.detail-label {
   font-weight: 600;
-  transition: all 0.3s ease;
+  color: #333;
+  margin-bottom: 0.25rem;
 }
 
-.time-btn:hover {
-  background-color: #333;
-  color: #fff;
-  border-color: #333;
+.detail-value,
+.detail-link {
+  color: #666;
+}
+
+.detail-link {
+  text-decoration: underline;
 }
 
 .trailer h2 {
@@ -249,22 +379,28 @@ export default {
 
 .video-placeholder {
   background: #000;
-  height: 500px;
+  height: 200px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-size: 1.2rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.video-link {
+  color: #fff;
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
   .movie-header {
     grid-template-columns: 1fr;
   }
-  
-  .date-selector,
-  .times {
+
+  .meta {
     flex-wrap: wrap;
   }
 }
