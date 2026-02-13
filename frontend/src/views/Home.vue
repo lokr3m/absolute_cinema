@@ -13,37 +13,42 @@
       </div>
     </section>
 
-    <section class="featured">
+    <section class="news-banner-section">
       <div class="container">
-        <!-- Cinema Selector -->
-        <div class="cinema-selector-wrapper">
-          <div class="custom-dropdown" :class="{ open: cinemaDropdownOpen }">
-            <button class="dropdown-btn" @click="toggleCinemaDropdown">
-              <span class="dropdown-icon">🎬</span>
-              <span>{{ selectedCinemaName || 'All Cinemas' }}</span>
-              <span class="arrow">▼</span>
-            </button>
-            <div class="dropdown-menu" v-if="cinemaDropdownOpen">
-              <div 
-                class="dropdown-item" 
-                :class="{ active: selectedCinema === '' }"
-                @click="selectCinema('', 'All Cinemas')"
-              >
-                All Cinemas
-              </div>
-              <div 
-                v-for="cinema in cinemas" 
-                :key="cinema.id" 
-                class="dropdown-item"
-                :class="{ active: selectedCinema === cinema.id }"
-                @click="selectCinema(cinema.id, cinema.name)"
-              >
-                {{ cinema.name }}
-              </div>
-            </div>
-          </div>
+        <div class="section-header">
+          <h2>Latest News</h2>
+          <p class="section-subtitle">Fresh updates from Absolute Cinema</p>
         </div>
 
+        <div class="news-banner-wrapper">
+          <router-link :to="activeBanner.link" class="news-banner-card">
+            <div class="news-banner-image">
+              <img :src="activeBanner.imageUrl" :alt="activeBanner.title">
+            </div>
+            <div class="news-banner-content">
+              <span class="news-banner-tag">News</span>
+              <h3>{{ activeBanner.title }}</h3>
+              <p>{{ activeBanner.description }}</p>
+              <span class="news-banner-cta">Read more →</span>
+            </div>
+          </router-link>
+          <div class="banner-controls">
+            <button
+              v-for="(banner, index) in newsBanners"
+              :key="banner.id"
+              class="banner-dot"
+              :class="{ active: index === activeBannerIndex }"
+              type="button"
+              :aria-label="`Show banner ${index + 1}`"
+              @click="selectBanner(index)"
+            ></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="featured">
+      <div class="container">
         <div class="section-header">
           <h2>Top Films</h2>
         </div>
@@ -60,7 +65,7 @@
           </div>
 
           <div v-else class="movie-grid">
-            <div class="movie-card" v-for="movie in filteredMovies" :key="movie._id || movie.title">
+            <div class="movie-card" v-for="movie in topMovies" :key="movie._id || movie.title">
               <div class="movie-poster">
                 <img :src="movie.posterUrl || 'https://via.placeholder.com/300x450/1a1a2e/e94560?text=' + encodeURIComponent(movie.title)" :alt="movie.title">
                 <div class="poster-overlay">
@@ -160,36 +165,64 @@ const HAS_LOWERCASE_REGEX = /[a-z]/;
 const TITLE_CASE_BOUNDARY_REGEX = /(^|[\s-\/'])([a-z])/g;
 const GENRE_PLACEHOLDER_BASE = 'https://via.placeholder.com/320x180/1a1a2e/e94560?text=';
 const TOP_MOVIE_COUNT = 5;
+const DEFAULT_NEWS_BANNER = {
+  id: 'default-banner',
+  link: '/news',
+  imageUrl: 'https://via.placeholder.com/1200x600/1a1a2e/e94560?text=Latest+News',
+  title: 'Latest Cinema News',
+  description: 'Stay tuned for the latest updates from Absolute Cinema.'
+};
 
 export default {
   name: 'Home',
   data() {
     return {
       topMovies: [],
-      cinemas: [],
-      selectedCinema: '',
-      selectedCinemaName: '',
-      cinemaDropdownOpen: false,
+      newsBanners: [
+        {
+          id: 'premiere-week',
+          title: 'Premiere Week Highlights',
+          description: 'Catch the biggest premieres with director Q&As all week long.',
+          imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=80',
+          link: '/news'
+        },
+        {
+          id: 'family-funday',
+          title: 'Family Fun Day Returns',
+          description: 'Discounted tickets and complimentary snacks for families every Saturday.',
+          imageUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=1200&q=80',
+          link: '/news'
+        },
+        {
+          id: 'classic-series',
+          title: 'Classic Cinema Series',
+          description: 'Rediscover timeless masterpieces in restored 4K glory on the big screen.',
+          imageUrl: 'https://images.unsplash.com/photo-1517602302552-471fe67acf66?auto=format&fit=crop&w=1200&q=80',
+          link: '/news'
+        },
+        {
+          id: 'festival-pass',
+          title: 'Festival Passes On Sale',
+          description: 'Secure your seat for the Absolute Cinema Film Festival this spring.',
+          imageUrl: 'https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?auto=format&fit=crop&w=1200&q=80',
+          link: '/news'
+        },
+        {
+          id: 'late-night',
+          title: 'Late Night Screenings',
+          description: 'Stay up late with cult classics, midnight premieres, and themed snacks.',
+          imageUrl: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=1200&q=80',
+          link: '/news'
+        }
+      ],
+      activeBannerIndex: 0,
       loading: false,
       error: null
     }
   },
-  created() {
-    document.addEventListener('click', this.closeDropdown)
-  },
-  beforeUnmount() {
-    document.removeEventListener('click', this.closeDropdown)
-  },
   computed: {
-    filteredMovies() {
-      if (!this.selectedCinema) {
-        return this.topMovies;
-      }
-      // Note: Apollo Kino API movies may not have cinemaId by default
-      // This filter will only work if cinemaId is added to movie objects
-      return this.topMovies.filter(movie => 
-        movie.cinemaId === this.selectedCinema
-      );
+    activeBanner() {
+      return this.newsBanners[this.activeBannerIndex] || DEFAULT_NEWS_BANNER;
     },
     featuredGenres() {
       const genres = new Map();
@@ -252,41 +285,9 @@ export default {
         // Title-case words separated by spaces, hyphens, slashes, or apostrophes.
         .replace(TITLE_CASE_BOUNDARY_REGEX, (match, spacer, char) => `${spacer}${char.toUpperCase()}`);
     },
-    closeDropdown(event) {
-      if (!event.target.closest('.custom-dropdown')) {
-        this.cinemaDropdownOpen = false
-      }
-    },
-    toggleCinemaDropdown(event) {
-      event.stopPropagation()
-      this.cinemaDropdownOpen = !this.cinemaDropdownOpen
-    },
-    selectCinema(cinemaId, cinemaName) {
-      this.selectedCinema = cinemaId
-      this.selectedCinemaName = cinemaName
-      this.cinemaDropdownOpen = false
-    },
-    async fetchCinemas() {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const response = await fetch(`${apiUrl}/api/cinemas`);
-        const data = await response.json();
-        if (data.success && data.data) {
-          this.cinemas = data.data
-            .map(cinema => {
-              const cinemaId = cinema.id ?? cinema.ID ?? cinema.apolloId;
-              if (!cinemaId) return null;
-              return {
-                id: String(cinemaId),
-                name: cinema.Name ?? cinema.name ?? cinema.TheatreName ?? 'Unknown Cinema'
-              };
-            })
-            .filter(Boolean);
-        } else {
-          this.cinemas = [];
-        }
-      } catch (err) {
-        console.error('Error fetching cinemas:', err);
+    selectBanner(index) {
+      if (index >= 0 && index < this.newsBanners.length) {
+        this.activeBannerIndex = index;
       }
     },
     async fetchFeaturedMovies() {
@@ -319,7 +320,6 @@ export default {
     }
   },
   mounted() {
-    this.fetchCinemas();
     this.fetchFeaturedMovies();
   }
 }
@@ -398,102 +398,109 @@ export default {
   padding: 0 1.5rem;
 }
 
-/* Cinema Selector */
-.cinema-selector-wrapper {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: 2rem;
+.news-banner-section {
+  padding: 3rem 0 0;
 }
 
-.custom-dropdown {
-  position: relative;
-  display: inline-block;
-  z-index: 100;
-}
-
-.dropdown-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: 2px solid #ff6600;
-  border-radius: 8px;
-  background: #fff;
-  color: #ff6600;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-width: 200px;
-  justify-content: center;
-}
-
-.dropdown-btn:hover {
-  background: #ff6600;
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-}
-
-.dropdown-icon {
+.section-subtitle {
+  color: #7f8c8d;
   font-size: 1rem;
+  margin-top: 0.5rem;
 }
 
-.arrow {
-  font-size: 0.7rem;
-  transition: transform 0.3s ease;
-  margin-left: 0.25rem;
+.news-banner-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.custom-dropdown.open .arrow {
-  transform: rotate(180deg);
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  min-width: 100%;
+.news-banner-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 40%) 1fr;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 18px;
   background: #fff;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.news-banner-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.news-banner-image {
+  border-radius: 14px;
   overflow: hidden;
-  animation: dropdownFadeInDown 0.2s ease;
-  max-height: 400px;
-  overflow-y: auto;
+  min-height: 180px;
 }
 
-@keyframes dropdownFadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.news-banner-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.dropdown-item {
-  padding: 0.75rem 1.25rem;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+.news-banner-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
-.dropdown-item:hover {
-  background: #f8f8f8;
-  color: #ff6600;
-}
-
-.dropdown-item.active {
+.news-banner-tag {
+  align-self: flex-start;
   background: #fef5f3;
   color: #ff6600;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.news-banner-content h3 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #2c3e50;
+}
+
+.news-banner-content p {
+  margin: 0;
+  color: #7f8c8d;
+  line-height: 1.6;
+}
+
+.news-banner-cta {
+  font-weight: 600;
+  color: #ff6600;
+}
+
+.banner-controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.banner-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: none;
+  background: #dcdcdc;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.banner-dot.active {
+  background: #ff6600;
+  transform: scale(1.1);
 }
 
 .section-header {
@@ -832,6 +839,14 @@ export default {
 @media (max-width: 768px) {
   .section-header h2 {
     font-size: 1.6rem;
+  }
+
+  .news-banner-card {
+    grid-template-columns: 1fr;
+  }
+
+  .news-banner-image {
+    min-height: 160px;
   }
   
   .movie-grid {
