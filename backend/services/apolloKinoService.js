@@ -3,10 +3,11 @@ const xml2js = require('xml2js');
 
 const normalizeApolloArray = value => (Array.isArray(value) ? value : value ? [value] : []);
 const DEFAULT_SCHEDULE_REQUEST_DELAY_MS = 50;
-const scheduleRequestDelayMs = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
-const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(scheduleRequestDelayMs) && scheduleRequestDelayMs >= 0
-  ? scheduleRequestDelayMs
+const envScheduleDelayMs = Number.parseInt(process.env.APOLLO_SCHEDULE_DELAY_MS, 10);
+const SCHEDULE_REQUEST_DELAY_MS = Number.isFinite(envScheduleDelayMs) && envScheduleDelayMs >= 0
+  ? envScheduleDelayMs
   : DEFAULT_SCHEDULE_REQUEST_DELAY_MS;
+const MIN_REQUESTS_FOR_THROTTLING = 2;
 const scheduleRequestDelay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const extractScheduleShows = schedulePayload => {
@@ -21,9 +22,9 @@ const extractScheduleShows = schedulePayload => {
 const formatApolloScheduleDate = value => {
   if (!value) return null;
   if (value instanceof Date) {
-    const day = String(value.getDate()).padStart(2, '0');
-    const month = String(value.getMonth() + 1).padStart(2, '0');
-    const year = value.getFullYear();
+    const day = String(value.getUTCDate()).padStart(2, '0');
+    const month = String(value.getUTCMonth() + 1).padStart(2, '0');
+    const year = value.getUTCFullYear();
     return `${day}.${month}.${year}`;
   }
   if (typeof value !== 'string') return null;
@@ -48,6 +49,13 @@ const normalizeDateForRange = value => {
   return trimmed;
 };
 
+const parseIsoDateToUtc = value => {
+  if (!value) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) return null;
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
 const buildScheduleDateRange = (dateFrom, dateTo, date) => {
   const directDate = formatApolloScheduleDate(date);
   if (directDate) return [directDate];
@@ -58,15 +66,19 @@ const buildScheduleDateRange = (dateFrom, dateTo, date) => {
   if (!startValue || !endValue) {
     return [null];
   }
-  const startDate = new Date(`${startValue}T00:00:00`);
-  const endDate = new Date(`${endValue}T00:00:00`);
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+  const startDate = parseIsoDateToUtc(startValue);
+  const endDate = parseIsoDateToUtc(endValue);
+  if (!startDate || !endDate) {
     return [null];
   }
   const normalizedStart = startDate <= endDate ? startDate : endDate;
   const normalizedEnd = startDate <= endDate ? endDate : startDate;
   const dates = [];
-  for (let current = new Date(normalizedStart); current <= normalizedEnd; current.setDate(current.getDate() + 1)) {
+  for (
+    let current = new Date(normalizedStart);
+    current <= normalizedEnd;
+    current = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate() + 1))
+  ) {
     dates.push(formatApolloScheduleDate(current));
   }
   return dates.length > 0 ? dates : [null];
@@ -354,7 +366,7 @@ class ApolloKinoService {
       const uniqueAreaIds = [...new Set(areaIds)];
       const areasToFetch = uniqueAreaIds.length > 0 ? uniqueAreaIds : [null];
       const schedulePayloads = [];
-      const shouldThrottleRequests = scheduleDates.length * areasToFetch.length > 1;
+      const shouldThrottleRequests = scheduleDates.length * areasToFetch.length >= MIN_REQUESTS_FOR_THROTTLING;
       let hasRequestedSchedule = false;
       for (const scheduleDate of scheduleDates) {
         for (const areaId of areasToFetch) {

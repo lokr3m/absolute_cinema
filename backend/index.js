@@ -649,6 +649,16 @@ function normalizeApolloScheduleDate(dateStr) {
   throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD or DD.MM.YYYY.`);
 }
 
+function normalizeSessionDate(dateStr) {
+  if (!dateStr) return null;
+  const apolloRegex = /^\d{2}\.\d{2}\.\d{4}$/;
+  if (apolloRegex.test(dateStr)) {
+    const [day, month, year] = dateStr.split('.');
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+}
+
 // Helper function to get default date range
 function getDefaultDateRange(dtFrom, dtTo) {
   let fromDate = dtFrom;
@@ -808,12 +818,7 @@ app.get('/api/sessions', async (req, res) => {
     
     if (date) {
       // Filter sessions for the specified date
-      const normalizedDate = /^\d{2}\.\d{2}\.\d{4}$/.test(date)
-        ? (() => {
-          const [day, month, year] = date.split('.');
-          return `${year}-${month}-${day}`;
-        })()
-        : date;
+      const normalizedDate = normalizeSessionDate(date);
       const startOfDay = new Date(`${normalizedDate}T00:00:00`);
       const endOfDay = new Date(`${normalizedDate}T23:59:59.999`);
       
