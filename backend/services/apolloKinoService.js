@@ -53,7 +53,6 @@ const buildScheduleDateRange = (dateFrom, dateTo, date) => {
 };
 
 const buildSchedulePath = (scheduleDate, areaId) => {
-  let schedulePath = "/Schedule";
   const params = [];
   if (areaId) {
     params.push(`area=${encodeURIComponent(areaId)}`);
@@ -61,10 +60,7 @@ const buildSchedulePath = (scheduleDate, areaId) => {
   if (scheduleDate) {
     params.push(`dt=${encodeURIComponent(scheduleDate)}`);
   }
-  if (params.length > 0) {
-    schedulePath += `?${params.join('&')}`;
-  }
-  return schedulePath;
+  return params.length > 0 ? `/Schedule?${params.join('&')}` : '/Schedule';
 };
 
 /**
@@ -336,21 +332,23 @@ class ApolloKinoService {
         .filter(Boolean)
         .map(areaId => String(areaId));
       const uniqueAreaIds = [...new Set(areaIds)];
-      const scheduleRequests = [];
       const areasToFetch = uniqueAreaIds.length > 0 ? uniqueAreaIds : [null];
-      scheduleDates.forEach(scheduleDate => {
-        areasToFetch.forEach(areaId => {
-          scheduleRequests.push(this.fetchJSON(buildSchedulePath(scheduleDate, areaId)));
-        });
-      });
-
-      const schedulePayloads = await Promise.all(scheduleRequests);
+      const schedulePayloads = [];
+      for (const scheduleDate of scheduleDates) {
+        for (const areaId of areasToFetch) {
+          const schedulePayload = await this.fetchJSON(buildSchedulePath(scheduleDate, areaId));
+          schedulePayloads.push(schedulePayload);
+        }
+      }
       const scheduleMap = new Map();
       schedulePayloads.forEach(schedulePayload => {
         const shows = extractScheduleShows(schedulePayload);
         shows.forEach(show => {
           const showId = show?.ID ?? show?.ShowID ?? show?.id ?? null;
-          const compositeKey = `${show?.EventID ?? show?.EventId ?? ''}-${show?.dttmShowStart ?? show?.dttmShowStartUTC ?? show?.dttmShowStartLocal ?? ''}-${show?.TheatreID ?? show?.Theatre?.ID ?? show?.TheatreId ?? ''}`;
+          const eventId = show?.EventID ?? show?.EventId ?? '';
+          const showTime = show?.dttmShowStart ?? show?.dttmShowStartUTC ?? show?.dttmShowStartLocal ?? '';
+          const theatreId = show?.TheatreID ?? show?.Theatre?.ID ?? show?.TheatreId ?? '';
+          const compositeKey = `${eventId}-${showTime}-${theatreId}`;
           const normalizedKey = showId != null ? `id:${showId}` : `fallback:${compositeKey}`;
           if (!scheduleMap.has(normalizedKey)) {
             scheduleMap.set(normalizedKey, show);
