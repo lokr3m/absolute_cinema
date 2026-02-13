@@ -102,6 +102,15 @@ const parseApolloGenres = value => {
   return genres.length > 0 ? genres : [FALLBACK_GENRE];
 };
 const roundPrice = value => Math.round(value * 100) / 100;
+const getEndFieldPriority = startField => {
+  if (startField === 'dttmShowStartUTC') {
+    return ['dttmShowEndUTC', 'dttmShowEnd', 'dttmShowEndLocal'];
+  }
+  if (startField === 'dttmShowStartLocal') {
+    return ['dttmShowEndLocal', 'dttmShowEnd', 'dttmShowEndUTC'];
+  }
+  return ['dttmShowEnd', 'dttmShowEndLocal', 'dttmShowEndUTC'];
+};
 const buildFilmDataFromShow = (show, showTitle) => ({
   title: showTitle,
   originalTitle: show.OriginalTitle ?? showTitle,
@@ -764,11 +773,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
       if (!startTime || Number.isNaN(startTime.getTime())) continue;
       if (startTime < new Date()) continue;
 
-      const endFieldPriority = startField === 'dttmShowStartUTC'
-        ? ['dttmShowEndUTC', 'dttmShowEnd', 'dttmShowEndLocal']
-        : startField === 'dttmShowStartLocal'
-          ? ['dttmShowEndLocal', 'dttmShowEnd', 'dttmShowEndUTC']
-          : ['dttmShowEnd', 'dttmShowEndLocal', 'dttmShowEndUTC'];
+      const endFieldPriority = getEndFieldPriority(startField);
       const endValue = endFieldPriority
         .map(field => show[field])
         .find(value => value);
@@ -781,7 +786,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         );
       }
 
-      const priceInCents = Number.parseFloat(show.PriceInCents);
+      const priceInCents = Number.parseInt(show.PriceInCents, 10);
       const priceValue = Number.isFinite(priceInCents)
         ? priceInCents / 100
         : Number.parseFloat(show.Price);
@@ -877,10 +882,7 @@ async function initializeServer() {
         console.log('ℹ️  Existing core data detected; skipping full refresh to preserve current records.');
         const { dtFrom, dtTo } = getDefaultDateRange();
         const validatedTo = validateDate(dtTo);
-        const [rangeYear, rangeMonth, rangeDay] = validatedTo.split('-').map(Number);
-        const rangeEnd = Number.isFinite(rangeYear) && Number.isFinite(rangeMonth) && Number.isFinite(rangeDay)
-          ? new Date(Date.UTC(rangeYear, rangeMonth - 1, rangeDay, 23, 59, 59, 999))
-          : null;
+        const rangeEnd = parseValidatedDateEnd(validatedTo);
         if (!rangeEnd) {
           throw new Error('Invalid schedule range end date');
         }
@@ -919,6 +921,15 @@ function validateDate(dateStr) {
     throw new Error(`Invalid date: ${dateStr}`);
   }
   return dateStr;
+}
+
+function parseValidatedDateEnd(dateStr) {
+  if (!dateStr) return null;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) {
+    return null;
+  }
+  return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
 }
 
 function normalizeApolloScheduleDate(dateStr) {
