@@ -171,6 +171,12 @@ export default {
     getSampleMovie() {
       return this.findMovie(sampleMovies)
     },
+    setFallbackMovie(message) {
+      this.movie = this.getSampleMovie()
+      if (!this.movie) {
+        this.error = message
+      }
+    },
     async fetchMovie() {
       this.loading = true
       this.error = null
@@ -185,17 +191,11 @@ export default {
         if (matchedMovie) {
           this.movie = matchedMovie
         } else {
-          this.movie = this.getSampleMovie()
-          if (!this.movie) {
-            this.error = 'Movie not found.'
-          }
+          this.setFallbackMovie('Movie not found.')
         }
       } catch (error) {
         console.error('Error fetching movie details:', error)
-        this.movie = this.getSampleMovie()
-        if (!this.movie) {
-          this.error = 'Failed to load movie details.'
-        }
+        this.setFallbackMovie('Failed to load movie details.')
       } finally {
         this.loading = false
       }

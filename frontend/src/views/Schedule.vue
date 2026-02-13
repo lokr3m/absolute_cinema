@@ -189,9 +189,9 @@
                   :to="`/movies/${session.movieId}`"
                   class="btn-schedule"
                 >
-                  Movie details
+                  Movie Details
                 </router-link>
-                <button v-else class="btn-schedule" disabled>Movie details</button>
+                <button v-else class="btn-schedule" disabled>Movie Details</button>
                 <button class="btn-buy" @click="goToBooking(session)">Osta Piletid</button>
               </div>
 
