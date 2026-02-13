@@ -91,6 +91,17 @@ const normalizeHallName = value => {
   return String(value).trim().toLowerCase();
 };
 
+const normalizeFilmKey = value => String(value ?? '').trim().toLowerCase();
+const parseApolloGenres = value => {
+  if (!value) return [FALLBACK_GENRE];
+  if (Array.isArray(value)) {
+    const genres = value.map(genre => String(genre).trim()).filter(Boolean);
+    return genres.length > 0 ? genres : [FALLBACK_GENRE];
+  }
+  const genres = String(value).split(',').map(genre => genre.trim()).filter(Boolean);
+  return genres.length > 0 ? genres : [FALLBACK_GENRE];
+};
+
 // Prioritize fields in the order Apollo schedule payloads commonly expose hall names.
 const SCHEDULE_HALL_FIELDS = [
   'TheatreAuditoriumName',
@@ -594,6 +605,29 @@ async function refreshDatabaseFromApollo() {
 async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }) {
   const shows = extractShowsFromSchedule(schedulePayload);
   const scheduleEvents = extractScheduleEvents(eventsPayload);
+  const existingFilms = await Film.find();
+  const filmLookup = new Map();
+  existingFilms.forEach(film => {
+    const titleKey = normalizeFilmKey(film.title);
+    if (titleKey) {
+      filmLookup.set(titleKey, film);
+    }
+    const originalTitleKey = normalizeFilmKey(film.originalTitle);
+    if (originalTitleKey) {
+      filmLookup.set(originalTitleKey, film);
+    }
+  });
+
+  const sessionRangeStart = new Date();
+  const sessionRangeEnd = new Date(sessionRangeStart);
+  sessionRangeEnd.setDate(sessionRangeEnd.getDate() + DEFAULT_SCHEDULE_RANGE_DAYS);
+  const existingSessions = await Session.find({
+    startTime: { $gte: sessionRangeStart, $lte: sessionRangeEnd }
+  }).select('hall startTime');
+  const existingSessionKeys = new Set(
+    existingSessions.map(session => `${session.hall.toString()}-${session.startTime.toISOString()}`)
+  );
+
   const filmMap = new Map();
   for (const event of scheduleEvents) {
     try {
@@ -602,6 +636,14 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
       const film = existingFilm
         ? await Film.findByIdAndUpdate(existingFilm._id, filmData, { new: true })
         : await Film.create(filmData);
+      const normalizedTitle = normalizeFilmKey(film.title);
+      if (normalizedTitle) {
+        filmLookup.set(normalizedTitle, film);
+      }
+      const normalizedOriginal = normalizeFilmKey(film.originalTitle);
+      if (normalizedOriginal) {
+        filmLookup.set(normalizedOriginal, film);
+      }
       const apolloId = normalizeApolloId(event.ID);
       if (apolloId) {
         filmMap.set(apolloId, film);
@@ -614,13 +656,14 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
   const cinemas = await Cinema.find();
   const cinemaMap = new Map(
     cinemas
-      .map(cinema => [normalizeApolloId(cinema.apolloId) ?? 'default', cinema])
+      .map(cinema => [normalizeApolloId(cinema.apolloId) ?? cinema._id.toString(), cinema])
   );
   const halls = await Hall.find().populate('cinema', 'apolloId');
   const hallsByCinemaId = new Map();
   const hallsByCinemaName = new Map();
   halls.forEach(hall => {
-    const cinemaKey = normalizeApolloId(hall.cinema?.apolloId) ?? 'default';
+    const cinemaKey = normalizeApolloId(hall.cinema?.apolloId) ?? hall.cinema?._id?.toString();
+    if (!cinemaKey) return;
     const hallKey = normalizeHallName(hall?.name);
     if (hallKey) {
       const hallNameMap = hallsByCinemaName.get(cinemaKey) ?? new Map();
@@ -640,12 +683,11 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
       const showTitle = extractShowTitle(show);
       let film = eventId ? filmMap.get(eventId) : null;
       if (!film && showTitle) {
-        film = await Film.findOne({
-          $or: [{ title: showTitle }, { originalTitle: showTitle }]
-        });
+        const normalizedShowTitle = normalizeFilmKey(showTitle);
+        film = normalizedShowTitle ? filmLookup.get(normalizedShowTitle) : null;
       }
       if (!film && showTitle) {
-        const genres = show.Genres ? show.Genres.split(',').map(g => g.trim()) : [FALLBACK_GENRE];
+        const genres = parseApolloGenres(show.Genres);
         const filmData = {
           title: showTitle,
           originalTitle: show.OriginalTitle ?? showTitle,
@@ -664,13 +706,23 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
           isActive: true
         };
         film = await Film.create(filmData);
+        const normalizedTitle = normalizeFilmKey(film.title);
+        if (normalizedTitle) {
+          filmLookup.set(normalizedTitle, film);
+        }
+        const normalizedOriginal = normalizeFilmKey(film.originalTitle);
+        if (normalizedOriginal) {
+          filmLookup.set(normalizedOriginal, film);
+        }
       }
       if (!film) continue;
 
-      const cinemaKey = normalizeApolloId(extractShowCinemaId(show)) ?? 'default';
+      const cinemaKey = normalizeApolloId(extractShowCinemaId(show));
+      if (!cinemaKey) continue;
       const hallName = extractShowHallName(show);
       const hallKey = normalizeHallName(hallName);
       let hall = hallKey ? hallsByCinemaName.get(cinemaKey)?.get(hallKey) : null;
+      const candidateHalls = hallsByCinemaId.get(cinemaKey) ?? [];
       if (!hall && hallName) {
         const cinema = cinemaMap.get(cinemaKey);
         if (cinema) {
@@ -690,6 +742,9 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
           hallsForCinema.push(hall);
           hallsByCinemaId.set(cinemaKey, hallsForCinema);
         }
+      }
+      if (!hall && candidateHalls.length > 0) {
+        hall = candidateHalls[0];
       }
       if (!hall) continue;
 
@@ -723,14 +778,14 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         );
       }
 
-      const priceInCents = Number.parseFloat(show.PriceInCents);
-      const priceValue = Number.isFinite(priceInCents)
-        ? priceInCents / 100
+      const priceInCentsValue = Number.parseFloat(show.PriceInCents);
+      const priceValue = Number.isFinite(priceInCentsValue)
+        ? priceInCentsValue / 100
         : Number.parseFloat(show.Price);
       const standardPrice = Number.isFinite(priceValue) && priceValue > 0 ? priceValue : DEFAULT_SESSION_PRICE;
 
-      const existingSession = await Session.findOne({ hall: hall._id, startTime });
-      if (existingSession) {
+      const sessionKey = `${hall._id.toString()}-${startTime.toISOString()}`;
+      if (existingSessionKeys.has(sessionKey)) {
         sessionsSkipped++;
         continue;
       }
@@ -751,6 +806,7 @@ async function syncSessionsFromApolloSchedule({ schedulePayload, eventsPayload }
         availableSeats: hall.capacity,
         status: 'scheduled'
       });
+      existingSessionKeys.add(sessionKey);
       sessionsAdded++;
     } catch (error) {
       console.warn('  ⚠️ Failed to sync session:', error.message);
@@ -817,7 +873,13 @@ async function initializeServer() {
         console.log('ℹ️  Existing core data detected; skipping full refresh to preserve current records.');
         const { dtFrom, dtTo } = getDefaultDateRange();
         const validatedTo = validateDate(dtTo);
-        const rangeEnd = new Date(`${validatedTo}T23:59:59.999`);
+        const [rangeYear, rangeMonth, rangeDay] = validatedTo.split('-').map(Number);
+        const rangeEnd = Number.isFinite(rangeYear) && Number.isFinite(rangeMonth) && Number.isFinite(rangeDay)
+          ? new Date(Date.UTC(rangeYear, rangeMonth - 1, rangeDay, 23, 59, 59, 999))
+          : null;
+        if (!rangeEnd) {
+          throw new Error('Invalid schedule range end date');
+        }
         const latestSession = await Session.findOne({ status: 'scheduled' }).sort({ startTime: -1 });
         if (!latestSession || latestSession.startTime < rangeEnd) {
           console.log('🔄 Syncing upcoming sessions from Apollo schedule...');
