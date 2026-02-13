@@ -356,7 +356,7 @@ class ApolloKinoService {
       let theatreAreas = [];
       try {
         theatreAreas = await this.fetchTheatreAreas();
-      } catch (areaError) {
+      } catch (_areaError) {
         theatreAreas = [];
       }
       const areaIds = theatreAreas
