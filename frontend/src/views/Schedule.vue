@@ -184,7 +184,14 @@
             <div class="right-section">
               <!-- Action Buttons -->
               <div class="action-buttons">
-                <button class="btn-schedule">Vaata Kava</button>
+                <router-link
+                  v-if="session.movieId"
+                  :to="`/movies/${session.movieId}`"
+                  class="btn-schedule"
+                >
+                  Movie details
+                </router-link>
+                <button v-else class="btn-schedule" disabled>Movie details</button>
                 <button class="btn-buy" @click="goToBooking(session)">Osta Piletid</button>
               </div>
 
@@ -592,6 +599,7 @@ export default {
         const event = eventId != null ? eventMap.get(String(eventId)) : null
         const movieTitle = show.EventTitle || show.Title || event?.Title || event?.OriginalTitle || event?.EventTitle || 'Unknown'
         const genre = this.formatApolloGenres(event?.Genres ?? show.Genres)
+        const movieIdValue = event?.ID ?? event?.EventID ?? eventId ?? show.EventID ?? show.EventId ?? show.Event?.ID
         const posterUrl = event?.Images?.EventMediumImagePortrait
           || event?.Images?.EventSmallImagePortrait
           || event?.Images?.EventLargeImagePortrait
@@ -629,6 +637,7 @@ export default {
         sessions.push({
           id: show.ID || show.ShowID || index,
           movieTitle,
+          movieId: movieIdValue != null ? String(movieIdValue) : '',
           genre,
           time: `${hours}:${minutes}`,
           cinema: cinemaName,
