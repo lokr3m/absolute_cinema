@@ -166,6 +166,7 @@ const TITLE_CASE_BOUNDARY_REGEX = /(^|[\s-\/'])([a-z])/g;
 const GENRE_PLACEHOLDER_BASE = 'https://via.placeholder.com/320x180/1a1a2e/e94560?text=';
 const TOP_MOVIE_COUNT = 5;
 const DEFAULT_NEWS_BANNER = {
+  id: 'default-banner',
   link: '/news',
   imageUrl: 'https://via.placeholder.com/1200x600/1a1a2e/e94560?text=Latest+News',
   title: 'Latest Cinema News',
@@ -221,7 +222,7 @@ export default {
   },
   computed: {
     activeBanner() {
-      return this.newsBanners[this.activeBannerIndex] || this.newsBanners[0] || DEFAULT_NEWS_BANNER;
+      return this.newsBanners[this.activeBannerIndex] || DEFAULT_NEWS_BANNER;
     },
     featuredGenres() {
       const genres = new Map();
