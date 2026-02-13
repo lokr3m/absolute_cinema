@@ -72,7 +72,14 @@ const normalizeHallName = value => {
 };
 
 // Prioritize fields in the order Apollo schedule payloads commonly expose hall names.
-const SCHEDULE_HALL_FIELDS = ['TheatreAuditorium', 'Auditorium', 'AuditoriumName', 'TheatreAuditoriumName'];
+const SCHEDULE_HALL_FIELDS = [
+  'TheatreAuditoriumName',
+  'AuditoriumName',
+  'TheatreAuditorium',
+  'Auditorium',
+  'TheatreAuditoriumID',
+  'AuditoriumID'
+];
 
 const extractShowHallName = show => {
   for (const field of SCHEDULE_HALL_FIELDS) {
@@ -87,6 +94,9 @@ const extractShowHallName = show => {
   }
   return null;
 };
+
+const extractShowCinemaId = show =>
+  show?.Theatre?.ID ?? show?.TheatreId ?? show?.TheatreID ?? show?.Theatre?.Id ?? null;
 
 const mapCinemaToTheatreArea = cinema => {
   const apolloId = cinema.apolloId ?? null;
@@ -392,7 +402,7 @@ async function refreshDatabaseFromApollo() {
           
           if (!film) continue;
           
-          const cinemaKey = normalizeApolloId(show.TheatreID ?? show.Theatre?.ID ?? show.TheatreId) ?? 'default';
+          const cinemaKey = normalizeApolloId(extractShowCinemaId(show)) ?? 'default';
           const hallName = extractShowHallName(show);
           const hallNameKey = normalizeHallName(hallName);
           let hall = null;
@@ -798,10 +808,8 @@ app.get('/api/sessions', async (req, res) => {
     
     if (date) {
       // Filter sessions for the specified date
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
+      const startOfDay = new Date(`${date}T00:00:00`);
+      const endOfDay = new Date(`${date}T23:59:59.999`);
       
       filter.startTime = {
         $gte: startOfDay,

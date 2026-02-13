@@ -1,6 +1,72 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
 
+const normalizeApolloArray = value => (Array.isArray(value) ? value : value ? [value] : []);
+
+const extractScheduleShows = schedulePayload => {
+  if (!schedulePayload) return [];
+  const scheduleShows = schedulePayload.Schedule?.Shows?.Show
+    ?? schedulePayload.Shows?.Show
+    ?? schedulePayload.Shows
+    ?? schedulePayload;
+  return normalizeApolloArray(scheduleShows);
+};
+
+const formatApolloScheduleDate = value => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    const day = String(value.getDate()).padStart(2, '0');
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const year = value.getFullYear();
+    return `${day}.${month}.${year}`;
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(trimmed)) return trimmed;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-');
+    return `${day}.${month}.${year}`;
+  }
+  return trimmed;
+};
+
+const buildScheduleDateRange = (dateFrom, dateTo, date) => {
+  const directDate = formatApolloScheduleDate(date);
+  if (directDate) return [directDate];
+  if (!dateFrom && !dateTo) return [null];
+
+  const startValue = dateFrom || dateTo;
+  const endValue = dateTo || dateFrom;
+  const startDate = new Date(`${startValue}T00:00:00`);
+  const endDate = new Date(`${endValue}T00:00:00`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return [null];
+  }
+  const normalizedStart = startDate <= endDate ? startDate : endDate;
+  const normalizedEnd = startDate <= endDate ? endDate : startDate;
+  const dates = [];
+  for (let current = new Date(normalizedStart); current <= normalizedEnd; current.setDate(current.getDate() + 1)) {
+    dates.push(formatApolloScheduleDate(current));
+  }
+  return dates.length > 0 ? dates : [null];
+};
+
+const buildSchedulePath = (scheduleDate, areaId) => {
+  let schedulePath = "/Schedule";
+  const params = [];
+  if (areaId) {
+    params.push(`area=${encodeURIComponent(areaId)}`);
+  }
+  if (scheduleDate) {
+    params.push(`dt=${encodeURIComponent(scheduleDate)}`);
+  }
+  if (params.length > 0) {
+    schedulePath += `?${params.join('&')}`;
+  }
+  return schedulePath;
+};
+
 /**
  * Service for fetching and parsing Apollo Kino API data
  */
@@ -258,31 +324,45 @@ class ApolloKinoService {
    */
   async fetchSchedule(dateFrom = null, dateTo = null, date = null) {
     try {
-      // Build query parameters for date range
-      let schedulePath = "/Schedule";
-      const params = [];
-
-      if (date) {
-        params.push(`dt=${encodeURIComponent(date)}`);
-      } else {
-        if (dateFrom) {
-          params.push(`dtFrom=${encodeURIComponent(dateFrom)}`);
-        }
-        if (dateTo) {
-          params.push(`dtTo=${encodeURIComponent(dateTo)}`);
-        }
+      const scheduleDates = buildScheduleDateRange(dateFrom, dateTo, date);
+      let theatreAreas = [];
+      try {
+        theatreAreas = await this.fetchTheatreAreas();
+      } catch (areaError) {
+        theatreAreas = [];
       }
-      
-      if (params.length > 0) {
-        schedulePath += `?${params.join('&')}`;
-      }
+      const areaIds = theatreAreas
+        .map(area => area.ID)
+        .filter(Boolean)
+        .map(areaId => String(areaId));
+      const uniqueAreaIds = [...new Set(areaIds)];
+      const scheduleRequests = [];
+      const areasToFetch = uniqueAreaIds.length > 0 ? uniqueAreaIds : [null];
+      scheduleDates.forEach(scheduleDate => {
+        areasToFetch.forEach(areaId => {
+          scheduleRequests.push(this.fetchJSON(buildSchedulePath(scheduleDate, areaId)));
+        });
+      });
 
-      const schedule = await this.fetchJSON(schedulePath);
+      const schedulePayloads = await Promise.all(scheduleRequests);
+      const scheduleMap = new Map();
+      schedulePayloads.forEach(schedulePayload => {
+        const shows = extractScheduleShows(schedulePayload);
+        shows.forEach(show => {
+          const showId = show?.ID ?? show?.ShowID ?? show?.id ?? null;
+          const compositeKey = `${show?.EventID ?? show?.EventId ?? ''}-${show?.dttmShowStart ?? show?.dttmShowStartUTC ?? show?.dttmShowStartLocal ?? ''}-${show?.TheatreID ?? show?.Theatre?.ID ?? show?.TheatreId ?? ''}`;
+          const normalizedKey = showId != null ? `id:${showId}` : `fallback:${compositeKey}`;
+          if (!scheduleMap.has(normalizedKey)) {
+            scheduleMap.set(normalizedKey, show);
+          }
+        });
+      });
+      const schedule = Array.from(scheduleMap.values());
       const events = await this.fetchJSON("/Events");
 
       // The structure may vary, so we'll handle different possible structures
       let movies = [];
-      let shows = [];
+      let shows = schedule;
 
       return { movies, shows, schedule, events };
     } catch (error) {

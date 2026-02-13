@@ -250,6 +250,23 @@ const normalizeCinemaName = value => (value ?? '')
   .filter(Boolean)
   .map(token => CINEMA_NAME_NORMALIZATIONS[token] ?? token)
   .join(' ')
+const extractApolloCinemaId = show => {
+  const cinemaId = show?.Theatre?.ID ?? show?.TheatreId ?? show?.TheatreID ?? show?.Theatre?.Id;
+  return cinemaId != null ? String(cinemaId) : '';
+}
+const extractApolloHallName = show => {
+  const hallValue = show?.TheatreAuditoriumName
+    ?? show?.AuditoriumName
+    ?? show?.TheatreAuditorium
+    ?? show?.Auditorium
+    ?? show?.TheatreAuditoriumID
+    ?? show?.AuditoriumID
+  if (!hallValue) return 'Unknown Hall'
+  if (typeof hallValue === 'object') {
+    return hallValue.Name ?? hallValue.name ?? 'Unknown Hall'
+  }
+  return String(hallValue)
+}
 
 /**
  * Split a normalized cinema name into an array of space-separated tokens, removing empty segments.
@@ -623,8 +640,8 @@ export default {
         const minutes = startTime.getMinutes().toString().padStart(2, '0')
         const showDate = formatLocalDate(startTime)
         const cinemaName = show.Theatre?.Name || show.Theatre || show.TheatreName || 'Unknown Cinema'
-        const hallName = show.TheatreAuditorium || show.Auditorium || show.AuditoriumName || 'Unknown Hall'
-        const cinemaId = show.TheatreID ?? show.Theatre?.ID
+        const hallName = extractApolloHallName(show)
+        const cinemaId = extractApolloCinemaId(show)
 
         sessions.push({
           id: show.ID || show.ShowID || index,
@@ -632,7 +649,7 @@ export default {
           genre,
           time: `${hours}:${minutes}`,
           cinema: cinemaName,
-          cinemaId: cinemaId != null ? String(cinemaId) : '',
+          cinemaId,
           hall: hallName,
           posterUrl,
           language,
