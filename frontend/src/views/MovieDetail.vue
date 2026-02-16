@@ -183,7 +183,6 @@ export default {
       this.movie = null
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-<<<<<<< HEAD
       const movieId = this.$route.params.id
 
       try {
@@ -192,30 +191,17 @@ export default {
         
         if (response.data?.success && response.data?.data) {
           this.movie = response.data.data
-=======
-
-      try {
-        const response = await axios.get(`${apiUrl}/api/apollo-kino/events`)
-        const movies = Array.isArray(response.data?.movies) ? response.data.movies : []
-        const matchedMovie = this.findMovie(movies)
-        if (matchedMovie) {
-          this.movie = matchedMovie
->>>>>>> 57cc3298e6cc73f1183838a3355b4d2edb0120ba
         } else {
           this.setFallbackMovie('Movie not found.')
         }
       } catch (error) {
         console.error('Error fetching movie details:', error)
-<<<<<<< HEAD
         // If movie not found in database, show error
         if (error.response?.status === 404) {
           this.setFallbackMovie('Movie not found.')
         } else {
           this.setFallbackMovie('Failed to load movie details.')
         }
-=======
-        this.setFallbackMovie('Failed to load movie details.')
->>>>>>> 57cc3298e6cc73f1183838a3355b4d2edb0120ba
       } finally {
         this.loading = false
       }
