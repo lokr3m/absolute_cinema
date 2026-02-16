@@ -149,8 +149,8 @@
               <div class="overlay-content">
                 <!-- Using movie._id from database ensures correct routing to /movies/:mongoDbId -->
                 <router-link
-                  v-if="movie._id"
-                  :to="`/movies/${movie._id}`"
+                  v-if="movie.apolloKinoId || movie._id"
+                  :to="`/movies/${movie.apolloKinoId || movie._id}`"
                   class="btn-view"
                 >
                   <span>View Details</span>
