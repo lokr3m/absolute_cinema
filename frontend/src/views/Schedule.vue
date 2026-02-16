@@ -184,7 +184,14 @@
             <div class="right-section">
               <!-- Action Buttons -->
               <div class="action-buttons">
-                <button class="btn-schedule">Vaata Kava</button>
+                <router-link
+                  v-if="session.movieId"
+                  :to="`/movies/${session.movieId}`"
+                  class="btn-schedule"
+                >
+                  Movie Details
+                </router-link>
+                <button v-else class="btn-schedule" disabled>Movie Details</button>
                 <button class="btn-buy" @click="goToBooking(session)">Osta Piletid</button>
               </div>
 
@@ -314,7 +321,6 @@ export default {
       currentWeekIndex: 0,
       allDates: [],
       sessions: [],
-      scheduleCache: {},
       cinemas: [],
       loading: false,
       error: null,
@@ -341,11 +347,6 @@ export default {
       clearInterval(this.currentTimeInterval)
     }
   },
-  watch: {
-    selectedDate(newDate) {
-      this.fetchSchedule(newDate)
-    }
-  },
   computed: {
     upcomingSessions() {
       // Hide sessions once their start time has been reached.
@@ -356,11 +357,11 @@ export default {
       const dates = this.allDates.slice(startIndex, startIndex + 7)
 
       return dates.map(date => {
-        const hasCachedDate = Object.prototype.hasOwnProperty.call(this.scheduleCache, date.value)
-        const cachedSessions = hasCachedDate ? (this.scheduleCache[date.value] || []) : []
+        // Check if there are any sessions for this date
+        const sessionsForDate = this.sessions.filter(session => session.date === date.value)
         return {
           ...date,
-          hasSchedule: hasCachedDate ? cachedSessions.length > 0 : null
+          hasSchedule: sessionsForDate.length > 0
         }
       })
     },
@@ -592,6 +593,7 @@ export default {
         const event = eventId != null ? eventMap.get(String(eventId)) : null
         const movieTitle = show.EventTitle || show.Title || event?.Title || event?.OriginalTitle || event?.EventTitle || 'Unknown'
         const genre = this.formatApolloGenres(event?.Genres ?? show.Genres)
+        const movieIdValue = event?.ID ?? event?.EventID ?? eventId ?? show.EventID ?? show.EventId ?? show.Event?.ID
         const posterUrl = event?.Images?.EventMediumImagePortrait
           || event?.Images?.EventSmallImagePortrait
           || event?.Images?.EventLargeImagePortrait
@@ -629,6 +631,7 @@ export default {
         sessions.push({
           id: show.ID || show.ShowID || index,
           movieTitle,
+          movieId: movieIdValue != null ? String(movieIdValue) : '',
           genre,
           time: `${hours}:${minutes}`,
           cinema: cinemaName,
@@ -646,6 +649,47 @@ export default {
         })
         return sessions
       }, [])
+    },
+    mapDatabaseSessionsToSchedule(dbSessions) {
+      return dbSessions.map((session, index) => {
+        const startTime = new Date(session.startTime)
+        const hours = startTime.getHours().toString().padStart(2, '0')
+        const minutes = startTime.getMinutes().toString().padStart(2, '0')
+        const showDate = formatLocalDate(startTime)
+        
+        const film = session.film || {}
+        const hall = session.hall || {}
+        const cinema = hall.cinema || {}
+        
+        // Calculate availability
+        const totalSeats = hall.capacity || 0
+        const availableSeats = session.availableSeats || totalSeats
+        const availabilityPercent = totalSeats > 0
+          ? Math.round((availableSeats / totalSeats) * 100)
+          : DEFAULT_AVAILABILITY_PERCENT
+        
+        return {
+          id: session._id,
+          sessionId: session._id,
+          movieTitle: film.title || 'Unknown',
+          movieId: film._id || '',
+          genre: Array.isArray(film.genre) ? film.genre.join(', ') : (film.genre || ''),
+          time: `${hours}:${minutes}`,
+          cinema: cinema.name || 'Unknown Cinema',
+          cinemaId: cinema._id || '',
+          hall: hall.name || 'Unknown Hall',
+          hallId: hall._id || '',
+          posterUrl: film.posterUrl || `https://via.placeholder.com/200x300/1a1a2e/e94560?text=${encodeURIComponent(film.title || 'No Image')}`,
+          language: session.language || film.language || 'Unknown',
+          subtitles: session.subtitles || (Array.isArray(film.subtitles) && film.subtitles.length > 0 ? film.subtitles.join(', ') : 'Puudub'),
+          format: hall.screenType?.includes('3D') ? '3D' : '2D',
+          availability: availabilityPercent,
+          availableSeats: availableSeats,
+          date: showDate,
+          startTimestamp: startTime.getTime(),
+          showUrl: '#'
+        }
+      })
     },
     async fetchCinemas() {
       try {
@@ -671,23 +715,15 @@ export default {
         console.error('Error fetching cinemas:', err);
       }
     },
-    async fetchSchedule(date = this.selectedDate) {
+    async fetchSchedule() {
       this.loading = true
       this.error = null
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-      if (Object.prototype.hasOwnProperty.call(this.scheduleCache, date)) {
-        this.sessions = this.scheduleCache[date]
-        this.loading = false
-        return
-      }
-
       try {
-        const scheduleDate = this.formatApolloScheduleDate(date)
-        const response = await axios.get(`${apiUrl}/api/apollo-kino/schedule`, {
-          params: scheduleDate ? { dt: scheduleDate } : {}
-        })
+        // Fetch all upcoming sessions without date filter
+        const response = await axios.get(`${apiUrl}/api/sessions`)
 
         if (!response.data?.success) {
           this.sessions = []
@@ -695,12 +731,8 @@ export default {
           return
         }
 
-        const mappedSessions = this.mapApolloScheduleToSessions(response.data.schedule, response.data.events)
+        const mappedSessions = this.mapDatabaseSessionsToSchedule(response.data.data || [])
         this.sessions = mappedSessions
-        this.scheduleCache = {
-          ...this.scheduleCache,
-          [date]: mappedSessions
-        }
       } catch (err) {
         console.error('Error fetching schedule:', err)
         this.sessions = []
@@ -743,10 +775,13 @@ export default {
       this.$router.push({
         name: 'Booking',
         query: {
+          sessionId: session.sessionId || session.id,
+          filmId: session.movieId,
           film: session.movieTitle,
           cinema: session.cinema,
           cinemaId: session.cinemaId,
           hall: session.hall,
+          hallId: session.hallId,
           posterUrl: session.posterUrl,
           date: session.date,
           time: session.time
@@ -1382,6 +1417,7 @@ h1 {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  text-decoration: none;
 }
 
 .btn-schedule:hover {

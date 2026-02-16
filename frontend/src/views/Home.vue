@@ -75,8 +75,8 @@
                   </div>
                   <div class="overlay-content">
                     <router-link 
-                      v-if="movie._id"
-                      :to="`/movies/${movie._id}`" 
+                      v-if="movie.apolloKinoId || movie._id"
+                      :to="`/movies/${movie.apolloKinoId || movie._id}`" 
                       class="btn-view"
                     >
                       View Details

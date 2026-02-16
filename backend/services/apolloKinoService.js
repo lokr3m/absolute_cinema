@@ -11,9 +11,10 @@ class ApolloKinoService {
 
   /**
    * Fetch and parse XML/JSON data from Apollo Kino API
+   * @param {boolean} explicitArray - Force arrays for all XML elements
    * @returns {Promise<Object>} Parsed data
    */
-  async fetchJSON(path) {
+  async fetchJSON(path, explicitArray = false) {
     try {
       const response = await axios.get(this.apiUrl + path, {
         timeout: 10000,
@@ -26,7 +27,7 @@ class ApolloKinoService {
       const data = response.data;
       if (typeof data === 'string' && data.trim().startsWith('<')) {
         // It's XML, parse it to JSON
-        const parser = new xml2js.Parser({ explicitArray: false });
+        const parser = new xml2js.Parser({ explicitArray });
         return await parser.parseStringPromise(data);
       }
 
@@ -50,6 +51,7 @@ class ApolloKinoService {
       'MS-12': 'MS-12',
       'K-12': 'K-12',
       'K-16': 'K-16',
+      'K-14': 'K-14',
       'PERE': 'G',
       'L': 'G',
       '': 'G'
@@ -88,8 +90,19 @@ class ApolloKinoService {
    * @returns {Object} Session data in our model format
    */
   transformShowToSession(show, filmId, hallId) {
-    const startTime = new Date(show.dttmShowStart);
-    const endTime = new Date(show.dttmShowEnd);
+    const startTime = new Date(show.dttmShowStart || show.dttmShowStartUTC);
+    const endTime = new Date(show.dttmShowEnd || show.dttmShowEndUTC);
+    const salesEndTime = show.ShowSalesEndTime ? new Date(show.ShowSalesEndTime) : null;
+
+    // Parse language
+    const language = typeof show.SpokenLanguage === 'object' 
+      ? (show.SpokenLanguage?.Name || show.SpokenLanguage?.NameInLanguage || 'Unknown')
+      : (show.SpokenLanguage || 'Unknown');
+
+    // Parse subtitles
+    const subtitles = typeof show.SubtitleLanguage1 === 'object'
+      ? (show.SubtitleLanguage1?.Name || show.SubtitleLanguage1?.NameInLanguage || '')
+      : (show.SubtitleLanguage1 || show.SubtitleLanguage || '');
 
     return {
       film: filmId,
@@ -97,14 +110,21 @@ class ApolloKinoService {
       startTime: startTime,
       endTime: endTime,
       price: {
-        standard: parseFloat(show.Price) || 8.5,
-        student: parseFloat(show.Price) * 0.7 || 6.0,
-        child: parseFloat(show.Price) * 0.6 || 5.0
+        standard: 8.5,
+        student: 6.0,
+        child: 5.0
       },
       is3D: show.PresentationMethod?.toLowerCase().includes('3d') || false,
-      subtitles: show.SubtitleLanguage || '',
-      availableSeats: parseInt(show.SeatsAvailable) || 100,
-      status: 'scheduled'
+      language: language,
+      subtitles: subtitles,
+      availableSeats: 100,
+      status: salesEndTime && salesEndTime > new Date() ? 'scheduled' : 'completed',
+      apolloShowId: show.ID,
+      showUrl: show.ShowURL,
+      eventUrl: show.EventURL,
+      eventSeries: show.EventSeries || null,
+      salesEndTime: salesEndTime,
+      theatreAuditoriumId: show.TheatreAuditriumID || show.TheatreAuditoriumID
     };
   }
 
@@ -116,23 +136,18 @@ class ApolloKinoService {
     try {
       const theatreAreasData = await this.fetchJSON("/TheatreAreas");
 
-      // Parse TheatreAreas structure
       let theatreAreas = [];
 
       if (theatreAreasData) {
         if (theatreAreasData.TheatreAreas && theatreAreasData.TheatreAreas.TheatreArea) {
-          // Structure: { TheatreAreas: { TheatreArea: [...] } }
           theatreAreas = Array.isArray(theatreAreasData.TheatreAreas.TheatreArea)
             ? theatreAreasData.TheatreAreas.TheatreArea
             : [theatreAreasData.TheatreAreas.TheatreArea];
         } else if (Array.isArray(theatreAreasData.TheatreAreas)) {
-          // Structure: { TheatreAreas: [...] }
           theatreAreas = theatreAreasData.TheatreAreas;
         } else if (Array.isArray(theatreAreasData)) {
-          // Structure: [...]
           theatreAreas = theatreAreasData;
         } else if (theatreAreasData.TheatreArea) {
-          // Structure: { TheatreArea: [...] }
           theatreAreas = Array.isArray(theatreAreasData.TheatreArea)
             ? theatreAreasData.TheatreArea
             : [theatreAreasData.TheatreArea];
@@ -154,7 +169,6 @@ class ApolloKinoService {
     try {
       const eventsData = await this.fetchJSON("/Events");
 
-      // Parse Events structure - API returns JSON directly
       let events = [];
 
       if (eventsData) {
@@ -182,27 +196,26 @@ class ApolloKinoService {
 
   /**
    * Transform Apollo Kino Event to our Film model format
+   * NOTE: Events API doesn't include SpokenLanguage - it's only in Schedule
    * @param {Object} event - Apollo Kino event object
    * @returns {Object} Film data in our model format
    */
   transformEventToFilm(event) {
-    // Map Apollo Kino age ratings to our system
     const ageRatingMap = {
       'MS-6': 'MS-6',
       'MS-12': 'MS-12',
       'K-12': 'K-12',
       'K-16': 'K-16',
+      'K-14': 'K-14',
       'PERE': 'G',
       'L': 'G',
       '': 'G'
     };
 
-    // Parse genres from comma-separated string
     const genres = event.Genres && typeof event.Genres === 'string'
       ? event.Genres.split(',').map(g => g.trim())
       : ['General'];
 
-    // Extract director name
     let director = 'Unknown';
     if (event.Directors && event.Directors.Director) {
       const directorObj = Array.isArray(event.Directors.Director)
@@ -214,7 +227,6 @@ class ApolloKinoService {
       director = (firstName || lastName) ? fullName : 'Unknown';
     }
 
-    // Extract trailer URL from Videos
     let trailerUrl = '';
     if (event.Videos && event.Videos.EventVideo) {
       const videos = Array.isArray(event.Videos.EventVideo)
@@ -237,87 +249,93 @@ class ApolloKinoService {
         (typeof event.Cast === 'string' ? event.Cast.split(',').map(c => c.trim()) : []) :
         [],
       releaseDate: event.dtLocalRelease ? new Date(event.dtLocalRelease) : new Date(),
-      language: event.SpokenLanguage?.Name || 'Unknown',
+      language: 'Various',
       subtitles: event.SubtitleLanguage1?.Name ? [event.SubtitleLanguage1.Name] : [],
       ageRating: ageRatingMap[event.RatingLabel] || event.RatingLabel || 'G',
       posterUrl: event.Images?.EventMediumImagePortrait || '',
       trailerUrl: trailerUrl,
-      rating: 0, // API doesn't provide rating, set to 0
+      rating: 0,
       isActive: true,
       apolloKinoId: event.ID,
       productionYear: event.ProductionYear,
-      EventURL: event.EventURL
+      eventUrl: event.EventURL,
+      ratingImageUrl: event.RatingImageUrl
     };
   }
 
   /**
    * Fetch and parse all Apollo Kino data
-   * @param {string} dateFrom - Start date in YYYY-MM-DD format (optional)
-   * @param {string} dateTo - End date in YYYY-MM-DD format (optional)
+   * Uses nrOfDays parameter to get schedule for multiple days in one request
+   * @param {number} nrOfDays - Number of days to fetch (1-31, defaults to 14)
    * @returns {Promise<Object>} Object containing movies and shows
    */
-  async fetchSchedule(dateFrom = null, dateTo = null, date = null) {
+  async fetchSchedule(nrOfDays = 14) {
     try {
-      // Build query parameters for date range
-      let schedulePath = "/Schedule";
-      const params = [];
-
-      if (date) {
-        params.push(`dt=${encodeURIComponent(date)}`);
-      } else {
-        if (dateFrom) {
-          params.push(`dtFrom=${encodeURIComponent(dateFrom)}`);
-        }
-        if (dateTo) {
-          params.push(`dtTo=${encodeURIComponent(dateTo)}`);
-        }
-      }
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const formattedDate = `${day}.${month}.${year}`;
       
-      if (params.length > 0) {
-        schedulePath += `?${params.join('&')}`;
-      }
-
+      const schedulePath = `/Schedule?dt=${formattedDate}&nrOfDays=${nrOfDays}`;
+      
       const schedule = await this.fetchJSON(schedulePath);
       const events = await this.fetchJSON("/Events");
 
-      // The structure may vary, so we'll handle different possible structures
-      let movies = [];
+      // Parse the schedule structure to extract shows
       let shows = [];
+      if (schedule?.Schedule?.Shows?.Show) {
+        shows = Array.isArray(schedule.Schedule.Shows.Show)
+          ? schedule.Schedule.Shows.Show
+          : [schedule.Schedule.Shows.Show];
+      } else if (schedule?.Shows?.Show) {
+        shows = Array.isArray(schedule.Shows.Show)
+          ? schedule.Shows.Show
+          : [schedule.Shows.Show];
+      } else if (schedule?.Shows) {
+        shows = Array.isArray(schedule.Shows)
+          ? schedule.Shows
+          : [schedule.Shows];
+      }
+
+      // Parse the events structure to extract movies
+      let movies = [];
+      if (events?.Events?.Event) {
+        movies = Array.isArray(events.Events.Event)
+          ? events.Events.Event
+          : [events.Events.Event];
+      } else if (events?.Event) {
+        movies = Array.isArray(events.Event)
+          ? events.Event
+          : [events.Event];
+      } else if (Array.isArray(events)) {
+        movies = events;
+      }
 
       return { movies, shows, schedule, events };
     } catch (error) {
       console.error('Error fetching Apollo Kino data:', error.message);
-      // Return empty data instead of throwing to allow graceful degradation
       return { movies: [], shows: [], schedule: null, events: null, error: error.message };
     }
   }
-  /**
-   * Fetch NewsCategories data from Apollo Kino API
-   * @returns {Promise<Array>} Array of news categories
-   */
+  
   async fetchNewsCategories() {
     try {
       const newsCategoriesData = await this.fetchJSON("/NewsCategories");
-
-      // Parse NewsCategories structure
       let newsCategories = [];
 
       if (newsCategoriesData) {
         if (newsCategoriesData.NewsCategories && newsCategoriesData.NewsCategories.NewsArticleCategory) {
-          // Structure: { NewsCategories: { NewsArticleCategory: [...] } }
           newsCategories = Array.isArray(newsCategoriesData.NewsCategories.NewsArticleCategory)
             ? newsCategoriesData.NewsCategories.NewsArticleCategory
             : [newsCategoriesData.NewsCategories.NewsArticleCategory];
         } else if (Array.isArray(newsCategoriesData.NewsCategories)) {
-          // Structure: { NewsCategories: [...] }
           newsCategories = newsCategoriesData.NewsCategories;
         } else if (Array.isArray(newsCategoriesData)) {
-          // Structure: [...]
           newsCategories = newsCategoriesData;
         } else if (newsCategoriesData.NewsArticleCategory) {
-          // Structure: { NewsArticleCategory: [...] }
           newsCategories = Array.isArray(newsCategoriesData.NewsArticleCategory)
-            ? newsCategoriesData.NewsArticleCategory
+            ? newsCategoriesData.NewsCategles.NewsArticleCategory
             : [newsCategoriesData.NewsArticleCategory];
         }
       }
@@ -329,31 +347,21 @@ class ApolloKinoService {
     }
   }
 
-  /**
-   * Fetch News data from Apollo Kino API
-   * @returns {Promise<Array>} Array of news articles
-   */
   async fetchNews() {
     try {
       const newsData = await this.fetchJSON("/News");
-
-      // Parse News structure
       let news = [];
 
       if (newsData) {
         if (newsData.News && newsData.News.NewsArticle) {
-          // Structure: { News: { NewsArticle: [...] } }
           news = Array.isArray(newsData.News.NewsArticle)
             ? newsData.News.NewsArticle
             : [newsData.News.NewsArticle];
         } else if (Array.isArray(newsData.News)) {
-          // Structure: { News: [...] }
           news = newsData.News;
         } else if (Array.isArray(newsData)) {
-          // Structure: [...]
           news = newsData;
         } else if (newsData.NewsArticle) {
-          // Structure: { NewsArticle: [...] }
           news = Array.isArray(newsData.NewsArticle)
             ? newsData.NewsArticle
             : [newsData.NewsArticle];
@@ -367,8 +375,5 @@ class ApolloKinoService {
     }
   }
 }
-
-
-
 
 module.exports = ApolloKinoService;

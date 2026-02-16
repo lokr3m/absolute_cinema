@@ -43,7 +43,7 @@
                 <div class="ticket-row" v-for="type in ticketTypes" :key="type.key">
                   <div class="ticket-info">
                     <span class="ticket-name">{{ type.label }}</span>
-                    <span class="ticket-price">€{{ ticketPrice.toFixed(2) }}</span>
+                    <span class="ticket-price">€{{ ticketPrices[type.key].toFixed(2) }}</span>
                   </div>
                   <input
                     type="number"
@@ -52,9 +52,12 @@
                     :max="maxAvailableTickets"
                     v-model.number="ticketSelections[type.key]"
                     @change="onTicketCountChange"
-                    :disabled="loading || !selectedSession"
+                    :disabled="loading || !selectedSession || (type.key === 'vip' && !hasVipSeats)"
                   >
                 </div>
+                <p v-if="!hasVipSeats" class="info-text vip-unavailable">
+                  Note: VIP seats are not available for this session.
+                </p>
                 <p class="info-text">
                   Choose how many tickets you want before selecting your seats.
                 </p>
@@ -84,7 +87,8 @@
                     class="seat"
                     :class="{ 
                       selected: isSelected(row, seat),
-                      occupied: isOccupied(row, seat)
+                      occupied: isOccupied(row, seat),
+                      vip: isVipSeat(row, seat)
                     }"
                     @click="toggleSeat(row, seat)"
                     :disabled="isOccupied(row, seat) || isSeatSelectionDisabled(row, seat)"
@@ -105,6 +109,10 @@
                 <div class="legend-item">
                   <span class="seat-example occupied"></span>
                   <span>Occupied</span>
+                </div>
+                <div v-if="hasVipSeats" class="legend-item">
+                  <span class="seat-example vip"></span>
+                  <span>VIP</span>
                 </div>
               </div>
             </div>
@@ -270,14 +278,17 @@ export default {
       selectedDate: this.getTodayDate(),
       seatLayout: null,
       occupiedSeats: [],
+      seatTypes: {},
       selectedSeats: [],
       ticketTypes: [
-        { key: 'adult', label: 'Adult' },
+        { key: 'standard', label: 'Standard' },
+        { key: 'student', label: 'Student' },
         { key: 'child', label: 'Child' },
         { key: 'vip', label: 'VIP' }
       ],
       ticketSelections: {
-        adult: 0,
+        standard: 0,
+        student: 0,
         child: 0,
         vip: 0
       },
@@ -310,16 +321,30 @@ export default {
     }
   },
   computed: {
-    ticketPrice() {
+    ticketPrices() {
       const session = this.getSelectedSessionDetails()
-      const price = session?.price?.standard
-      return Number(price) || 9.50
+      const prices = session?.price || {}
+      return {
+        standard: Number(prices.standard) || 8.50,
+        student: Number(prices.student) || 6.00,
+        child: Number(prices.child) || 5.00,
+        vip: Number(prices.vip) || 12.00
+      }
     },
     totalTickets() {
       return Object.values(this.ticketSelections).reduce((total, count) => total + count, 0)
     },
     total() {
-      return (this.totalTickets * this.ticketPrice).toFixed(2)
+      const session = this.getSelectedSessionDetails()
+      const prices = session?.price || {}
+      
+      let sum = 0
+      sum += (this.ticketSelections.standard || 0) * (Number(prices.standard) || 8.50)
+      sum += (this.ticketSelections.student || 0) * (Number(prices.student) || 6.00)
+      sum += (this.ticketSelections.child || 0) * (Number(prices.child) || 5.00)
+      sum += (this.ticketSelections.vip || 0) * (Number(prices.vip) || 12.00)
+      
+      return sum.toFixed(2)
     },
     canProceedToStep2() {
       return this.selectedSession && this.totalTickets > 0
@@ -376,6 +401,12 @@ export default {
         
         return matchesFilm && matchesCinema && matchesHall
       })
+    },
+    hasVipSeats() {
+      if (!this.seatTypes || Object.keys(this.seatTypes).length === 0) {
+        return false
+      }
+      return Object.values(this.seatTypes).some(type => type === 'vip')
     }
   },
   watch: {
@@ -479,7 +510,7 @@ export default {
       }
     },
     async applyPrefillFromQuery() {
-      const { film, cinema, cinemaId, date, time, hall, posterUrl } = this.$route.query
+      const { sessionId, filmId, film, cinema, cinemaId, date, time, hall, hallId, posterUrl } = this.$route.query
       const filmName = Array.isArray(film) ? film[0] : film
       const cinemaName = Array.isArray(cinema) ? cinema[0] : cinema
       const cinemaKey = Array.isArray(cinemaId) ? cinemaId[0] : cinemaId
@@ -488,6 +519,9 @@ export default {
       const timeValue = Array.isArray(time) ? time[0] : time
       const hallName = Array.isArray(hall) ? hall[0] : hall
       const posterValue = Array.isArray(posterUrl) ? posterUrl[0] : posterUrl
+      const sessionIdValue = Array.isArray(sessionId) ? sessionId[0] : sessionId
+      const filmIdValue = Array.isArray(filmId) ? filmId[0] : filmId
+      const hallIdValue = Array.isArray(hallId) ? hallId[0] : hallId
 
       this.prefillFilmTitle = filmName || ''
       this.prefillCinemaName = cinemaName || ''
@@ -498,7 +532,11 @@ export default {
         this.selectedDate = dateValue
       }
 
-      if (filmName) {
+      if (filmIdValue) {
+        this.selectedFilm = filmIdValue
+      }
+
+      if (!this.selectedFilm && filmName) {
         const normalizedFilmName = this.normalizeFilmTitle(filmName)
         const filmMatch = this.films.find(item => {
           const normalizedTitle = this.normalizeFilmTitle(item.title)
@@ -530,8 +568,24 @@ export default {
         await this.loadHalls()
       }
 
+      if (hallIdValue) {
+        this.selectedHall = hallIdValue
+      }
+
       if (this.selectedFilm || this.prefillFilmTitle) {
         await this.loadSessions()
+      }
+
+      if (sessionIdValue) {
+        const directSessionMatch = this.sessions.find(session => session._id === sessionIdValue)
+        if (directSessionMatch) {
+          this.selectedSession = directSessionMatch._id
+          if (directSessionMatch.hall?._id) {
+            this.selectedHall = directSessionMatch.hall._id
+          }
+          await this.loadSeatLayout()
+          return
+        }
       }
 
       const normalizedTime = this.normalizeTime(timeValue)
@@ -590,9 +644,21 @@ export default {
         this.loading = true
         const response = await axios.get(`${API_BASE_URL}/cinemas/${this.selectedCinema}/halls`)
         this.halls = response.data.data || []
+        
+        // Clear error if halls loaded successfully
+        if (this.error === 'Failed to load halls') {
+          this.error = null
+        }
       } catch (error) {
         console.error('Error loading halls:', error)
-        this.error = 'Failed to load halls'
+        // Show more specific error message
+        if (error.response?.status === 404) {
+          this.error = 'Cinema not found. Please sync cinemas from Apollo Kino first.'
+        } else if (error.response?.data?.error) {
+          this.error = error.response.data.error
+        } else {
+          this.error = 'Failed to load halls'
+        }
         this.halls = []
       } finally {
         this.loading = false
@@ -645,6 +711,7 @@ export default {
         const response = await axios.get(`${API_BASE_URL}/sessions/${this.selectedSession}/seats`)
         this.seatLayout = response.data.data.layout
         this.occupiedSeats = response.data.data.occupied.map(s => [s.row, s.number])
+        this.seatTypes = response.data.data.seatTypes || {}
         this.selectedSeats = []
       } catch (error) {
         console.error('Error loading seat layout:', error)
@@ -759,12 +826,23 @@ export default {
     isOccupied(row, seat) {
       return this.occupiedSeats.some(s => s[0] === row && s[1] === seat)
     },
+    getSeatType(row, seat) {
+      const key = `${row}-${seat}`
+      return this.seatTypes[key] || 'standard'
+    },
+    isVipSeat(row, seat) {
+      return this.getSeatType(row, seat) === 'vip'
+    },
     isSeatSelectionDisabled(row, seat) {
       if (!this.totalTickets) {
         return true
       }
       if (this.isSelected(row, seat)) {
         return false
+      }
+      // Disable VIP seats if no VIP tickets are selected
+      if (this.isVipSeat(row, seat) && this.ticketSelections.vip === 0) {
+        return true
       }
       return this.selectedSeats.length >= this.totalTickets
     },
@@ -779,6 +857,14 @@ export default {
         if (this.selectedSeats.length >= this.totalTickets) {
           alert(`You can only select ${this.totalTickets} ${this.seatLabel(this.totalTickets)}`)
           return
+        }
+        // Validate VIP seat selection
+        if (this.isVipSeat(row, seat)) {
+          const vipSeatsSelected = this.selectedSeats.filter(s => this.isVipSeat(s.row, s.number)).length
+          if (vipSeatsSelected >= this.ticketSelections.vip) {
+            alert('You have selected the maximum number of VIP seats for your VIP tickets')
+            return
+          }
         }
         this.selectedSeats.push({ row, number: seat })
       }
@@ -1253,6 +1339,31 @@ export default {
   color: #999;
 }
 
+.seat.vip {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  border: 2px solid #d4af37;
+  color: #000;
+  font-weight: bold;
+}
+
+.seat.vip:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ffed4e 0%, #ffd700 100%);
+  border-color: #b8941e;
+}
+
+.seat.vip.selected {
+  background: linear-gradient(135deg, #ff6600 0%, #ff8c00 100%);
+  border-color: #e65c00;
+  color: #fff;
+}
+
+.seat.vip:disabled {
+  background: #f5f5dc;
+  border-color: #d3d3d3;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .legend {
   display: flex;
   gap: 2rem;
@@ -1285,6 +1396,17 @@ export default {
 .seat-example.occupied {
   background: #e8e8e8;
   border-color: #ccc;
+}
+
+.seat-example.vip {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  border: 2px solid #d4af37;
+}
+
+.vip-unavailable {
+  color: #888;
+  font-style: italic;
+  margin-top: 1rem;
 }
 
 .navigation-buttons {

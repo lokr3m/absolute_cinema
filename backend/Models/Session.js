@@ -42,6 +42,11 @@ const sessionSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Spoken language of the film in this session (e.g., "English", "Estonian")
+  language: {
+    type: String
+  },
+  // Comma-separated list of subtitle languages (e.g., "Estonian, Russian")
   subtitles: {
     type: String
   },

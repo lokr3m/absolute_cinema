@@ -147,6 +147,7 @@
                 <span class="score">{{ movie.rating }}</span>
               </div>
               <div class="overlay-content">
+                <!-- Using movie._id from database ensures correct routing to /movies/:mongoDbId -->
                 <router-link
                   v-if="movie._id"
                   :to="`/movies/${movie._id}`"
@@ -155,6 +156,7 @@
                   <span>View Details</span>
                 </router-link>
 
+                <!-- Fallback for movies without _id (shouldn't happen when fetching from /api/films) -->
                 <a
                   v-else
                   :href="movie.EventURL || '#'"
@@ -308,9 +310,20 @@ export default {
       
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      axios.get(`${apiUrl}/api/apollo-kino/events`)
+      // Fetch movies from database instead of Apollo API directly
+      // This ensures we get MongoDB _id fields for proper routing
+      axios.get(`${apiUrl}/api/films`)
         .then(res => {
-          this.movies = res.data.movies
+          // API response structure: { success: true, count: N, data: [...] }
+          const movies = res.data.data || [];
+          
+          // Log warning if any movie is missing _id (shouldn't happen with MongoDB)
+          const moviesWithoutId = movies.filter(m => !m._id);
+          if (moviesWithoutId.length > 0) {
+            console.warn(`Warning: ${moviesWithoutId.length} movie(s) missing _id field`, moviesWithoutId);
+          }
+          
+          this.movies = movies;
           this.loading = false;
         })
         .catch(err => {

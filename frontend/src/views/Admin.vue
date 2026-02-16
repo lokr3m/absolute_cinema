@@ -26,7 +26,7 @@
         <div v-if="activeTab === 'movies'" class="tab-content">
           <div class="section-header">
             <h2>Manage Movies</h2>
-            <button class="btn btn-primary" disabled>Add New Movie</button>
+            <button class="btn btn-primary" @click="openMovieForm()">Add New Movie</button>
           </div>
           <div v-if="loading" class="loading">Loading movies...</div>
           <div v-else-if="error" class="error">{{ error }}</div>
@@ -37,17 +37,22 @@
                 <th>Genre</th>
                 <th>Duration</th>
                 <th>Active</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="film in films" :key="film._id">
                 <td>{{ film.title }}</td>
-                <td>{{ film.genre.join(', ') }}</td>
+                <td>{{ (film.genre || []).join(', ') }}</td>
                 <td>{{ film.duration }} min</td>
                 <td>{{ film.isActive ? '✅' : '❌' }}</td>
+                <td class="actions">
+                  <button class="btn-icon edit" @click="openMovieForm(film)" title="Edit">✏️</button>
+                  <button class="btn-icon delete" @click="deleteMovie(film._id)" title="Delete">🗑️</button>
+                </td>
               </tr>
               <tr v-if="films.length === 0">
-                <td colspan="4" style="text-align: center;">No films found</td>
+                <td colspan="5" style="text-align: center;">No films found</td>
               </tr>
             </tbody>
           </table>
@@ -101,6 +106,47 @@
               </tr>
               <tr v-if="sessions.length === 0">
                 <td colspan="7" style="text-align: center;">No sessions found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Halls Management -->
+        <div v-if="activeTab === 'halls'" class="tab-content">
+          <div class="section-header">
+            <h2>Manage Halls</h2>
+            <button class="btn btn-primary" @click="showHallForm = true">Add New Hall</button>
+          </div>
+          <div v-if="loading" class="loading">Loading halls...</div>
+          <div v-else-if="error" class="error">{{ error }}</div>
+          <table v-else class="data-table">
+            <thead>
+              <tr>
+                <th>Hall Name</th>
+                <th>Cinema</th>
+                <th>Capacity</th>
+                <th>Rows</th>
+                <th>Seats/Row</th>
+                <th>Screen Type</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="hall in halls" :key="hall._id">
+                <td>{{ hall.name }}</td>
+                <td>{{ hall.cinema ? hall.cinema.name : 'N/A' }}</td>
+                <td>{{ hall.capacity }}</td>
+                <td>{{ hall.rows }}</td>
+                <td>{{ hall.seatsPerRow }}</td>
+                <td>{{ hall.screenType }}</td>
+                <td class="actions">
+                  <button class="btn-icon edit" @click="editHall(hall)" title="Edit">✏️</button>
+                  <button class="btn-icon" @click="manageSeats(hall)" title="Manage Seats">🪑</button>
+                  <button class="btn-icon delete" @click="deleteHall(hall._id)" title="Delete">🗑️</button>
+                </td>
+              </tr>
+              <tr v-if="halls.length === 0">
+                <td colspan="7" style="text-align: center;">No halls found</td>
               </tr>
             </tbody>
           </table>
@@ -166,15 +212,22 @@
               <tr>
                 <th>Name</th>
                 <th>City</th>
+                <th>Halls</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="cinema in cinemas" :key="cinema._id">
                 <td>{{ cinema.name }}</td>
                 <td>{{ cinema.address.city }}</td>
+                <td>
+                  <div v-for="hall in hallsByCinema(cinema._id)" :key="hall._id" class="hall-seat-row">
+                    <span>{{ hall.name }} ({{ hall.rows }}x{{ hall.seatsPerRow }})</span>
+                    <button class="btn btn-secondary btn-xs" @click="openSeatForm(hall)">Configure seats</button>
+                  </div>
+                </td>
               </tr>
               <tr v-if="cinemas.length === 0">
-                <td colspan="2" style="text-align: center;">No cinemas found</td>
+                <td colspan="3" style="text-align: center;">No cinemas found</td>
               </tr>
             </tbody>
           </table>
@@ -291,8 +344,220 @@
       </div>
     </div>
   </div>
-</template>
 
+
+
+    <div v-if="showMovieForm" class="modal-overlay" @click.self="closeMovieForm">
+      <div class="modal movie-form-modal">
+        <div class="modal-header">
+          <h2 aria-label="Edit Movie" v-if="editingMovie">✏️ Edit Movie</h2>
+          <h2 aria-label="Add New Movie" v-else>➕ Add New Movie</h2>
+          <button class="close-btn" @click="closeMovieForm" aria-label="Close">✕</button>
+        </div>
+        <form @submit.prevent="saveMovie" class="modal-body">
+          <!-- Basic Information Section -->
+          <div class="form-section">
+            <h3 class="section-title">📽️ Basic Information</h3>
+            <div class="form-group">
+              <label>Title <span class="required">*</span></label>
+              <input v-model="movieForm.title" required placeholder="Enter movie title" />
+            </div>
+            <div class="form-group">
+              <label>Original Title</label>
+              <input v-model="movieForm.originalTitle" placeholder="Enter original title (if different)" />
+            </div>
+            <div class="form-group">
+              <label>Description <span class="required">*</span></label>
+              <textarea v-model="movieForm.description" required rows="4" placeholder="Enter movie description"></textarea>
+            </div>
+          </div>
+
+          <!-- Movie Details Section -->
+          <div class="form-section">
+            <h3 class="section-title">🎬 Movie Details</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Duration (minutes) <span class="required">*</span></label>
+                <input type="number" min="1" v-model.number="movieForm.duration" required placeholder="90" />
+              </div>
+              <div class="form-group">
+                <label>Age Rating <span class="required">*</span></label>
+                <select v-model="movieForm.ageRating" required class="select-input">
+                  <option value="">Select rating</option>
+                  <option value="G">G - General Audiences</option>
+                  <option value="PG">PG - Parental Guidance</option>
+                  <option value="PG-13">PG-13</option>
+                  <option value="R">R - Restricted</option>
+                  <option value="NC-17">NC-17</option>
+                  <option value="MS-1">MS-1</option>
+                  <option value="MS-6">MS-6</option>
+                  <option value="MS-12">MS-12</option>
+                  <option value="K-12">K-12</option>
+                  <option value="K-14">K-14</option>
+                  <option value="K-16">K-16</option>
+                  <option value="PERE">PERE</option>
+                  <option value="-">-</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Genre (comma separated) <span class="required">*</span></label>
+              <input v-model="movieForm.genreText" required placeholder="Action, Drama, Thriller" />
+              <small class="help-text">Separate multiple genres with commas</small>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Director <span class="required">*</span></label>
+                <input v-model="movieForm.director" required placeholder="Director name" />
+              </div>
+              <div class="form-group">
+                <label>Language <span class="required">*</span></label>
+                <input v-model="movieForm.language" required placeholder="English" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Release Date <span class="required">*</span></label>
+              <input type="date" v-model="movieForm.releaseDate" required />
+            </div>
+          </div>
+
+          <!-- Status Section -->
+          <div class="form-section">
+            <h3 class="section-title">⚙️ Status</h3>
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="movieForm.isActive" />
+                <span class="checkbox-text">
+                  <strong>Active</strong>
+                  <small>Movie will be visible to users</small>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div v-if="formError" class="error">⚠️ {{ formError }}</div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeMovieForm">Cancel</button>
+            <button class="btn btn-primary" :aria-label="editingMovie ? 'Update Movie' : 'Add Movie'">
+              {{ editingMovie ? '💾 Update Movie' : '➕ Add Movie' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Hall Form Modal -->
+    <div v-if="showHallForm" class="modal-overlay" @click.self="closeHallForm">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>{{ editingHall ? 'Edit Hall' : 'Add New Hall' }}</h2>
+          <button class="close-btn" @click="closeHallForm">✕</button>
+        </div>
+        <form @submit.prevent="saveHall" class="modal-body">
+          <div class="form-group">
+            <label for="hallCinema">Cinema *</label>
+            <select v-model="hallForm.cinema" id="hallCinema" required>
+              <option value="">Select a cinema</option>
+              <option v-for="cinema in cinemas" :key="cinema._id" :value="cinema._id">
+                {{ cinema.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="hallName">Hall Name *</label>
+            <input type="text" v-model="hallForm.name" id="hallName" required placeholder="e.g., Hall 1" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hallRows">Number of Rows *</label>
+              <input type="number" v-model.number="hallForm.rows" id="hallRows" min="1" required />
+            </div>
+
+            <div class="form-group">
+              <label for="hallSeatsPerRow">Seats Per Row *</label>
+              <input type="number" v-model.number="hallForm.seatsPerRow" id="hallSeatsPerRow" min="1" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="hallCapacity">Capacity *</label>
+            <input type="number" v-model.number="hallForm.capacity" id="hallCapacity" min="1" required />
+            <div class="form-help-text">
+              Calculated: {{ hallForm.rows * hallForm.seatsPerRow }} seats ({{ hallForm.rows }} rows × {{ hallForm.seatsPerRow }} seats/row)
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hallScreenType">Screen Type *</label>
+              <select v-model="hallForm.screenType" id="hallScreenType" required>
+                <option value="Standard">Standard</option>
+                <option value="IMAX">IMAX</option>
+                <option value="3D">3D</option>
+                <option value="4DX">4DX</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="hallSoundSystem">Sound System</label>
+              <input type="text" v-model="hallForm.soundSystem" id="hallSoundSystem" placeholder="e.g., Dolby Atmos" />
+            </div>
+          </div>
+
+          <div v-if="formError" :class="formError.startsWith('✅') ? 'form-success' : 'error'">{{ formError }}</div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeHallForm">Cancel</button>
+            <button type="submit" class="btn btn-primary" :disabled="formSubmitting">
+              {{ formSubmitting ? 'Saving...' : 'Save Hall' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div v-if="showSeatForm" class="modal-overlay" @click.self="closeSeatForm">
+      <div class="modal seat-form-modal">
+        <div class="modal-header">
+          <h2 aria-label="Seat Setup">🪑 Seat Setup - {{ seatForm.hallName }}</h2>
+          <button class="close-btn" @click="closeSeatForm" aria-label="Close">✕</button>
+        </div>
+        <form @submit.prevent="saveSeats" class="modal-body">
+          <div class="info-message">
+            <strong>ℹ️ Seat Configuration Guide</strong>
+            <p style="margin-top: 0.5rem;">Configure special seat types for this hall. All other seats will be standard seats.</p>
+          </div>
+
+          <div class="form-section">
+            <h3 class="section-title">⭐ VIP Seats</h3>
+            <div class="form-group">
+              <label>VIP Rows <span class="help-text">(Optional)</span></label>
+              <input v-model="seatForm.vipRows" placeholder="e.g., 1,2,3" />
+              <small class="help-text">
+                Enter row numbers separated by commas. All seats in these rows will be VIP seats with premium pricing.
+                Example: "1,2" makes rows 1 and 2 VIP rows.
+              </small>
+            </div>
+            
+            <div v-if="seatForm.vipRows" class="preview-box">
+              <strong>Preview:</strong> Rows {{ seatForm.vipRows }} will have VIP seating
+            </div>
+          </div>
+
+          <div v-if="seatMessage" class="form-success">{{ seatMessage }}</div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeSeatForm">Cancel</button>
+            <button class="btn btn-primary" aria-label="Generate Seats">🎯 Generate Seats</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+</template>
 <script>
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -304,6 +569,7 @@ export default {
       tabs: [
         { id: 'movies', label: 'Movies' },
         { id: 'sessions', label: 'Sessions' },
+        { id: 'halls', label: 'Halls' },
         { id: 'bookings', label: 'Bookings' },
         { id: 'cinemas', label: 'Cinemas' }
       ],
@@ -334,12 +600,50 @@ export default {
       formError: null,
       formSubmitting: false,
       syncing: false,
-      syncMessage: null
+      syncMessage: null,
+      showMovieForm: false,
+      editingMovie: null,
+      movieForm: {
+        title: '',
+        originalTitle: '',
+        description: '',
+        duration: 90,
+        genreText: 'General',
+        director: 'Unknown',
+        language: 'Unknown',
+        releaseDate: '',
+        ageRating: 'G',
+        isActive: true
+      },
+      showSeatForm: false,
+      seatForm: {
+        hallId: '',
+        hallName: '',
+        vipRows: ''
+      },
+      seatMessage: null,
+      showHallForm: false,
+      editingHall: null,
+      hallForm: {
+        cinema: '',
+        name: '',
+        rows: 10,
+        seatsPerRow: 15,
+        capacity: 150,
+        screenType: 'Standard',
+        soundSystem: 'Digital 5.1'
+      }
     }
   },
   watch: {
     activeTab(newTab) {
       this.loadTabData(newTab);
+    },
+    'hallForm.rows'() {
+      this.updateHallCapacity();
+    },
+    'hallForm.seatsPerRow'() {
+      this.updateHallCapacity();
     }
   },
   mounted() {
@@ -360,11 +664,16 @@ export default {
             await this.loadFilms();
             await this.loadHalls();
             break;
+          case 'halls':
+            await this.loadHalls();
+            await this.loadCinemas();
+            break;
           case 'bookings':
             await this.loadBookings();
             break;
           case 'cinemas':
             await this.loadCinemas();
+            await this.loadHalls();
             break;
         }
       } catch (err) {
@@ -376,7 +685,7 @@ export default {
     },
 
     async loadFilms() {
-      const response = await fetch(`${API_BASE_URL}/api/films`);
+      const response = await fetch(`${API_BASE_URL}/api/admin/movies`);
       const data = await response.json();
       if (data.success) {
         this.films = data.data;
@@ -582,6 +891,114 @@ export default {
       }
     },
 
+    hallsByCinema(cinemaId) {
+      return this.halls.filter(hall => {
+        const hallCinemaId = hall.cinema?._id || hall.cinema
+        return String(hallCinemaId) === String(cinemaId)
+      })
+    },
+
+    openMovieForm(movie = null) {
+      this.editingMovie = movie
+      this.formError = null
+      if (movie) {
+        this.movieForm = {
+          title: movie.title || '',
+          originalTitle: movie.originalTitle || '',
+          description: movie.description || '',
+          duration: movie.duration || 90,
+          genreText: (movie.genre || []).join(', '),
+          director: movie.director || 'Unknown',
+          language: movie.language || 'Unknown',
+          releaseDate: movie.releaseDate ? movie.releaseDate.slice(0, 10) : '',
+          ageRating: movie.ageRating || 'G',
+          isActive: movie.isActive !== false
+        }
+      } else {
+        this.movieForm = {
+          title: '', originalTitle: '', description: '', duration: 90, genreText: 'General', director: 'Unknown', language: 'Unknown', releaseDate: '', ageRating: 'G', isActive: true
+        }
+      }
+      this.showMovieForm = true
+    },
+
+    closeMovieForm() {
+      this.showMovieForm = false
+      this.editingMovie = null
+      this.formError = null
+    },
+
+    async saveMovie() {
+      this.formError = null
+      const payload = {
+        title: this.movieForm.title,
+        originalTitle: this.movieForm.originalTitle || this.movieForm.title,
+        description: this.movieForm.description,
+        duration: Number(this.movieForm.duration),
+        genre: this.movieForm.genreText.split(',').map(item => item.trim()).filter(Boolean),
+        director: this.movieForm.director,
+        cast: [],
+        releaseDate: this.movieForm.releaseDate,
+        language: this.movieForm.language,
+        subtitles: [],
+        ageRating: this.movieForm.ageRating,
+        posterUrl: '',
+        trailerUrl: '',
+        rating: 0,
+        isActive: this.movieForm.isActive
+      }
+
+      const url = this.editingMovie ? `${API_BASE_URL}/api/admin/movies/${this.editingMovie._id}` : `${API_BASE_URL}/api/admin/movies`
+      const method = this.editingMovie ? 'PUT' : 'POST'
+      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const data = await response.json()
+      if (!data.success) {
+        this.formError = data.error || 'Failed to save movie'
+        return
+      }
+      await this.loadFilms()
+      this.closeMovieForm()
+    },
+
+    async deleteMovie(movieId) {
+      if (!confirm('Delete this movie?')) return
+      const response = await fetch(`${API_BASE_URL}/api/admin/movies/${movieId}`, { method: 'DELETE' })
+      const data = await response.json()
+      if (!data.success) {
+        alert(data.error || 'Failed to delete movie')
+        return
+      }
+      await this.loadFilms()
+    },
+
+    openSeatForm(hall) {
+      this.seatForm = { hallId: hall._id, hallName: `${hall.cinema?.name || 'Cinema'} - ${hall.name}`, vipRows: '' }
+      this.seatMessage = null
+      this.showSeatForm = true
+    },
+
+    closeSeatForm() {
+      this.showSeatForm = false
+      this.seatMessage = null
+    },
+
+    async saveSeats() {
+      const payload = { vipRows: this.seatForm.vipRows }
+      const response = await fetch(`${API_BASE_URL}/api/admin/halls/${this.seatForm.hallId}/seats/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await response.json()
+      if (!data.success) {
+        this.seatMessage = data.error || 'Failed to generate seats'
+        return
+      }
+      const vipCount = data.data.vip || 0
+      const standardCount = data.data.standard || 0
+      this.seatMessage = `✅ Generated ${data.data.total} seats (${vipCount} VIP, ${standardCount} Standard)`
+    },
+
     async syncCinemasFromApollo() {
       await this.performCinemaSync({
         reloadCinemas: true,
@@ -657,6 +1074,118 @@ export default {
       } finally {
         this.syncing = false;
       }
+    },
+
+    // Hall Management Methods
+    updateHallCapacity() {
+      if (this.hallForm.rows && this.hallForm.seatsPerRow) {
+        this.hallForm.capacity = this.hallForm.rows * this.hallForm.seatsPerRow;
+      }
+    },
+
+    editHall(hall) {
+      this.editingHall = hall;
+      this.hallForm = {
+        cinema: hall.cinema?._id || '',
+        name: hall.name,
+        rows: hall.rows,
+        seatsPerRow: hall.seatsPerRow,
+        capacity: hall.capacity,
+        screenType: hall.screenType,
+        soundSystem: hall.soundSystem || 'Digital 5.1'
+      };
+      this.showHallForm = true;
+    },
+
+    closeHallForm() {
+      this.showHallForm = false;
+      this.editingHall = null;
+      this.hallForm = {
+        cinema: '',
+        name: '',
+        rows: 10,
+        seatsPerRow: 15,
+        capacity: 150,
+        screenType: 'Standard',
+        soundSystem: 'Digital 5.1'
+      };
+      this.formError = null;
+    },
+
+    async saveHall() {
+      this.formSubmitting = true;
+      this.formError = null;
+
+      try {
+        const hallData = {
+          cinema: this.hallForm.cinema,
+          name: this.hallForm.name,
+          rows: this.hallForm.rows,
+          seatsPerRow: this.hallForm.seatsPerRow,
+          capacity: this.hallForm.capacity,
+          screenType: this.hallForm.screenType,
+          soundSystem: this.hallForm.soundSystem
+        };
+
+        let response;
+        if (this.editingHall) {
+          response = await fetch(`${API_BASE_URL}/api/admin/halls/${this.editingHall._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(hallData)
+          });
+        } else {
+          response = await fetch(`${API_BASE_URL}/api/admin/halls`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(hallData)
+          });
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          this.formError = `✅ Hall ${this.editingHall ? 'updated' : 'created'} successfully!`;
+          await this.loadHalls();
+          setTimeout(() => {
+            this.closeHallForm();
+          }, 1500);
+        } else {
+          this.formError = data.error || 'Failed to save hall';
+        }
+      } catch (error) {
+        console.error('Error saving hall:', error);
+        this.formError = 'Failed to save hall';
+      } finally {
+        this.formSubmitting = false;
+      }
+    },
+
+    async deleteHall(hallId) {
+      if (!confirm('Are you sure you want to delete this hall? Note: Halls with scheduled sessions cannot be deleted. Please remove or reassign sessions first.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/halls/${hallId}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          alert('✅ Hall deleted successfully');
+          await this.loadHalls();
+        } else {
+          alert(data.error || 'Failed to delete hall');
+        }
+      } catch (error) {
+        console.error('Error deleting hall:', error);
+        alert('Failed to delete hall');
+      }
+    },
+
+    manageSeats(hall) {
+      this.openSeatForm(hall);
     }
   }
 }
@@ -1033,6 +1562,11 @@ export default {
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
 }
 
+.form-group select option {
+  background: #fff;
+  color: #333;
+}
+
 .form-group input[type="checkbox"] {
   margin-right: 0.5rem;
 }
@@ -1100,5 +1634,132 @@ export default {
   .modal {
     width: 95%;
   }
+}
+
+/* Enhanced Movie Form Styles */
+.movie-form-modal .modal {
+  max-width: 700px;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e94560;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(233, 69, 96, 0.3);
+}
+
+.required {
+  color: #e94560;
+  font-weight: bold;
+}
+
+.form-group input[type="date"],
+.form-group textarea,
+.select-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-family: inherit;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-group textarea:focus,
+.form-group input[type="date"]:focus,
+.select-input:focus {
+  outline: none;
+  border-color: #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+}
+
+.help-text {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.checkbox-group {
+  margin-bottom: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  cursor: pointer;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.checkbox-label:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 1rem;
+  margin-top: 0.25rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checkbox-text strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+}
+
+.checkbox-text small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+}
+
+.select-input option {
+  background: #fff;
+  color: #333;
+}
+
+/* Enhanced Seat Form Styles */
+.seat-form-modal .modal {
+  max-width: 650px;
+}
+
+.preview-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(233, 69, 96, 0.1);
+  border-left: 4px solid #e94560;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.preview-box strong {
+  color: #e94560;
 }
 </style>

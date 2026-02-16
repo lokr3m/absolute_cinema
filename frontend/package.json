@@ -1,22 +1,35 @@
 {
-  "name": "frontend",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
   "dependencies": {
     "axios": "^1.13.2",
-    "jspdf": "^4.1.0",
-    "qrcode": "^1.5.4",
-    "vue": "^3.5.22",
-    "vue-router": "^4.6.3"
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "mongoose": "^8.19.2",
+    "nodemon": "^3.1.10",
+    "xml2js": "^0.6.2"
   },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.1",
-    "vite": "^7.1.7"
-  }
+  "name": "ta23b-b5-projekt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node backend/index.js",
+    "dev": "nodemon backend/index.js",
+    "seed": "node backend/seed.js",
+    "add-sessions": "node backend/addSessions.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt/issues"
+  },
+  "homepage": "https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt#readme"
 }

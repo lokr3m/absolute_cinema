@@ -18,7 +18,7 @@ const seatSchema = new mongoose.Schema({
   },
   seatType: {
     type: String,
-    enum: ['standard', 'vip', 'wheelchair'],
+    enum: ['standard', 'vip', 'twin', 'wheelchair'],
     default: 'standard'
   },
   isActive: {

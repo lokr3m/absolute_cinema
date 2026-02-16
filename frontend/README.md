@@ -1,111 +1,113 @@
-# Cinema Frontend
+# TA23B-B5 Cinema Booking Platform
 
-A Vue 3 frontend application for a cinema booking system, inspired by Apollo Kino website.
+A full-stack cinema booking system built with **Node.js**, **Express**, **MongoDB**, and **Vue 3**.  
+This project is a school project for **Tallinna Polütehnikum**.
 
-## Features
+## Overview
 
-- **Home Page** - Hero section with featured movies
-- **Movies Page** - Browse all movies with filtering and sorting options
-- **Movie Detail Page** - Detailed movie information with showtimes
-- **Booking Page** - Multi-step booking process (movie selection, seat selection, payment)
-- **Admin Dashboard** - Manage movies, sessions, bookings, and cinemas
+The platform provides:
+- A public website to browse movies and showtimes.
+- A simulated booking flow with seat selection and confirmation.
+- An admin interface to manage films, halls, sessions, and bookings.
 
 ## Tech Stack
 
-- **Vue 3** - Progressive JavaScript framework
-- **Vue Router 4** - Official router for Vue.js
-- **Vite** - Next generation frontend tooling
+**Backend**
+- Node.js
+- Express.js
+- MongoDB + Mongoose
+- CORS
+- Nodemon (dev)
+
+**Frontend**
+- Vue 3
+- Vue Router
+- Vite
+
+## Repository Structure
+
+```
+TA23B-B5-projekt/
+├── backend/            # Express + Mongoose backend
+├── frontend/           # Vue 3 frontend
+├── docs/               # Specifications and documentation
+├── DATABASE_SCHEMA.md  # DB schema reference
+└── README.md           # This file
+```
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
-- npm (v6 or higher)
+- **Node.js** (v14+ recommended; tested with v20)
+- **npm**
+- **MongoDB** (v4+)
 
-## Installation
+Check versions:
 
+```bash
+node --version
+npm --version
+mongosh --eval "db.version()"
+```
+
+## Quick Start
+
+### 1) Install backend dependencies
+```bash
+npm install
+```
+
+### 2) Start backend
+```bash
+npm start
+```
+Backend runs on `http://localhost:3000`.
+
+### 3) Install frontend dependencies
 ```bash
 cd frontend
 npm install
 ```
 
-## Running the Application
-
-### Development Mode
-
-Start the development server with hot-reload:
-
+### 4) Start frontend
 ```bash
 npm run dev
 ```
+Frontend runs on `http://localhost:5173`.
 
-The application will be available at `http://localhost:5173`
+## Available Scripts
 
-### Production Build
+**Backend**
+- `npm start` — production mode
+- `npm run dev` — development mode (nodemon)
+- `npm test` — placeholder
 
-Build the application for production:
+**Frontend**
+- `cd frontend && npm run dev`
+- `cd frontend && npm run build`
+- `cd frontend && npm run preview`
 
+## API
+
+Currently documented endpoint:
+- `GET /` — returns a static string.
+
+Example:
 ```bash
-npm run build
+curl http://localhost:3000/
 ```
 
-The built files will be in the `dist` directory.
+## Documentation
 
-### Preview Production Build
+- Product & requirements: `docs/SRS.md`
+- Database schema: `DATABASE_SCHEMA.md`
+- Frontend details: `frontend/README.md`
 
-Preview the production build locally:
+## License
 
-```bash
-npm run preview
-```
+ISC
 
-## Project Structure
+## Contributing
 
-```
-frontend/
-├── src/
-│   ├── components/
-│   │   └── layout/
-│   │       ├── Header.vue      # Navigation header
-│   │       └── Footer.vue      # Footer component
-│   ├── views/
-│   │   ├── Home.vue           # Home page
-│   │   ├── Movies.vue         # Movies listing page
-│   │   ├── MovieDetail.vue    # Movie detail page
-│   │   ├── Booking.vue        # Booking flow page
-│   │   └── Admin.vue          # Admin dashboard
-│   ├── router/
-│   │   └── index.js           # Router configuration
-│   ├── App.vue                # Root component
-│   └── main.js                # Application entry point
-├── public/                    # Static assets
-├── index.html                 # HTML template
-├── vite.config.js            # Vite configuration
-└── package.json              # Dependencies and scripts
-```
-
-## Available Routes
-
-- `/` - Home page
-- `/movies` - All movies listing
-- `/movies/:id` - Movie detail page
-- `/booking` - Ticket booking
-- `/admin` - Admin dashboard
-
-## Design
-
-The frontend design is inspired by Apollo Kino (apollokino.ee) with:
-- Dark header and footer with red accent color (#e50914)
-- Clean, modern card-based layouts
-- Responsive grid systems
-- Interactive hover effects
-- Multi-step booking process
-
-## Future Enhancements
-
-- Connect to backend API
-- User authentication
-- Real movie data integration
-- Payment gateway integration
-- Responsive mobile design improvements
-- Movie search functionality
-- User profile management
+This is a school project for Tallinna Polütehnikum.  
+Use GitHub Issues for questions and tracking:  
+https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt/issues
