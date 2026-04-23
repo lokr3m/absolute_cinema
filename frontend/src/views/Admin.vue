@@ -263,7 +263,7 @@
         <!-- Admins Management -->
         <div v-if="activeTab === 'admins'" class="tab-content">
           <div class="section-header">
-            <h2>Add new admins</h2>
+            <h2>Manage Admins</h2>
           </div>
           <div v-if="!adminUser?.isPrimaryAdmin" class="info-message">
             ⚠️ Only the primary admin can register new admins.
@@ -667,14 +667,14 @@ export default {
   data() {
     return {
       activeTab: 'sessions',
-      tabs: [
-        { id: 'movies', label: 'Movies' },
-        { id: 'sessions', label: 'Sessions' },
-        { id: 'halls', label: 'Halls' },
-        { id: 'bookings', label: 'Bookings' },
-        { id: 'cinemas', label: 'Cinemas' },
-        { id: 'admins', label: 'Add new admins' }
-      ],
+        tabs: [
+          { id: 'movies', label: 'Movies' },
+          { id: 'sessions', label: 'Sessions' },
+          { id: 'halls', label: 'Halls' },
+          { id: 'bookings', label: 'Bookings' },
+          { id: 'cinemas', label: 'Cinemas' },
+          { id: 'admins', label: 'Admins' }
+        ],
       loading: false,
       error: null,
       authError: null,
