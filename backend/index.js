@@ -2180,8 +2180,8 @@ app.post('/api/admin/admins', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const newAdmin = await User.create({
-      firstName: ADMIN_FIRST_NAME,
-      lastName: ADMIN_LAST_NAME,
+      firstName: 'Admin',
+      lastName: 'User',
       email,
       password: hashedPassword,
       role
