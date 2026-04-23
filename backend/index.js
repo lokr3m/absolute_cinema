@@ -2200,6 +2200,37 @@ app.post('/api/admin/admins', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/admins
+ * List all admins and managers (primary admin only)
+ */
+app.get('/api/admin/admins', async (req, res) => {
+  try {
+    if (!isPrimaryAdminUser(req.admin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the primary admin can view admin list'
+      });
+    }
+
+    const admins = await User.find({ role: { $in: ADMIN_ALLOWED_ROLES } })
+      .select('firstName lastName email role')
+      .sort({ role: 1, email: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: admins.map(admin => sanitizeAdminUser(admin))
+    });
+  } catch (error) {
+    console.error('Error fetching admin list:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch admin list'
+    });
+  }
+});
+
 // Admin API Endpoints
 
 /**

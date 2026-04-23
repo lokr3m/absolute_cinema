@@ -302,6 +302,34 @@
               {{ adminCreateSubmitting ? 'Creating...' : 'Create admin' }}
             </button>
           </form>
+          <div v-if="adminUser?.isPrimaryAdmin" class="admin-list">
+            <div class="section-header">
+              <h2>All Admins</h2>
+            </div>
+            <div v-if="adminListLoading" class="loading">Loading admins...</div>
+            <div v-else-if="adminListError" class="error">{{ adminListError }}</div>
+            <table v-else class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Primary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="admin in adminList" :key="admin.id">
+                  <td>{{ adminDisplayName(admin) }}</td>
+                  <td>{{ admin.email }}</td>
+                  <td>{{ admin.role }}</td>
+                  <td>{{ admin.isPrimaryAdmin ? '✅' : '—' }}</td>
+                </tr>
+                <tr v-if="adminList.length === 0">
+                  <td colspan="4" style="text-align: center;">No admins found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       </div>
@@ -665,6 +693,9 @@ export default {
       adminCreateError: null,
       adminCreateSuccess: null,
       adminCreateSubmitting: false,
+      adminList: [],
+      adminListLoading: false,
+      adminListError: null,
       films: [],
       sessions: [],
       bookings: [],
@@ -805,6 +836,9 @@ export default {
       this.adminCreateSuccess = null;
       this.adminCreateSubmitting = false;
       this.adminCreateForm = { email: '', password: '', role: 'admin' };
+      this.adminList = [];
+      this.adminListError = null;
+      this.adminListLoading = false;
     },
 
     async adminFetch(path, options = {}) {
@@ -855,6 +889,12 @@ export default {
           case 'admins':
             this.adminCreateError = null;
             this.adminCreateSuccess = null;
+            this.adminListError = null;
+            if (this.adminUser?.isPrimaryAdmin) {
+              await this.loadAdminList();
+            } else {
+              this.adminList = [];
+            }
             break;
         }
       } catch (err) {
@@ -944,11 +984,37 @@ export default {
         }
         this.adminCreateSuccess = `✅ Admin ${data.data.email} created successfully`;
         this.adminCreateForm = { email: '', password: '', role: 'admin' };
+        await this.loadAdminList();
       } catch (error) {
         this.adminCreateError = error.message || 'Failed to create admin';
       } finally {
         this.adminCreateSubmitting = false;
       }
+    },
+
+    async loadAdminList() {
+      this.adminListLoading = true;
+      this.adminListError = null;
+      try {
+        const response = await this.adminFetch('/api/admin/admins');
+        const data = await response.json();
+        if (data.success) {
+          this.adminList = data.data || [];
+        } else {
+          this.adminList = [];
+          this.adminListError = data.error || 'Failed to load admins';
+        }
+      } catch (error) {
+        this.adminList = [];
+        this.adminListError = error.message || 'Failed to load admins';
+      } finally {
+        this.adminListLoading = false;
+      }
+    },
+
+    adminDisplayName(admin) {
+      const name = [admin.firstName, admin.lastName].filter(Boolean).join(' ').trim();
+      return name || admin.email || 'Unknown';
     },
 
     formatDateTime(dateStr) {
