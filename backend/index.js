@@ -915,8 +915,14 @@ function sanitizeAdminUser(user) {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
-    role: user.role
+    role: user.role,
+    isPrimaryAdmin: isPrimaryAdminUser(user)
   };
+}
+
+function isPrimaryAdminUser(user) {
+  if (!ADMIN_EMAIL) return false;
+  return String(user?.email || '').toLowerCase() === ADMIN_EMAIL;
 }
 
 function extractBearerToken(req) {
@@ -2117,6 +2123,75 @@ app.get('/api/admin/auth/me', async (req, res) => {
     success: true,
     data: sanitizeAdminUser(req.admin)
   });
+});
+
+/**
+ * POST /api/admin/admins
+ * Create a new admin or manager (primary admin only)
+ */
+app.post('/api/admin/admins', async (req, res) => {
+  try {
+    if (!isPrimaryAdminUser(req.admin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the primary admin can create new admins'
+      });
+    }
+
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    const role = String(req.body?.role || '').trim().toLowerCase();
+
+    if (!email || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        error: 'email, password, and role are required'
+      });
+    }
+
+    const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailFormat.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    if (!ADMIN_ALLOWED_ROLES.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role must be admin or manager'
+      });
+    }
+
+    const existingUser = await User.findOne({ email }).select('_id');
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const newAdmin = await User.create({
+      firstName: ADMIN_FIRST_NAME,
+      lastName: ADMIN_LAST_NAME,
+      email,
+      password: hashedPassword,
+      role
+    });
+
+    res.status(201).json({
+      success: true,
+      data: sanitizeAdminUser(newAdmin)
+    });
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create admin'
+    });
+  }
 });
 
 // Admin API Endpoints

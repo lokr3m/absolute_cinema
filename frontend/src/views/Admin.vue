@@ -259,6 +259,50 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Admins Management -->
+        <div v-if="activeTab === 'admins'" class="tab-content">
+          <div class="section-header">
+            <h2>Add new admins</h2>
+          </div>
+          <div v-if="!adminUser?.isPrimaryAdmin" class="info-message">
+            ⚠️ Only the primary admin can register new admins.
+          </div>
+          <form v-else @submit.prevent="createAdmin" class="admin-create-form">
+            <div class="form-group">
+              <label for="new-admin-email">Email</label>
+              <input
+                id="new-admin-email"
+                v-model.trim="adminCreateForm.email"
+                type="email"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-admin-password">Password</label>
+              <input
+                id="new-admin-password"
+                v-model="adminCreateForm.password"
+                type="password"
+                required
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-admin-role">Role</label>
+              <select id="new-admin-role" v-model="adminCreateForm.role" required>
+                <option value="admin">admin</option>
+                <option value="manager">manager</option>
+              </select>
+            </div>
+            <div v-if="adminCreateError" class="error">{{ adminCreateError }}</div>
+            <div v-if="adminCreateSuccess" class="success-message">{{ adminCreateSuccess }}</div>
+            <button type="submit" class="btn btn-primary" :disabled="adminCreateSubmitting">
+              {{ adminCreateSubmitting ? 'Creating...' : 'Create admin' }}
+            </button>
+          </form>
+        </div>
       </div>
       </div>
     </div>
@@ -600,7 +644,8 @@ export default {
         { id: 'sessions', label: 'Sessions' },
         { id: 'halls', label: 'Halls' },
         { id: 'bookings', label: 'Bookings' },
-        { id: 'cinemas', label: 'Cinemas' }
+        { id: 'cinemas', label: 'Cinemas' },
+        { id: 'admins', label: 'Add new admins' }
       ],
       loading: false,
       error: null,
@@ -612,6 +657,14 @@ export default {
         email: '',
         password: ''
       },
+      adminCreateForm: {
+        email: '',
+        password: '',
+        role: 'admin'
+      },
+      adminCreateError: null,
+      adminCreateSuccess: null,
+      adminCreateSubmitting: false,
       films: [],
       sessions: [],
       bookings: [],
@@ -745,6 +798,10 @@ export default {
         this.error = null;
         this.authError = null;
       }
+      this.adminCreateError = null;
+      this.adminCreateSuccess = null;
+      this.adminCreateSubmitting = false;
+      this.adminCreateForm = { email: '', password: '', role: 'admin' };
     },
 
     async adminFetch(path, options = {}) {
@@ -791,6 +848,10 @@ export default {
           case 'cinemas':
             await this.loadCinemas();
             await this.loadHalls();
+            break;
+          case 'admins':
+            this.adminCreateError = null;
+            this.adminCreateSuccess = null;
             break;
         }
       } catch (err) {
@@ -860,6 +921,30 @@ export default {
         this.halls = data.data;
       } else {
         throw new Error(data.error || 'Failed to load halls');
+      }
+    },
+
+    async createAdmin() {
+      this.adminCreateSubmitting = true;
+      this.adminCreateError = null;
+      this.adminCreateSuccess = null;
+      try {
+        const response = await this.adminFetch('/api/admin/admins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.adminCreateForm)
+        });
+        const data = await response.json();
+        if (!data.success) {
+          this.adminCreateError = data.error || 'Failed to create admin';
+          return;
+        }
+        this.adminCreateSuccess = `✅ Admin ${data.data.email} created successfully`;
+        this.adminCreateForm.password = '';
+      } catch (error) {
+        this.adminCreateError = error.message || 'Failed to create admin';
+      } finally {
+        this.adminCreateSubmitting = false;
       }
     },
 
@@ -1363,6 +1448,13 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.admin-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 480px;
 }
 
 .admin-toolbar {
