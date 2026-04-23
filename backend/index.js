@@ -2149,8 +2149,14 @@ app.post('/api/admin/admins', async (req, res) => {
       });
     }
 
-    const emailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailFormat.test(email)) {
+    const hasWhitespace =
+      email.includes(' ') ||
+      email.includes('\t') ||
+      email.includes('\n') ||
+      email.includes('\r');
+    const atIndex = email.indexOf('@');
+    const dotIndex = email.lastIndexOf('.');
+    if (hasWhitespace || atIndex <= 0 || dotIndex <= atIndex + 1 || dotIndex === email.length - 1) {
       return res.status(400).json({
         success: false,
         error: 'Invalid email format'

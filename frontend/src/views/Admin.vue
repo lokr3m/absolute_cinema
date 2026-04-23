@@ -940,7 +940,7 @@ export default {
           return;
         }
         this.adminCreateSuccess = `✅ Admin ${data.data.email} created successfully`;
-        this.adminCreateForm.password = '';
+        this.adminCreateForm = { email: '', password: '', role: 'admin' };
       } catch (error) {
         this.adminCreateError = error.message || 'Failed to create admin';
       } finally {
