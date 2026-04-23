@@ -315,17 +315,44 @@
                   <th>Email</th>
                   <th>Role</th>
                   <th>Primary</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="admin in adminList" :key="admin.id">
                   <td>{{ adminDisplayName(admin) }}</td>
                   <td>{{ admin.email }}</td>
-                  <td>{{ admin.role }}</td>
+                  <td>
+                    <select
+                      v-model="adminRoleUpdates[admin.id]"
+                      class="admin-role-select"
+                      :disabled="admin.isPrimaryAdmin || adminActionSubmitting"
+                    >
+                      <option value="admin">admin</option>
+                      <option value="manager">manager</option>
+                    </select>
+                  </td>
                   <td>{{ admin.isPrimaryAdmin ? '✅' : '—' }}</td>
+                  <td class="actions">
+                    <button
+                      class="btn btn-secondary btn-xs"
+                      @click="updateAdminRole(admin)"
+                      :disabled="admin.isPrimaryAdmin || adminActionSubmitting || adminRoleUpdates[admin.id] === admin.role"
+                    >
+                      Update
+                    </button>
+                    <button
+                      class="btn-icon delete"
+                      @click="deleteAdmin(admin)"
+                      title="Delete"
+                      :disabled="admin.isPrimaryAdmin || adminActionSubmitting"
+                    >
+                      🗑️
+                    </button>
+                  </td>
                 </tr>
                 <tr v-if="adminList.length === 0">
-                  <td colspan="4" style="text-align: center;">No admins found</td>
+                  <td colspan="5" style="text-align: center;">No admins found</td>
                 </tr>
               </tbody>
             </table>
@@ -696,6 +723,8 @@ export default {
       adminList: [],
       adminListLoading: false,
       adminListError: null,
+      adminRoleUpdates: {},
+      adminActionSubmitting: false,
       films: [],
       sessions: [],
       bookings: [],
@@ -839,6 +868,8 @@ export default {
       this.adminList = [];
       this.adminListError = null;
       this.adminListLoading = false;
+      this.adminRoleUpdates = {};
+      this.adminActionSubmitting = false;
     },
 
     async adminFetch(path, options = {}) {
@@ -894,6 +925,7 @@ export default {
               await this.loadAdminList();
             } else {
               this.adminList = [];
+              this.adminRoleUpdates = {};
             }
             break;
         }
@@ -1000,15 +1032,72 @@ export default {
         const data = await response.json();
         if (data.success) {
           this.adminList = data.data || [];
+          this.adminRoleUpdates = this.adminList.reduce((roles, admin) => {
+            roles[admin.id] = admin.role;
+            return roles;
+          }, {});
         } else {
           this.adminList = [];
           this.adminListError = data.error || 'Failed to load admins';
+          this.adminRoleUpdates = {};
         }
       } catch (error) {
         this.adminList = [];
         this.adminListError = error.message || 'Failed to load admins';
+        this.adminRoleUpdates = {};
       } finally {
         this.adminListLoading = false;
+      }
+    },
+
+    async updateAdminRole(admin) {
+      if (!admin || admin.isPrimaryAdmin) return;
+      const nextRole = this.adminRoleUpdates[admin.id];
+      if (!nextRole || nextRole === admin.role) return;
+
+      this.adminActionSubmitting = true;
+      try {
+        const response = await this.adminFetch(`/api/admin/admins/${admin.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: nextRole })
+        });
+        const data = await response.json();
+        if (data.success) {
+          await this.loadAdminList();
+        } else {
+          this.adminRoleUpdates[admin.id] = admin.role;
+          alert(data.error || 'Failed to update admin role');
+        }
+      } catch (error) {
+        this.adminRoleUpdates[admin.id] = admin.role;
+        alert(error.message || 'Failed to update admin role');
+      } finally {
+        this.adminActionSubmitting = false;
+      }
+    },
+
+    async deleteAdmin(admin) {
+      if (!admin || admin.isPrimaryAdmin) return;
+      if (!confirm(`Are you sure you want to delete ${admin.email}?`)) {
+        return;
+      }
+
+      this.adminActionSubmitting = true;
+      try {
+        const response = await this.adminFetch(`/api/admin/admins/${admin.id}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+          await this.loadAdminList();
+        } else {
+          alert(data.error || 'Failed to delete admin');
+        }
+      } catch (error) {
+        alert(error.message || 'Failed to delete admin');
+      } finally {
+        this.adminActionSubmitting = false;
       }
     },
 
@@ -1639,6 +1728,36 @@ export default {
 
 .btn-secondary:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-xs {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.admin-role-select {
+  min-width: 130px;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.admin-role-select:focus {
+  outline: none;
+  border-color: #e94560;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2);
+}
+
+.admin-role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-role-select option {
+  background: #fff;
+  color: #333;
 }
 
 .data-table {

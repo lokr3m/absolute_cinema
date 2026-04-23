@@ -2231,6 +2231,117 @@ app.get('/api/admin/admins', async (req, res) => {
   }
 });
 
+/**
+ * PATCH /api/admin/admins/:id
+ * Update admin role (primary admin only)
+ */
+app.patch('/api/admin/admins/:id', async (req, res) => {
+  try {
+    if (!isPrimaryAdminUser(req.admin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the primary admin can update admin roles'
+      });
+    }
+
+    const adminId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(adminId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid admin id'
+      });
+    }
+
+    const role = String(req.body?.role || '').trim().toLowerCase();
+    if (!ADMIN_ALLOWED_ROLES.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role must be admin or manager'
+      });
+    }
+
+    const targetAdmin = await User.findById(adminId);
+    if (!targetAdmin || !ADMIN_ALLOWED_ROLES.includes(targetAdmin.role)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Admin not found'
+      });
+    }
+
+    if (isPrimaryAdminUser(targetAdmin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Primary admin role cannot be changed'
+      });
+    }
+
+    targetAdmin.role = role;
+    await targetAdmin.save();
+
+    res.json({
+      success: true,
+      data: sanitizeAdminUser(targetAdmin)
+    });
+  } catch (error) {
+    console.error('Error updating admin role:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update admin role'
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/admins/:id
+ * Delete admin or manager (primary admin only)
+ */
+app.delete('/api/admin/admins/:id', async (req, res) => {
+  try {
+    if (!isPrimaryAdminUser(req.admin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the primary admin can delete admins'
+      });
+    }
+
+    const adminId = String(req.params.id || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(adminId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid admin id'
+      });
+    }
+
+    const targetAdmin = await User.findById(adminId);
+    if (!targetAdmin || !ADMIN_ALLOWED_ROLES.includes(targetAdmin.role)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Admin not found'
+      });
+    }
+
+    if (isPrimaryAdminUser(targetAdmin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Primary admin cannot be deleted'
+      });
+    }
+
+    await User.deleteOne({ _id: targetAdmin._id });
+
+    res.json({
+      success: true,
+      data: sanitizeAdminUser(targetAdmin)
+    });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete admin'
+    });
+  }
+});
+
 // Admin API Endpoints
 
 /**

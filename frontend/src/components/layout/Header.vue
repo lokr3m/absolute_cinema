@@ -136,8 +136,13 @@ export default {
 }
 
 @media (max-width: 900px) {
+  .header-content {
+    justify-content: flex-start;
+  }
+
   .menu-toggle {
     display: flex;
+    margin-left: auto;
   }
 
   .nav-links {
