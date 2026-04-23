@@ -2327,7 +2327,7 @@ app.delete('/api/admin/admins/:id', async (req, res) => {
       });
     }
 
-    await User.deleteOne({ _id: targetAdmin._id });
+    await targetAdmin.deleteOne();
 
     res.json({
       success: true,
