@@ -915,8 +915,14 @@ function sanitizeAdminUser(user) {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
-    role: user.role
+    role: user.role,
+    isPrimaryAdmin: isPrimaryAdminUser(user)
   };
+}
+
+function isPrimaryAdminUser(user) {
+  if (!ADMIN_EMAIL) return false;
+  return String(user?.email || '').toLowerCase() === ADMIN_EMAIL;
 }
 
 function extractBearerToken(req) {
@@ -2117,6 +2123,112 @@ app.get('/api/admin/auth/me', async (req, res) => {
     success: true,
     data: sanitizeAdminUser(req.admin)
   });
+});
+
+/**
+ * POST /api/admin/admins
+ * Create a new admin or manager (primary admin only)
+ */
+app.post('/api/admin/admins', async (req, res) => {
+  try {
+    if (!isPrimaryAdminUser(req.admin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the primary admin can create new admins'
+      });
+    }
+
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    const role = String(req.body?.role || '').trim().toLowerCase();
+
+    if (!email || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        error: 'email, password, and role are required'
+      });
+    }
+
+    const hasWhitespace =
+      email.includes(' ') ||
+      email.includes('\t') ||
+      email.includes('\n') ||
+      email.includes('\r');
+    const atIndex = email.indexOf('@');
+    const dotIndex = email.lastIndexOf('.');
+    if (hasWhitespace || atIndex <= 0 || dotIndex <= atIndex + 1 || dotIndex === email.length - 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format'
+      });
+    }
+
+    if (!ADMIN_ALLOWED_ROLES.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role must be admin or manager'
+      });
+    }
+
+    const existingUser = await User.findOne({ email }).select('_id');
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const newAdmin = await User.create({
+      firstName: 'Admin',
+      lastName: 'User',
+      email,
+      password: hashedPassword,
+      role
+    });
+
+    res.status(201).json({
+      success: true,
+      data: sanitizeAdminUser(newAdmin)
+    });
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create admin'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/admins
+ * List all admins and managers (primary admin only)
+ */
+app.get('/api/admin/admins', async (req, res) => {
+  try {
+    if (!isPrimaryAdminUser(req.admin)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only the primary admin can view admin list'
+      });
+    }
+
+    const admins = await User.find({ role: { $in: ADMIN_ALLOWED_ROLES } })
+      .select('firstName lastName email role')
+      .sort({ role: 1, email: 1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: admins.map(admin => sanitizeAdminUser(admin))
+    });
+  } catch (error) {
+    console.error('Error fetching admin list:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch admin list'
+    });
+  }
 });
 
 // Admin API Endpoints
