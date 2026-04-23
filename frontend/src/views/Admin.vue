@@ -8,7 +8,34 @@
     </div>
     <div class="admin">
       <div class="container">
-      
+      <div v-if="!isAuthenticated" class="admin-login-card">
+        <h2>Admin Login</h2>
+        <p class="admin-login-subtitle">Sign in to access protected admin APIs.</p>
+        <form @submit.prevent="loginAdmin" class="admin-login-form">
+          <div class="form-group">
+            <label for="admin-email">Email</label>
+            <input id="admin-email" v-model.trim="loginForm.email" type="email" required autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="admin-password">Password</label>
+            <input id="admin-password" v-model="loginForm.password" type="password" required autocomplete="current-password" />
+          </div>
+          <div v-if="authError" class="error">{{ authError }}</div>
+          <button type="submit" class="btn btn-primary" :disabled="loginSubmitting">
+            {{ loginSubmitting ? 'Signing in...' : 'Sign in' }}
+          </button>
+        </form>
+      </div>
+
+      <div v-else>
+      <div class="admin-toolbar">
+        <div class="admin-user-info">
+          Signed in as <strong>{{ adminUser?.email }}</strong>
+          <span class="role-badge">Role: {{ adminUser?.role }}</span>
+        </div>
+        <button class="btn btn-secondary" @click="logoutAdmin">Logout</button>
+      </div>
+
       <div class="admin-tabs">
         <button 
           v-for="tab in tabs" 
@@ -232,6 +259,7 @@
             </tbody>
           </table>
         </div>
+      </div>
       </div>
     </div>
 
@@ -560,6 +588,7 @@
 </template>
 <script>
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const ADMIN_TOKEN_STORAGE_KEY = 'kino_admin_token';
 
 export default {
   name: 'Admin',
@@ -575,6 +604,14 @@ export default {
       ],
       loading: false,
       error: null,
+      authError: null,
+      authToken: '',
+      adminUser: null,
+      loginSubmitting: false,
+      loginForm: {
+        email: '',
+        password: ''
+      },
       films: [],
       sessions: [],
       bookings: [],
@@ -646,11 +683,91 @@ export default {
       this.updateHallCapacity();
     }
   },
+  computed: {
+    isAuthenticated() {
+      return Boolean(this.authToken);
+    }
+  },
   mounted() {
-    this.loadTabData(this.activeTab);
+    this.restoreAdminSession();
   },
   methods: {
+    async restoreAdminSession() {
+      const storedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+      if (!storedToken) return;
+
+      this.authToken = storedToken;
+      try {
+        const response = await this.adminFetch('/api/admin/auth/me');
+        const payload = await response.json();
+        if (!payload.success) {
+          throw new Error(payload.error || 'Session is not valid anymore');
+        }
+        this.adminUser = payload.data;
+        await this.loadTabData(this.activeTab);
+      } catch (error) {
+        this.logoutAdmin(false);
+      }
+    },
+
+    async loginAdmin() {
+      this.loginSubmitting = true;
+      this.authError = null;
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.loginForm)
+        });
+        const payload = await response.json();
+        if (!payload.success) {
+          this.authError = payload.error || 'Failed to login';
+          return;
+        }
+
+        this.authToken = payload.data.token;
+        this.adminUser = payload.data.user;
+        localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, this.authToken);
+        this.loginForm.password = '';
+        await this.loadTabData(this.activeTab);
+      } catch (error) {
+        this.authError = error.message || 'Failed to login';
+      } finally {
+        this.loginSubmitting = false;
+      }
+    },
+
+    logoutAdmin(clearError = true) {
+      this.authToken = '';
+      this.adminUser = null;
+      localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+      if (clearError) {
+        this.error = null;
+        this.authError = null;
+      }
+    },
+
+    async adminFetch(path, options = {}) {
+      const headers = {
+        ...(options.headers || {})
+      };
+      if (this.authToken) {
+        headers.Authorization = `Bearer ${this.authToken}`;
+      }
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers
+      });
+
+      if (response.status === 401) {
+        this.logoutAdmin();
+        this.authError = 'Session expired. Please sign in again.';
+      }
+      return response;
+    },
+
     async loadTabData(tab) {
+      if (!this.isAuthenticated) return;
       this.loading = true;
       this.error = null;
       
@@ -685,7 +802,7 @@ export default {
     },
 
     async loadFilms() {
-      const response = await fetch(`${API_BASE_URL}/api/admin/movies`);
+      const response = await this.adminFetch('/api/admin/movies');
       const data = await response.json();
       if (data.success) {
         this.films = data.data;
@@ -695,7 +812,7 @@ export default {
     },
 
     async loadSessions() {
-      const response = await fetch(`${API_BASE_URL}/api/admin/sessions`);
+      const response = await this.adminFetch('/api/admin/sessions');
       const data = await response.json();
       if (data.success) {
         this.sessions = data.data;
@@ -705,7 +822,7 @@ export default {
     },
 
     async loadBookings() {
-      const response = await fetch(`${API_BASE_URL}/api/admin/bookings`);
+      const response = await this.adminFetch('/api/admin/bookings');
       const data = await response.json();
       if (data.success) {
         this.bookings = data.data;
@@ -737,7 +854,7 @@ export default {
     },
 
     async loadHalls() {
-      const response = await fetch(`${API_BASE_URL}/api/admin/halls`);
+      const response = await this.adminFetch('/api/admin/halls');
       const data = await response.json();
       if (data.success) {
         this.halls = data.data;
@@ -821,7 +938,7 @@ export default {
         
         const method = this.editingSession ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
+        const response = await this.adminFetch(url.replace(API_BASE_URL, ''), {
           method,
           headers: {
             'Content-Type': 'application/json'
@@ -851,7 +968,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/sessions/${sessionId}`, {
+        const response = await this.adminFetch(`/api/admin/sessions/${sessionId}`, {
           method: 'DELETE'
         });
 
@@ -874,7 +991,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/bookings/${bookingId}`, {
+        const response = await this.adminFetch(`/api/admin/bookings/${bookingId}`, {
           method: 'DELETE'
         });
 
@@ -950,7 +1067,7 @@ export default {
 
       const url = this.editingMovie ? `${API_BASE_URL}/api/admin/movies/${this.editingMovie._id}` : `${API_BASE_URL}/api/admin/movies`
       const method = this.editingMovie ? 'PUT' : 'POST'
-      const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const response = await this.adminFetch(url.replace(API_BASE_URL, ''), { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await response.json()
       if (!data.success) {
         this.formError = data.error || 'Failed to save movie'
@@ -962,7 +1079,7 @@ export default {
 
     async deleteMovie(movieId) {
       if (!confirm('Delete this movie?')) return
-      const response = await fetch(`${API_BASE_URL}/api/admin/movies/${movieId}`, { method: 'DELETE' })
+      const response = await this.adminFetch(`/api/admin/movies/${movieId}`, { method: 'DELETE' })
       const data = await response.json()
       if (!data.success) {
         alert(data.error || 'Failed to delete movie')
@@ -984,7 +1101,7 @@ export default {
 
     async saveSeats() {
       const payload = { vipRows: this.seatForm.vipRows }
-      const response = await fetch(`${API_BASE_URL}/api/admin/halls/${this.seatForm.hallId}/seats/generate`, {
+      const response = await this.adminFetch(`/api/admin/halls/${this.seatForm.hallId}/seats/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -1129,13 +1246,13 @@ export default {
 
         let response;
         if (this.editingHall) {
-          response = await fetch(`${API_BASE_URL}/api/admin/halls/${this.editingHall._id}`, {
+          response = await this.adminFetch(`/api/admin/halls/${this.editingHall._id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(hallData)
           });
         } else {
-          response = await fetch(`${API_BASE_URL}/api/admin/halls`, {
+          response = await this.adminFetch('/api/admin/halls', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(hallData)
@@ -1167,7 +1284,7 @@ export default {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/halls/${hallId}`, {
+        const response = await this.adminFetch(`/api/admin/halls/${hallId}`, {
           method: 'DELETE'
         });
         const data = await response.json();
@@ -1225,6 +1342,49 @@ export default {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 1.5rem;
+}
+
+.admin-login-card {
+  max-width: 460px;
+  margin: 0 auto;
+  background: rgba(17, 22, 38, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+.admin-login-subtitle {
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 1rem;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.admin-user-info {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.role-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: rgba(233, 69, 96, 0.2);
+  border: 1px solid rgba(233, 69, 96, 0.5);
 }
 
 .admin-tabs {
@@ -1614,11 +1774,37 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .admin {
+    padding: 1.6rem 0 2rem;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-content {
+    padding: 1rem;
+  }
+
   .admin-tabs {
     overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .tab-btn {
+    white-space: nowrap;
+    min-width: max-content;
   }
   
   .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
     font-size: 0.9rem;
   }
   
@@ -1633,6 +1819,15 @@ export default {
 
   .modal {
     width: 95%;
+    max-height: 92vh;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .modal-footer .btn {
+    width: 100%;
   }
 }
 

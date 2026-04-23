@@ -402,12 +402,39 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .movie-detail {
+    padding: 1.25rem 0 2rem;
+  }
+
   .movie-header {
     grid-template-columns: 1fr;
+    gap: 1.4rem;
   }
 
   .meta {
     flex-wrap: wrap;
+    gap: 0.6rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  .movie-info h1 {
+    font-size: 1.8rem;
+  }
+
+  .showtimes h2,
+  .trailer h2 {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .movie-info h1 {
+    font-size: 1.5rem;
+  }
+
+  .btn-primary {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>

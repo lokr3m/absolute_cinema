@@ -1,26 +1,100 @@
 <template>
   <footer class="footer">
     <div class="container">
-      <div class="footer-content">
-        <div class="footer-section">
-          <h3>Cinema</h3>
-          <p>Your premier destination for movies</p>
-        </div>
-        <div class="footer-section">
-          <h4>Quick Links</h4>
-          <ul>
-            <li><router-link to="/">Home</router-link></li>
-            <li><router-link to="/movies">Movies</router-link></li>
+      <div class="footer-grid">
+        <section class="footer-block footer-app">
+          <h3>Mobilirakendus</h3>
+          <p>
+            Apollo mobilirakendused muudavad kinokogemuse
+            veelgi mugavamaks.
+          </p>
+          <div class="store-buttons">
+            <a href="#" class="store-button app-store" aria-label="Download on the App Store">
+              <span>Download on the</span>
+              <strong>App Store</strong>
+            </a>
+            <a href="#" class="store-button google-play" aria-label="Get it on Google Play">
+              <span>Get it on</span>
+              <strong>Google Play</strong>
+            </a>
+          </div>
+          <p class="copyright">© 2024 Absolute Cinema OÜ</p>
+        </section>
+
+        <section class="footer-block">
+          <h3>Info</h3>
+          <ul class="footer-list">
+            <li><a href="#">Apollo Klubi</a></li>
+            <li><a href="#">KKK</a></li>
+            <li><a href="#">Kinode turvalisus</a></li>
+            <li><a href="#">Vanusepiirangud</a></li>
+            <li><a href="#">Kodukord</a></li>
+            <li><a href="#">Privaatsus</a></li>
+            <li><a href="#">Müügi- ja kasutustingimused</a></li>
+            <li><a href="#">Pay app</a></li>
+            <li><a href="#">Ettevõttest</a></li>
+            <li><a href="#">Jätkusuutlik ettevõtlus</a></li>
+            <li><a href="#">Tule tööle</a></li>
+            <li><a href="#">Pühade lahtiolekuajad</a></li>
+            <li><a href="#">Anna meile tagasisidet!</a></li>
           </ul>
-        </div>
-        <div class="footer-section">
-          <h4>Contact</h4>
-          <p>Email: info@cinema.com</p>
-          <p>Phone: +372 1234 5678</p>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2024 Cinema. All rights reserved.</p>
+
+          <h3 class="social-title">Sotsiaalmeedia</h3>
+          <ul class="footer-list">
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">Facebook</a></li>
+            <li><a href="#">TikTok</a></li>
+            <li><a href="#">LinkedIn</a></li>
+          </ul>
+        </section>
+
+        <section class="footer-block">
+          <h3>Klienditugi</h3>
+          <p class="support-hours">E–R 10:00 – 16:00<br />L, P ja riigipühadel suletud</p>
+          <p class="support-text">
+            Kinod avatakse enne esimese seansi algust, kuid mitte
+            enne kella 10:00 ja suletakse 15 minutit pärast viimase
+            seansi algust. Täpsem info iga kino kodukorras.
+          </p>
+          <p class="support-contact">
+            Infotelefon:
+            <a class="accent" href="tel:+3726800700">+372 6 800 700</a>
+          </p>
+          <p class="support-contact">
+            <a class="accent" href="mailto:info@absolute-cinema.ee">info@absolute-cinema.ee</a>
+          </p>
+
+          <p class="support-text">
+            Kinokava koostatakse ette üheks kinonädalaks, sama nädala
+            reedest järgmise nädala neljapäevani. Uue nädala kava
+            avaldatakse hiljemalt teisipäeva õhtuks. Kino jätab endale
+            õiguse teha kinokavas jooksvalt muudatusi.
+          </p>
+
+          <p class="support-contact">
+            Absoluutne turundus:
+            <a class="accent" href="mailto:turundus@absolute-cinema.ee">turundus@absolute-cinema.ee</a>
+          </p>
+          <a class="preferences accent" href="#">Küpsiste eelistused</a>
+        </section>
+
+        <section class="footer-block">
+          <h3>Apollo kinod</h3>
+          <ul class="footer-list">
+            <li><a href="#">Apollo Kino Solaris</a></li>
+            <li><a href="#">Apollo Kino Ülemiste</a></li>
+            <li><a href="#">Apollo Kino Mustamäe</a></li>
+            <li><a href="#">Apollo Kino Plaza</a></li>
+            <li><a href="#">Apollo Kino Saaremaa</a></li>
+            <li><a href="#">Apollo Kino Pärnu</a></li>
+            <li><a href="#">Apollo Kino Lõunakeskus</a></li>
+            <li><a href="#">Apollo Kino Tasku</a></li>
+            <li><a href="#">Apollo Kino Astri</a></li>
+            <li><a href="#">Apollo Kino Jõhvi</a></li>
+            <li><a href="#">Apollo Kino Viljandi</a></li>
+            <li><a href="#">Apollo Kino Rakvere</a></li>
+          </ul>
+        </section>
       </div>
     </div>
   </footer>
@@ -34,59 +108,141 @@ export default {
 
 <style scoped>
 .footer {
-  background-color: #000;
-  color: #ecf0f1;
-  padding: 2rem 0 1rem;
-  margin-top: auto;
+  background: #0b0b0b;
+  color: #b8b8b8;
+  padding: 48px 0 40px;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 1rem;
+  padding: 0 24px;
 }
 
-.footer-content {
+.footer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 32px;
 }
 
-.footer-section h3,
-.footer-section h4 {
-  margin-bottom: 1rem;
-  color: #ff6600;
+.footer-block h3 {
+  color: #b8b8b8;
+  font-size: 18px;
+  margin-bottom: 16px;
+  font-weight: 400;
 }
 
-.footer-section ul {
+.footer-block p,
+.footer-block li {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #b8b8b8;
+  font-weight: 400;
+}
+
+.footer-list {
   list-style: none;
   padding: 0;
+  margin: 0 0 24px;
 }
 
-.footer-section ul li {
-  margin-bottom: 0.5rem;
+.footer-list li {
+  margin-bottom: 8px;
 }
 
-.footer-section a {
-  color: #bdc3c7;
+.footer-list a,
+.support-contact a,
+.preferences {
+  color: #b8b8b8;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color 0.2s ease;
+  font-weight: 400;
 }
 
-.footer-section a:hover {
-  color: #ff6600;
+.footer-list a:hover,
+.support-contact a:hover,
+.preferences:hover {
+  color: #d0d0d0;
 }
 
-.footer-section p {
-  color: #bdc3c7;
-  margin: 0.5rem 0;
+.footer-app p {
+  margin-bottom: 18px;
 }
 
-.footer-bottom {
-  border-top: 1px solid #222;
-  padding-top: 1rem;
-  text-align: center;
-  color: #95a5a6;
+.store-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.store-button {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #111111;
+  color: #b8b8b8;
+  text-decoration: none;
+  font-size: 12px;
+  max-width: 180px;
+  font-weight: 400;
+}
+
+.store-button strong {
+  font-size: 16px;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+.support-hours {
+  margin-bottom: 12px;
+}
+
+.support-text {
+  margin: 12px 0;
+}
+
+.support-contact {
+  margin: 6px 0;
+}
+
+.preferences {
+  display: inline-block;
+  margin-top: 12px;
+  font-weight: 400;
+}
+
+.social-title {
+  margin-top: 8px;
+}
+
+.copyright {
+  margin-top: 12px;
+  color: #7a7a7a;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.accent {
+  color: #ff9b2f;
+}
+
+.accent:hover {
+  color: #ffc27a;
+}
+
+@media (max-width: 1024px) {
+  .footer-grid {
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

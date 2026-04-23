@@ -426,5 +426,26 @@ export default {
   .ticket-actions {
     flex-direction: column;
   }
+
+  .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .ticket-header {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .ticket-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-bottom: 0.9rem;
+  }
 }
 </style>

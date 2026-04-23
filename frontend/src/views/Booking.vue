@@ -1498,4 +1498,74 @@ export default {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 2.6rem 0;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .booking-steps {
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding: 1rem;
+  }
+
+  .step {
+    min-width: max-content;
+  }
+
+  .main-content,
+  .booking-summary {
+    padding: 1.25rem;
+  }
+
+  .ticket-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ticket-quantity {
+    width: 100%;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .navigation-buttons {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .legend {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking {
+    padding: 1.4rem 0 2rem;
+  }
+
+  .seat {
+    width: 34px;
+    height: 34px;
+  }
+
+  .seat-example {
+    width: 24px;
+    height: 24px;
+  }
+}
 </style>

@@ -1,11 +1,13 @@
 require("node:dns").setServers(["1.1.1.1", "8.8.8.8"]);
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') }); 
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const rateLimit = require('express-rate-limit');
-const { Film, Session, Cinema, Hall, Booking, Seat } = require('./Models');
+const { Film, Session, Cinema, Hall, Booking, Seat, User } = require('./Models');
 const ApolloKinoService = require('./services/apolloKinoService');
 
 const app = express();
@@ -14,6 +16,7 @@ app.use(express.json());
 
 const MONGODB_URI = process.env.MONGODB_URI;
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '127.0.0.1'; 
 const BOOKING_ID_BYTES = 6;
 const DEFAULT_COUNTRY = 'Estonia';
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
@@ -24,6 +27,17 @@ const DEFAULT_SCHEDULE_HALL_SEATS_PER_ROW = 13;
 const DEFAULT_SCHEDULE_HALL_CAPACITY = 150;
 const DEFAULT_SCHEDULE_HALL_SCREEN_TYPE = 'Standard';
 const DEFAULT_SCHEDULE_HALL_SOUND_SYSTEM = 'Digital 5.1';
+const ADMIN_LOGIN_MAX_ATTEMPTS = 5;
+const ADMIN_LOCKOUT_MS = 15 * 60 * 1000;
+const ADMIN_AUTH_TOKEN_EXPIRY = '60m';
+const ADMIN_AUTH_TOKEN_EXPIRY_SECONDS = 60 * 60;
+const ADMIN_ALLOWED_ROLES = ['admin', 'manager'];
+const ADMIN_WRITE_ROLES = ['admin'];
+const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ? String(process.env.ADMIN_EMAIL).trim().toLowerCase() : '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+const ADMIN_FIRST_NAME = process.env.ADMIN_FIRST_NAME || 'Admin';
+const ADMIN_LAST_NAME = process.env.ADMIN_LAST_NAME || 'User';
 
 const cinemaRateLimiter = rateLimit({
   windowMs: RATE_LIMIT_WINDOW_MS,
@@ -36,9 +50,35 @@ const cinemaRateLimiter = rateLimit({
   }
 });
 
+const adminLoginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many login attempts from this IP. Please try again later.'
+  }
+});
+
+const adminApiRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many admin API requests, please try again later.'
+  }
+});
+
 if (!MONGODB_URI) {
   console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
   process.exit(1);
+}
+
+if (JWT_SECRET === 'change-me-in-production') {
+  console.warn('⚠️ WARNING: JWT_SECRET is not set. Using insecure default secret for local development only.');
 }
 
 const apolloKinoService = new ApolloKinoService();
@@ -732,14 +772,16 @@ async function initializeServer() {
     const dbName = MONGODB_URI.includes('mongodb+srv') ? 'MongoDB Atlas' : 'MongoDB';
     console.log(`✓ ${dbName} connected successfully`);
 
+    await ensureBootstrapAdmin();
+
     // Always refresh database from Apollo Kino on startup
     // This ensures we have the latest data and removes old/stale data
     console.log('🔄 Refreshing database from Apollo Kino API...');
     await refreshDatabaseFromApollo();
 
     // Start server
-    app.listen(PORT, () => {
-      console.log(`🚀 Server started on http://localhost:${PORT}`);
+    app.listen(PORT, HOST, () => {
+      console.log(`🚀 Server started on http://${HOST}:${PORT}`);
     });
   } catch (err) {
     console.error('❌ Server initialization failed:', err.message);
@@ -851,6 +893,182 @@ async function recreateHallSeats(hall, { vipRows = [], twinRows = [] } = {}) {
     twin: seats.filter(seat => seat.seatType === 'twin').length,
     standard: seats.filter(seat => seat.seatType === 'standard').length
   };
+}
+
+function buildAdminAuthPayload(user) {
+  return {
+    sub: String(user._id),
+    role: user.role,
+    email: user.email
+  };
+}
+
+function signAdminToken(user) {
+  return jwt.sign(buildAdminAuthPayload(user), JWT_SECRET, {
+    expiresIn: ADMIN_AUTH_TOKEN_EXPIRY
+  });
+}
+
+function sanitizeAdminUser(user) {
+  return {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role
+  };
+}
+
+function extractBearerToken(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || typeof authHeader !== 'string') return null;
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme !== 'Bearer' || !token) return null;
+  return token;
+}
+
+function isBcryptHash(value) {
+  return /^\$2[aby]\$/.test(value || '');
+}
+
+function timingSafeStringEqual(left, right) {
+  const leftBuffer = Buffer.from(String(left ?? ''));
+  const rightBuffer = Buffer.from(String(right ?? ''));
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+async function authenticateAdmin(req, res, next) {
+  try {
+    const token = extractBearerToken(req);
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authorization token is required'
+      });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token'
+      });
+    }
+
+    if (!payload?.sub || !mongoose.Types.ObjectId.isValid(payload.sub)) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid token payload'
+      });
+    }
+
+    const adminUser = await User.findById(payload.sub)
+      .select('firstName lastName email role lockUntil')
+      .lean();
+
+    if (!adminUser) {
+      return res.status(401).json({
+        success: false,
+        error: 'Admin user was not found'
+      });
+    }
+
+    if (!ADMIN_ALLOWED_ROLES.includes(adminUser.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient role for admin access'
+      });
+    }
+
+    req.admin = adminUser;
+    next();
+  } catch (err) {
+    console.error('Admin auth middleware error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to authorize request'
+    });
+  }
+}
+
+function authorizeAdminWrite(req, res, next) {
+  if (!req.admin) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authorization is required'
+    });
+  }
+  if (ADMIN_WRITE_ROLES.includes(req.admin.role)) {
+    return next();
+  }
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Your role has read-only admin access'
+    });
+  }
+  next();
+}
+
+async function ensureBootstrapAdmin() {
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+    return;
+  }
+
+  const existingAdmin = await User.findOne({ email: ADMIN_EMAIL });
+
+  if (!existingAdmin) {
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12);
+    await User.create({
+      firstName: ADMIN_FIRST_NAME,
+      lastName: ADMIN_LAST_NAME,
+      email: ADMIN_EMAIL,
+      password: hashedPassword,
+      role: 'admin'
+    });
+    console.log(`✅ Bootstrap admin created: ${ADMIN_EMAIL}`);
+    return;
+  }
+
+  let changed = false;
+  if (!existingAdmin.firstName) {
+    existingAdmin.firstName = ADMIN_FIRST_NAME;
+    changed = true;
+  }
+  if (!existingAdmin.lastName) {
+    existingAdmin.lastName = ADMIN_LAST_NAME;
+    changed = true;
+  }
+  if (!existingAdmin.role || existingAdmin.role === 'user') {
+    existingAdmin.role = 'admin';
+    changed = true;
+  }
+
+  const hasBcryptPassword = isBcryptHash(existingAdmin.password);
+  const passwordMatches = hasBcryptPassword ? await bcrypt.compare(ADMIN_PASSWORD, existingAdmin.password) : false;
+  if (!passwordMatches) {
+    existingAdmin.password = await bcrypt.hash(ADMIN_PASSWORD, 12);
+    changed = true;
+  }
+
+  if ((existingAdmin.loginAttempts || 0) !== 0) {
+    existingAdmin.loginAttempts = 0;
+    changed = true;
+  }
+  if (existingAdmin.lockUntil) {
+    existingAdmin.lockUntil = null;
+    changed = true;
+  }
+
+  if (changed) {
+    await existingAdmin.save();
+  }
+  console.log(`✅ Bootstrap admin ensured: ${ADMIN_EMAIL}`);
 }
 
 // Роуты
@@ -1801,6 +2019,104 @@ app.get('/api/bookings/:bookingNumber', async (req, res) => {
       error: 'Failed to fetch booking'
     });
   }
+});
+
+/**
+ * POST /api/admin/auth/login
+ * Authenticate admin and return access token
+ */
+app.post('/api/admin/auth/login', adminLoginRateLimiter, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'email and password are required'
+      });
+    }
+
+    const adminUser = await User.findOne({ email }).select(
+      'firstName lastName email role password loginAttempts lockUntil'
+    );
+
+    if (!adminUser || !ADMIN_ALLOWED_ROLES.includes(adminUser.role)) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password'
+      });
+    }
+
+    const now = new Date();
+    if (adminUser.lockUntil && adminUser.lockUntil > now) {
+      const retryAfterSeconds = Math.ceil((adminUser.lockUntil.getTime() - now.getTime()) / 1000);
+      return res.status(423).json({
+        success: false,
+        error: 'Account temporarily locked after too many failed attempts',
+        retryAfterSeconds
+      });
+    }
+
+    let isPasswordMatch = false;
+    if (isBcryptHash(adminUser.password)) {
+      isPasswordMatch = await bcrypt.compare(password, adminUser.password);
+    } else if (timingSafeStringEqual(adminUser.password, password)) {
+      // Backward compatibility for old plaintext passwords: migrate on successful login.
+      isPasswordMatch = true;
+      adminUser.password = await bcrypt.hash(password, 12);
+    }
+
+    if (!isPasswordMatch) {
+      const failedAttempts = (adminUser.loginAttempts || 0) + 1;
+      adminUser.loginAttempts = failedAttempts;
+      if (failedAttempts >= ADMIN_LOGIN_MAX_ATTEMPTS) {
+        adminUser.lockUntil = new Date(Date.now() + ADMIN_LOCKOUT_MS);
+      }
+      await adminUser.save();
+
+      const remainingAttempts = Math.max(ADMIN_LOGIN_MAX_ATTEMPTS - failedAttempts, 0);
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid email or password',
+        remainingAttempts
+      });
+    }
+
+    adminUser.loginAttempts = 0;
+    adminUser.lockUntil = null;
+    await adminUser.save();
+
+    const token = signAdminToken(adminUser);
+    res.json({
+      success: true,
+      data: {
+        token,
+        tokenType: 'Bearer',
+        expiresIn: ADMIN_AUTH_TOKEN_EXPIRY_SECONDS,
+        user: sanitizeAdminUser(adminUser)
+      }
+    });
+  } catch (error) {
+    console.error('Error during admin login:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to login'
+    });
+  }
+});
+
+app.use('/api/admin', adminApiRateLimiter, authenticateAdmin, authorizeAdminWrite);
+
+/**
+ * GET /api/admin/auth/me
+ * Get current authenticated admin profile
+ */
+app.get('/api/admin/auth/me', async (req, res) => {
+  res.json({
+    success: true,
+    data: sanitizeAdminUser(req.admin)
+  });
 });
 
 // Admin API Endpoints

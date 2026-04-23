@@ -149,8 +149,8 @@
               <div class="overlay-content">
                 <!-- Using movie._id from database ensures correct routing to /movies/:mongoDbId -->
                 <router-link
-                  v-if="movie.apolloKinoId || movie._id"
-                  :to="`/movies/${movie.apolloKinoId || movie._id}`"
+                  v-if="movie._id"
+                  :to="`/movies/${movie._id}`"
                   class="btn-view"
                 >
                   <span>View Details</span>
@@ -986,6 +986,10 @@ export default {
   .page-header h1 {
     font-size: 1.8rem;
   }
+
+  .container {
+    padding: 0 1rem 2rem;
+  }
   
   .filters-row-unified {
     flex-direction: column;
@@ -1000,12 +1004,32 @@ export default {
   
   .results-info {
     margin-left: 0;
-    justify-content: center;
+    justify-content: flex-start;
+  }
+
+  .custom-dropdown,
+  .dropdown-btn {
+    width: 100%;
+  }
+
+  .dropdown-menu {
+    left: 0;
+    right: 0;
   }
   
   .movie-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 1rem;
+  }
+
+  .poster-overlay {
+    opacity: 1;
+  }
+
+  .btn-view {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
   }
   
   .movie-info {
@@ -1014,6 +1038,12 @@ export default {
   
   .movie-title {
     font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .movie-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

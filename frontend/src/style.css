@@ -1,79 +1,296 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --bg-1: #f7f3ef;
+  --bg-2: #f0f5ff;
+  --surface: #ffffff;
+  --surface-soft: #f6f7fa;
+  --text: #22303e;
+  --text-soft: #6e7b88;
+  --brand: #ff6b2d;
+  --brand-strong: #de4f13;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 12px 28px rgba(26, 35, 45, 0.12);
+  --content-max: 1320px;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
+* {
+  box-sizing: border-box;
 }
-a:hover {
-  color: #535bf2;
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+html {
+  font-size: 16px;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
-  min-height: 100vh;
+  color: var(--text);
+  font-family: "Segoe UI", "Trebuchet MS", "Arial", sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 153, 95, 0.2), transparent 28%),
+    radial-gradient(circle at 88% 4%, rgba(101, 155, 255, 0.16), transparent 26%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+a {
+  color: inherit;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+img {
+  max-width: 100%;
 }
 
-.card {
-  padding: 2em;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-#app {
-  max-width: 1280px;
+.container {
+  width: 100%;
+  max-width: var(--content-max);
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding-inline: clamp(0.9rem, 2.3vw, 1.6rem);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+.page-header,
+.hero-overlay {
+  animation: fadeSlideIn 350ms ease-out both;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
   }
-  a:hover {
-    color: #747bff;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+@media (max-width: 1100px) {
+  .filters-container {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .filter-group-extended {
+    justify-content: flex-start !important;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .date-selection-inline {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .dates-container-inline {
+    max-width: none !important;
+    width: 100%;
+  }
+
+  .schedule-card {
+    flex-direction: column;
+  }
+
+  .schedule-card-right,
+  .meta-info {
+    flex-direction: column !important;
+    width: 100%;
+    gap: 0.75rem !important;
+  }
+
+  .right-section,
+  .action-buttons {
+    width: 100%;
+    min-width: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding-block: 2.5rem !important;
+  }
+
+  .page-header h1,
+  .hero-title {
+    font-size: clamp(1.7rem, 7.3vw, 2.3rem) !important;
+    line-height: 1.15;
+  }
+
+  .page-header .subtitle,
+  .hero-subtitle {
+    font-size: clamp(1rem, 4.3vw, 1.2rem) !important;
+  }
+
+  .hero-description {
+    font-size: 0.96rem !important;
+    max-width: 38ch !important;
+  }
+
+  .section-box,
+  .filters-section,
+  .main-content,
+  .booking-summary,
+  .admin-content,
+  .ticket-card,
+  .movie-header,
+  .showtimes,
+  .trailer {
+    padding: 1rem !important;
+    border-radius: 12px !important;
+  }
+
+  .news-grid,
+  .movie-grid,
+  .genre-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.95rem !important;
+  }
+
+  .movie-header,
+  .ticket-card,
+  .booking-content,
+  .details-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .filters-row-unified,
+  .booking-steps,
+  .ticket-actions,
+  .navigation-buttons,
+  .section-header,
+  .admin-tabs {
+    gap: 0.7rem !important;
+  }
+
+  .filters-row-unified,
+  .navigation-buttons,
+  .ticket-actions,
+  .action-buttons {
+    flex-direction: column !important;
+  }
+
+  .filter-group,
+  .filter-group-search,
+  .filter-group-action,
+  .results-info,
+  .custom-dropdown,
+  .dropdown-btn,
+  .dropdown-btn-compact {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .results-info {
+    justify-content: flex-start !important;
+    padding-block: 0.25rem !important;
+  }
+
+  .dates-container-inline,
+  .category-tabs,
+  .admin-tabs {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .date-btn-inline,
+  .date-btn {
+    min-width: 52px !important;
+    padding-inline: 0.5rem !important;
+  }
+
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .data-table thead,
+  .data-table tbody,
+  .data-table tr {
+    width: 100%;
+  }
+
+  .seating-chart {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .row {
+    width: max-content;
+    margin-inline: auto;
+  }
+
+  .seat {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .legend {
+    flex-wrap: wrap;
+    justify-content: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 15px;
+  }
+
+  .container {
+    padding-inline: 0.75rem;
+  }
+
+  .hero-overlay,
+  .featured,
+  .news-banner-section,
+  .booking,
+  .success-content,
+  .admin {
+    padding-block: 1.25rem !important;
+  }
+
+  .btn,
+  .btn-view,
+  .btn-view-all,
+  .btn-primary,
+  .btn-secondary,
+  .btn-buy,
+  .btn-schedule,
+  .clear-filters-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .movie-title,
+  .news-title,
+  .ticket-header h2,
+  .movie-info h1 {
+    font-size: 1.25rem !important;
+  }
+
+  .movie-poster {
+    width: 100% !important;
   }
 }

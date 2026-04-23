@@ -837,6 +837,26 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .hero-overlay {
+    padding: 2.5rem 0;
+  }
+
+  .hero-title {
+    font-size: 2.1rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.2rem;
+  }
+
+  .section-header {
+    margin-bottom: 1.2rem;
+  }
+
+  .section-box {
+    padding: 1rem;
+  }
+
   .section-header h2 {
     font-size: 1.6rem;
   }
@@ -865,6 +885,37 @@ export default {
   
   .movie-info h3 {
     font-size: 1rem;
+  }
+
+  .poster-overlay {
+    opacity: 1;
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.42) 55%,
+      rgba(0, 0, 0, 0.2) 100%
+    );
+  }
+
+  .btn-view {
+    width: 100%;
+    text-align: center;
+    padding: 0.8rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .news-banner-card {
+    padding: 1rem;
+  }
+
+  .news-banner-content h3 {
+    font-size: 1.2rem;
+  }
+
+  .movie-grid,
+  .genre-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -459,10 +459,25 @@ export default {
   .page-header h1 {
     font-size: 1.8rem;
   }
+
+  .container {
+    padding: 0 1rem 2rem;
+  }
   
   .news-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1rem;
+  }
+
+  .image-overlay {
+    opacity: 1;
+    justify-content: flex-end;
+    align-items: stretch;
+  }
+
+  .btn-view {
+    width: 100%;
+    justify-content: center;
   }
   
   .news-info {
@@ -475,6 +490,17 @@ export default {
 
   .category-tabs {
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .category-tab {
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
   }
 }
 </style>

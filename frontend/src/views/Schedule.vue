@@ -1492,6 +1492,7 @@ h1 {
   .schedule-card-left {
     flex-direction: column;
     align-items: center;
+    width: 100%;
   }
 
   .schedule-card-right {
@@ -1521,6 +1522,35 @@ h1 {
 
   .dates-container {
     overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 0.8rem;
+    padding-top: 1.1rem;
+  }
+
+  .schedule-card {
+    padding: 1rem;
+  }
+
+  .movie-poster {
+    width: 100%;
+    max-width: 210px;
+  }
+
+  .movie-title {
+    font-size: 1.25rem;
+  }
+
+  .availability-container {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
   }
 }
 </style>
