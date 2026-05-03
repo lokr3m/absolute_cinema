@@ -71,11 +71,6 @@ const adminApiRateLimiter = rateLimit({
   }
 });
 
-if (!MONGODB_URI) {
-  console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
-  process.exit(1);
-}
-
 if (JWT_SECRET === 'change-me-in-production') {
   console.warn('⚠️ WARNING: JWT_SECRET is not set. Using insecure default secret for local development only.');
 }
@@ -765,6 +760,11 @@ function formatDateLocal(date) {
  */
 async function initializeServer() {
   try {
+    if (!MONGODB_URI) {
+      console.error('❌ ERROR: MONGODB_URI is not set in environment variables');
+      process.exit(1);
+    }
+
     // Connect to MongoDB
     console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
@@ -789,7 +789,9 @@ async function initializeServer() {
 }
 
 // Start the server
-initializeServer();
+if (require.main === module) {
+  initializeServer();
+}
 
 // Helper function to validate and parse date string
 function validateDate(dateStr) {
@@ -2971,3 +2973,12 @@ app.delete('/api/admin/bookings/:id', async (req, res) => {
     });
   }
 });
+
+module.exports = {
+  app,
+  normalizeApolloId,
+  extractShowsFromSchedule,
+  extractScheduleEvents,
+  parseSeatRowConfig,
+  timingSafeStringEqual
+};
