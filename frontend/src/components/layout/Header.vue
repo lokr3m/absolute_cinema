@@ -5,18 +5,18 @@
         <router-link to="/" class="logo">
           <h1>Cinema</h1>
         </router-link>
-        <button
-          class="menu-toggle"
-          type="button"
-          :aria-expanded="mobileMenuOpen"
-          aria-label="Toggle navigation"
-          @click="toggleMobileMenu"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
         <nav class="nav">
+          <button
+            class="menu-toggle"
+            type="button"
+            :aria-expanded="mobileMenuOpen"
+            aria-label="Toggle navigation"
+            @click="toggleMobileMenu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div class="nav-links" :class="{ open: mobileMenuOpen }">
             <router-link to="/" class="nav-link" @click="closeMobileMenu">Home</router-link>
             <router-link to="/movies" class="nav-link" @click="closeMobileMenu">Movies</router-link>
@@ -92,6 +92,8 @@ export default {
 }
 
 .nav {
+  display: flex;
+  align-items: center;
   position: relative;
 }
 

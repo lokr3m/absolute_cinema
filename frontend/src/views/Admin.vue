@@ -53,7 +53,7 @@
         <div v-if="activeTab === 'movies'" class="tab-content">
           <div class="section-header">
             <h2>Manage Movies</h2>
-            <button class="btn btn-primary" @click="openMovieForm()">Add New Movie</button>
+            <button class="btn btn-primary" @click="openMovieForm()" :disabled="!canWriteAdmin">Add New Movie</button>
           </div>
           <div v-if="loading" class="loading">Loading movies...</div>
           <div v-else-if="error" class="error">{{ error }}</div>
@@ -74,8 +74,8 @@
                 <td>{{ film.duration }} min</td>
                 <td>{{ film.isActive ? '✅' : '❌' }}</td>
                 <td class="actions">
-                  <button class="btn-icon edit" @click="openMovieForm(film)" title="Edit">✏️</button>
-                  <button class="btn-icon delete" @click="deleteMovie(film._id)" title="Delete">🗑️</button>
+                  <button class="btn-icon edit" @click="openMovieForm(film)" title="Edit" :disabled="!canWriteAdmin">✏️</button>
+                  <button class="btn-icon delete" @click="deleteMovie(film._id)" title="Delete" :disabled="!canWriteAdmin">🗑️</button>
                 </td>
               </tr>
               <tr v-if="films.length === 0">
@@ -89,7 +89,7 @@
         <div v-if="activeTab === 'sessions'" class="tab-content">
           <div class="section-header">
             <h2>Manage Sessions</h2>
-            <button class="btn btn-primary" @click="showSessionForm = true">Add New Session</button>
+            <button class="btn btn-primary" @click="showSessionForm = true" :disabled="!canWriteAdmin">Add New Session</button>
           </div>
           <div class="info-message">
             ℹ️ Halls and cinemas for sessions are loaded from Apollo Kino API. 
@@ -127,8 +127,8 @@
                   </span>
                 </td>
                 <td class="actions">
-                  <button class="btn-icon edit" @click="editSession(session)" title="Edit">✏️</button>
-                  <button class="btn-icon delete" @click="deleteSession(session._id)" title="Delete">🗑️</button>
+                  <button class="btn-icon edit" @click="editSession(session)" title="Edit" :disabled="!canWriteAdmin">✏️</button>
+                  <button class="btn-icon delete" @click="deleteSession(session._id)" title="Delete" :disabled="!canWriteAdmin">🗑️</button>
                 </td>
               </tr>
               <tr v-if="sessions.length === 0">
@@ -142,7 +142,7 @@
         <div v-if="activeTab === 'halls'" class="tab-content">
           <div class="section-header">
             <h2>Manage Halls</h2>
-            <button class="btn btn-primary" @click="showHallForm = true">Add New Hall</button>
+            <button class="btn btn-primary" @click="showHallForm = true" :disabled="!canWriteAdmin">Add New Hall</button>
           </div>
           <div v-if="loading" class="loading">Loading halls...</div>
           <div v-else-if="error" class="error">{{ error }}</div>
@@ -167,9 +167,9 @@
                 <td>{{ hall.seatsPerRow }}</td>
                 <td>{{ hall.screenType }}</td>
                 <td class="actions">
-                  <button class="btn-icon edit" @click="editHall(hall)" title="Edit">✏️</button>
-                  <button class="btn-icon" @click="manageSeats(hall)" title="Manage Seats">🪑</button>
-                  <button class="btn-icon delete" @click="deleteHall(hall._id)" title="Delete">🗑️</button>
+                  <button class="btn-icon edit" @click="editHall(hall)" title="Edit" :disabled="!canWriteAdmin">✏️</button>
+                  <button class="btn-icon" @click="manageSeats(hall)" title="Manage Seats" :disabled="!canWriteAdmin">🪑</button>
+                  <button class="btn-icon delete" @click="deleteHall(hall._id)" title="Delete" :disabled="!canWriteAdmin">🗑️</button>
                 </td>
               </tr>
               <tr v-if="halls.length === 0">
@@ -213,7 +213,7 @@
                   </span>
                 </td>
                 <td class="actions">
-                  <button class="btn-icon delete" @click="deleteBooking(booking._id)" title="Delete">🗑️</button>
+                  <button class="btn-icon delete" @click="deleteBooking(booking._id)" title="Delete" :disabled="!canWriteAdmin">🗑️</button>
                 </td>
               </tr>
               <tr v-if="bookings.length === 0">
@@ -227,7 +227,7 @@
         <div v-if="activeTab === 'cinemas'" class="tab-content">
           <div class="section-header">
             <h2>Manage Cinemas</h2>
-            <button class="btn btn-success" @click="syncCinemasFromApollo" :disabled="syncing">
+            <button class="btn btn-success" @click="syncCinemasFromApollo" :disabled="syncing || !canWriteAdmin">
               {{ syncing ? 'Syncing...' : '🔄 Sync from Apollo Kino API' }}
             </button>
           </div>
@@ -249,7 +249,7 @@
                 <td>
                   <div v-for="hall in hallsByCinema(cinema._id)" :key="hall._id" class="hall-seat-row">
                     <span>{{ hall.name }} ({{ hall.rows }}x{{ hall.seatsPerRow }})</span>
-                    <button class="btn btn-secondary btn-xs" @click="openSeatForm(hall)">Configure seats</button>
+                    <button class="btn btn-secondary btn-xs" @click="openSeatForm(hall)" :disabled="!canWriteAdmin">Configure seats</button>
                   </div>
                 </td>
               </tr>
@@ -258,6 +258,78 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Admins Management -->
+        <div v-if="activeTab === 'admins'" class="tab-content">
+          <div class="section-header">
+            <h2>Manage Admins</h2>
+          </div>
+          <div v-if="!adminUser?.isPrimaryAdmin" class="info-message">
+            ⚠️ Only the primary admin can register new admins.
+          </div>
+          <form v-else @submit.prevent="createAdmin" class="admin-create-form">
+            <div class="form-group">
+              <label for="new-admin-email">Email</label>
+              <input
+                id="new-admin-email"
+                v-model.trim="adminCreateForm.email"
+                type="email"
+                required
+                autocomplete="off"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-admin-password">Password</label>
+              <input
+                id="new-admin-password"
+                v-model="adminCreateForm.password"
+                type="password"
+                required
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-admin-role">Role</label>
+              <select id="new-admin-role" v-model="adminCreateForm.role" required>
+                <option value="admin">admin</option>
+                <option value="manager">manager</option>
+              </select>
+            </div>
+            <div v-if="adminCreateError" class="error">{{ adminCreateError }}</div>
+            <div v-if="adminCreateSuccess" class="success-message">{{ adminCreateSuccess }}</div>
+            <button type="submit" class="btn btn-primary" :disabled="adminCreateSubmitting">
+              {{ adminCreateSubmitting ? 'Creating...' : 'Create admin' }}
+            </button>
+          </form>
+          <div v-if="adminUser?.isPrimaryAdmin" class="admin-list">
+            <div class="section-header">
+              <h2>All Admins</h2>
+            </div>
+            <div v-if="adminListLoading" class="loading">Loading admins...</div>
+            <div v-else-if="adminListError" class="error">{{ adminListError }}</div>
+            <table v-else class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Primary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="admin in adminList" :key="admin.id">
+                  <td>{{ adminDisplayName(admin) }}</td>
+                  <td>{{ admin.email }}</td>
+                  <td>{{ admin.role }}</td>
+                  <td>{{ admin.isPrimaryAdmin ? '✅' : '—' }}</td>
+                </tr>
+                <tr v-if="adminList.length === 0">
+                  <td colspan="4" style="text-align: center;">No admins found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       </div>
@@ -274,10 +346,10 @@
           <div v-if="halls.length === 0" class="sync-warning">
             <p>⚠️ No halls available in the database.</p>
             <p>Halls and cinemas must be synced from Apollo Kino API before creating sessions.</p>
-            <button type="button" class="btn btn-success" @click="syncCinemasFromSessionForm" :disabled="syncing">
+            <button type="button" class="btn btn-success" @click="syncCinemasFromSessionForm" :disabled="syncing || !canWriteAdmin">
               {{ syncing ? 'Syncing...' : '🔄 Sync from Apollo Kino API' }}
             </button>
-          </div>
+            </div>
           
           <div class="form-group">
             <label for="film">Film *</label>
@@ -363,7 +435,7 @@
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeSessionForm">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="formSubmitting">
+            <button type="submit" class="btn btn-primary" :disabled="formSubmitting || !canWriteAdmin">
               {{ formSubmitting ? 'Saving...' : 'Save Session' }}
             </button>
           </div>
@@ -467,7 +539,7 @@
           
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeMovieForm">Cancel</button>
-            <button class="btn btn-primary" :aria-label="editingMovie ? 'Update Movie' : 'Add Movie'">
+            <button class="btn btn-primary" :aria-label="editingMovie ? 'Update Movie' : 'Add Movie'" :disabled="!canWriteAdmin">
               {{ editingMovie ? '💾 Update Movie' : '➕ Add Movie' }}
             </button>
           </div>
@@ -539,7 +611,7 @@
 
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeHallForm">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="formSubmitting">
+            <button type="submit" class="btn btn-primary" :disabled="formSubmitting || !canWriteAdmin">
               {{ formSubmitting ? 'Saving...' : 'Save Hall' }}
             </button>
           </div>
@@ -579,7 +651,7 @@
           
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" @click="closeSeatForm">Cancel</button>
-            <button class="btn btn-primary" aria-label="Generate Seats">🎯 Generate Seats</button>
+            <button class="btn btn-primary" aria-label="Generate Seats" :disabled="!canWriteAdmin">🎯 Generate Seats</button>
           </div>
         </form>
       </div>
@@ -595,13 +667,14 @@ export default {
   data() {
     return {
       activeTab: 'sessions',
-      tabs: [
-        { id: 'movies', label: 'Movies' },
-        { id: 'sessions', label: 'Sessions' },
-        { id: 'halls', label: 'Halls' },
-        { id: 'bookings', label: 'Bookings' },
-        { id: 'cinemas', label: 'Cinemas' }
-      ],
+        tabs: [
+          { id: 'movies', label: 'Movies' },
+          { id: 'sessions', label: 'Sessions' },
+          { id: 'halls', label: 'Halls' },
+          { id: 'bookings', label: 'Bookings' },
+          { id: 'cinemas', label: 'Cinemas' },
+          { id: 'admins', label: 'Admins' }
+        ],
       loading: false,
       error: null,
       authError: null,
@@ -612,6 +685,17 @@ export default {
         email: '',
         password: ''
       },
+      adminCreateForm: {
+        email: '',
+        password: '',
+        role: 'admin'
+      },
+      adminCreateError: null,
+      adminCreateSuccess: null,
+      adminCreateSubmitting: false,
+      adminList: [],
+      adminListLoading: false,
+      adminListError: null,
       films: [],
       sessions: [],
       bookings: [],
@@ -686,12 +770,43 @@ export default {
   computed: {
     isAuthenticated() {
       return Boolean(this.authToken);
+    },
+    canWriteAdmin() {
+      return this.adminUser?.role === 'admin';
     }
   },
   mounted() {
     this.restoreAdminSession();
   },
   methods: {
+    async parseApiResponse(response) {
+      const contentType = response.headers.get('content-type') || '';
+      const responseText = await response.text();
+      const isJson = contentType.toLowerCase().includes('application/json');
+
+      if (!isJson) {
+        return {
+          isJson: false,
+          payload: null,
+          responseText
+        };
+      }
+
+      try {
+        return {
+          isJson: true,
+          payload: JSON.parse(responseText),
+          responseText
+        };
+      } catch {
+        return {
+          isJson: false,
+          payload: null,
+          responseText
+        };
+      }
+    },
+
     async restoreAdminSession() {
       const storedToken = localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
       if (!storedToken) return;
@@ -699,9 +814,14 @@ export default {
       this.authToken = storedToken;
       try {
         const response = await this.adminFetch('/api/admin/auth/me');
-        const payload = await response.json();
-        if (!payload.success) {
-          throw new Error(payload.error || 'Session is not valid anymore');
+        const { isJson, payload } = await this.parseApiResponse(response);
+
+        if (!isJson) {
+          throw new Error('Admin auth endpoint returned non-JSON response. Check backend deployment and VITE_API_URL.');
+        }
+
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error || 'Session is not valid anymore');
         }
         this.adminUser = payload.data;
         await this.loadTabData(this.activeTab);
@@ -719,9 +839,15 @@ export default {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.loginForm)
         });
-        const payload = await response.json();
-        if (!payload.success) {
-          this.authError = payload.error || 'Failed to login';
+
+        const { isJson, payload } = await this.parseApiResponse(response);
+        if (!isJson) {
+          this.authError = `Admin login endpoint is not available at ${API_BASE_URL}/api/admin/auth/login (HTTP ${response.status}).`;
+          return;
+        }
+
+        if (!response.ok || !payload?.success) {
+          this.authError = payload?.error || `Failed to login (HTTP ${response.status})`;
           return;
         }
 
@@ -745,6 +871,13 @@ export default {
         this.error = null;
         this.authError = null;
       }
+      this.adminCreateError = null;
+      this.adminCreateSuccess = null;
+      this.adminCreateSubmitting = false;
+      this.adminCreateForm = { email: '', password: '', role: 'admin' };
+      this.adminList = [];
+      this.adminListError = null;
+      this.adminListLoading = false;
     },
 
     async adminFetch(path, options = {}) {
@@ -791,6 +924,16 @@ export default {
           case 'cinemas':
             await this.loadCinemas();
             await this.loadHalls();
+            break;
+          case 'admins':
+            this.adminCreateError = null;
+            this.adminCreateSuccess = null;
+            this.adminListError = null;
+            if (this.adminUser?.isPrimaryAdmin) {
+              await this.loadAdminList();
+            } else {
+              this.adminList = [];
+            }
             break;
         }
       } catch (err) {
@@ -861,6 +1004,56 @@ export default {
       } else {
         throw new Error(data.error || 'Failed to load halls');
       }
+    },
+
+    async createAdmin() {
+      this.adminCreateSubmitting = true;
+      this.adminCreateError = null;
+      this.adminCreateSuccess = null;
+      try {
+        const response = await this.adminFetch('/api/admin/admins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.adminCreateForm)
+        });
+        const data = await response.json();
+        if (!data.success) {
+          this.adminCreateError = data.error || 'Failed to create admin';
+          return;
+        }
+        this.adminCreateSuccess = `✅ Admin ${data.data.email} created successfully`;
+        this.adminCreateForm = { email: '', password: '', role: 'admin' };
+        await this.loadAdminList();
+      } catch (error) {
+        this.adminCreateError = error.message || 'Failed to create admin';
+      } finally {
+        this.adminCreateSubmitting = false;
+      }
+    },
+
+    async loadAdminList() {
+      this.adminListLoading = true;
+      this.adminListError = null;
+      try {
+        const response = await this.adminFetch('/api/admin/admins');
+        const data = await response.json();
+        if (data.success) {
+          this.adminList = data.data || [];
+        } else {
+          this.adminList = [];
+          this.adminListError = data.error || 'Failed to load admins';
+        }
+      } catch (error) {
+        this.adminList = [];
+        this.adminListError = error.message || 'Failed to load admins';
+      } finally {
+        this.adminListLoading = false;
+      }
+    },
+
+    adminDisplayName(admin) {
+      const name = [admin.firstName, admin.lastName].filter(Boolean).join(' ').trim();
+      return name || admin.email || 'Unknown';
     },
 
     formatDateTime(dateStr) {
@@ -1363,6 +1556,13 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.admin-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 480px;
 }
 
 .admin-toolbar {

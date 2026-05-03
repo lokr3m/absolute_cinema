@@ -257,7 +257,12 @@
 import axios from 'axios'
 import { formatLocalDate } from '../utils/date'
 
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = (() => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`
+  }
+  return 'http://localhost:3000/api'
+})()
 const SEAT_HOLD_DURATION_MINUTES = 15
 const SEAT_HOLD_DURATION_SECONDS = SEAT_HOLD_DURATION_MINUTES * 60
 const SEAT_HOLD_DURATION_MS = SEAT_HOLD_DURATION_SECONDS * 1000

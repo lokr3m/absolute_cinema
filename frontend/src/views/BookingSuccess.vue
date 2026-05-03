@@ -75,7 +75,12 @@ import axios from 'axios'
 import QRCode from 'qrcode'
 import { jsPDF } from 'jspdf'
 
-const API_BASE_URL = 'http://localhost:3000/api'
+const API_BASE_URL = (() => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL}/api`
+  }
+  return 'http://localhost:3000/api'
+})()
 
 export default {
   name: 'BookingSuccess',
