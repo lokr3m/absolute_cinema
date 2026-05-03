@@ -148,6 +148,7 @@ Base URL: `http://127.0.0.1:3000`
   - Failed login lockout: after 5 incorrect password attempts, account is locked for 15 minutes
   - Roles: `admin` (read/write), `manager` (read-only admin API)
   - If `ADMIN_EMAIL` and `ADMIN_PASSWORD` are set in `.env`, backend bootstraps/updates this admin user on startup
+  - `POST /api/admin/admins` (primary admin only) — create new admin or manager accounts
 - `GET/POST /api/admin/movies`
 - `PUT/DELETE /api/admin/movies/:id`
 - `GET/POST /api/admin/sessions`
