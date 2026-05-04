@@ -20,7 +20,7 @@
     "dev": "nodemon backend/index.js",
     "seed": "node backend/seed.js",
     "add-sessions": "node backend/addSessions.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -33,5 +33,8 @@
   "bugs": {
     "url": "https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt/issues"
   },
-  "homepage": "https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt#readme"
+  "homepage": "https://github.com/Tallinna-Polutehnikum/TA23B-B5-projekt#readme",
+  "devDependencies": {
+    "jest": "^30.3.0"
+  }
 }
